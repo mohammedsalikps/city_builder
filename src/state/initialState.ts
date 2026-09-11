@@ -24,6 +24,7 @@ export function createInitialState(progress: PlayerProgress = createInitialProgr
     placementRotationStep: 0,
     placedObjects: [],
     selectedInstanceId: null,
+    transformMode: 'move',
     placementStatus: null,
   };
 }

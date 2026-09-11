@@ -1,7 +1,8 @@
 import type { GameStore } from './GameStore';
+import type { GameState } from './GameState';
 import { createPlayer } from '@/player/Player';
 import type { ObjectRegistry } from '@/construction/ObjectRegistry';
-import { roleOf } from '@/construction/ConstructionObjectDefinition';
+import { roleOf, type ConstructionObjectDefinition } from '@/construction/ConstructionObjectDefinition';
 import { createPlacedObject, type PlacedObject, type Vec3 } from '@/construction/PlacedObject';
 import { PLACEMENT_ROTATION_STEP, PLACEMENT_ROTATION_STEPS } from '@/construction/constants';
 import { computeBounds } from '@/construction/bounds';
@@ -10,10 +11,12 @@ import {
   checkTargetSupport,
   findInvalidReason,
   placementStatusEquals,
+  PlacementResolver,
   type PlacementRulesContext,
   type PlacementStatus,
   type PlacementSurface,
 } from '@/construction/PlacementResolver';
+import { transformCapabilitiesOf, TRANSFORM_MODES, type TransformMode } from '@/construction/TransformCapabilities';
 import type { ChallengeRegistry } from '@/challenges/ChallengeRegistry';
 import type { ChallengeMatchResult } from '@/challenges/ChallengeMatcher';
 import type { ChallengeStatus } from '@/challenges/Challenge';
@@ -37,12 +40,17 @@ export interface PlaceOptions {
  * named, discoverable and testable.
  */
 export class GameActions {
+  /** Stateless; reused to re-validate moves/rotations of already-placed objects. */
+  private readonly resolver: PlacementResolver;
+
   constructor(
     private readonly store: GameStore,
     private readonly registry: ObjectRegistry,
     private readonly challenges: ChallengeRegistry,
     private readonly placementRules: PlacementRulesContext,
-  ) {}
+  ) {
+    this.resolver = new PlacementResolver(registry, placementRules);
+  }
 
   // ---------------------------------------------------------------- session
 
@@ -64,6 +72,7 @@ export class GameActions {
       placementRotationStep: 0,
       placedObjects: [],
       selectedInstanceId: null,
+      transformMode: 'move',
       placementStatus: null,
     });
   }
@@ -144,6 +153,7 @@ export class GameActions {
       placementRotationStep: 0,
       placedObjects: [],
       selectedInstanceId: null,
+      transformMode: 'move',
       placementStatus: null,
     });
     return true;
@@ -164,6 +174,7 @@ export class GameActions {
       placementRotationStep: 0,
       placedObjects: [],
       selectedInstanceId: null,
+      transformMode: 'move',
       placementStatus: null,
     });
   }
@@ -179,6 +190,7 @@ export class GameActions {
       selectedObjectId: null,
       placedObjects: [],
       selectedInstanceId: null,
+      transformMode: 'move',
       placementStatus: null,
     });
   }
@@ -407,7 +419,12 @@ export class GameActions {
       console.warn(`[actions] Unknown placed object: ${instanceId}`);
       return;
     }
-    this.store.setState({ selectedInstanceId: instanceId, selectedObjectId: null, placementStatus: null });
+    this.store.setState({
+      selectedInstanceId: instanceId,
+      selectedObjectId: null,
+      transformMode: 'move',
+      placementStatus: null,
+    });
   }
 
   /**
@@ -444,4 +461,139 @@ export class GameActions {
     if (selectedInstanceId === null) return false;
     return this.removePlacedObject(selectedInstanceId);
   }
+
+  // -------------------------------------------------------------- transform
+
+  /**
+   * Switch the active gizmo/indicator for the current selection. Ignored
+   * (with a warning) when nothing is selected or the selected object does
+   * not support that mode, so the UI/keyboard never has to duplicate the
+   * capability check.
+   */
+  setTransformMode(mode: TransformMode): void {
+    if (!TRANSFORM_MODES.includes(mode)) return;
+    const state = this.store.getState();
+    if (state.transformMode === mode) return;
+    const selected = this.selectedPlacedObject(state);
+    if (!selected) return;
+    const caps = transformCapabilitiesOf(selected.definition, this.playContext(state), this.hostsOpenings(state, selected.placed.id));
+    const allowed = mode === 'move' ? caps.movable : mode === 'rotate' ? caps.rotatableY : caps.scalable;
+    if (!allowed) {
+      console.warn(`[actions] "${mode}" is not available for ${selected.definition.name}`);
+      return;
+    }
+    this.store.setState({ transformMode: mode });
+  }
+
+  /**
+   * Reposition the selected placed object (horizontal only - Y and any
+   * role-specific snapping are re-resolved exactly like a fresh placement:
+   * wall corners, floor clearance against neighbours, openings sliding along
+   * their host wall). A wall carries any doors/windows set into it along by
+   * the same offset. Returns the resulting status (so the caller can show
+   * why a move was rejected); nothing is committed when it is invalid.
+   */
+  moveSelectedPlacedObject(x: number, z: number): PlacementStatus | null {
+    const state = this.store.getState();
+    const selected = this.selectedPlacedObject(state);
+    if (!selected) return null;
+    const { placed, definition } = selected;
+    const caps = transformCapabilitiesOf(definition, this.playContext(state), this.hostsOpenings(state, placed.id));
+    if (!caps.movable) return null;
+
+    const candidate = this.resolver.resolveMove(placed, definition, { x, z }, placed.rotationY, state.placedObjects);
+    if (!candidate) return null;
+    if (!candidate.status.valid) return candidate.status;
+
+    const delta = { x: candidate.position.x - placed.position.x, z: candidate.position.z - placed.position.z };
+    const carryOpenings = roleOf(definition) === 'wall';
+    const placedObjects = state.placedObjects.map((p) => {
+      if (p.id === placed.id) return { ...p, position: candidate.position, rotationY: candidate.rotationY };
+      if (carryOpenings && p.hostId === placed.id) {
+        return { ...p, position: { x: p.position.x + delta.x, y: p.position.y, z: p.position.z + delta.z } };
+      }
+      return p;
+    });
+    this.store.setState({ placedObjects });
+    return candidate.status;
+  }
+
+  /**
+   * Rotate the selected placed object to an absolute yaw (radians), snapped
+   * to the nearest quarter turn - the same discrete steps every other
+   * rotation in the game uses. Returns the resulting status; rejected
+   * rotations are never committed.
+   */
+  rotateSelectedPlacedObject(rotationY: number): PlacementStatus | null {
+    const state = this.store.getState();
+    const selected = this.selectedPlacedObject(state);
+    if (!selected) return null;
+    const { placed, definition } = selected;
+    const caps = transformCapabilitiesOf(definition, this.playContext(state), this.hostsOpenings(state, placed.id));
+    if (!caps.rotatableY) return null;
+
+    const step = Math.round(rotationY / PLACEMENT_ROTATION_STEP) % PLACEMENT_ROTATION_STEPS;
+    const snapped = ((step + PLACEMENT_ROTATION_STEPS) % PLACEMENT_ROTATION_STEPS) * PLACEMENT_ROTATION_STEP;
+
+    const candidate = this.resolver.resolveRotate(placed, definition, snapped, state.placedObjects);
+    if (!candidate) return null;
+    if (!candidate.status.valid) return candidate.status;
+
+    const placedObjects = state.placedObjects.map((p) =>
+      p.id === placed.id ? { ...p, position: candidate.position, rotationY: candidate.rotationY } : p,
+    );
+    this.store.setState({ placedObjects });
+    return candidate.status;
+  }
+
+  /**
+   * Step the selected placed object's uniform scale up or down within its
+   * capability range. My World only: Challenge Mode's capabilities always
+   * report `scalable: false`, so gameplay dimensions there stay authoritative.
+   * Returns the resulting scale, or null if the step is not allowed/valid.
+   */
+  scaleSelectedPlacedObject(direction: 1 | -1): number | null {
+    const state = this.store.getState();
+    const selected = this.selectedPlacedObject(state);
+    if (!selected) return null;
+    const { placed, definition } = selected;
+    const caps = transformCapabilitiesOf(definition, this.playContext(state), this.hostsOpenings(state, placed.id));
+    if (!caps.scalable) return null;
+
+    const next = Math.min(caps.maxScale, Math.max(caps.minScale, roundScale(placed.scale.x + direction * caps.scaleStep)));
+    if (next === placed.scale.x) return next;
+
+    const scale: Vec3 = { x: next, y: next, z: next };
+    const bounds = computeBounds(definition, placed.position, placed.rotationY, scale);
+    const reason = findInvalidReason(bounds, state.placedObjects, this.registry, this.placementRules, [placed.id]);
+    if (reason !== null) return null;
+
+    const placedObjects = state.placedObjects.map((p) => (p.id === placed.id ? { ...p, scale } : p));
+    this.store.setState({ placedObjects });
+    return next;
+  }
+
+  private selectedPlacedObject(
+    state: GameState,
+  ): { placed: PlacedObject; definition: ConstructionObjectDefinition } | null {
+    if (state.mode !== 'playing' || !state.selectedInstanceId) return null;
+    const placed = state.placedObjects.find((p) => p.id === state.selectedInstanceId);
+    if (!placed) return null;
+    const definition = this.registry.get(placed.definitionId);
+    if (!definition) return null;
+    return { placed, definition };
+  }
+
+  private playContext(state: GameState): 'challenge' | 'freeplay' {
+    return state.challenge ? 'challenge' : 'freeplay';
+  }
+
+  private hostsOpenings(state: GameState, instanceId: string): boolean {
+    return state.placedObjects.some((p) => p.hostId === instanceId);
+  }
+}
+
+/** Precision used for stored scale multipliers (0.001), removing float drift on repeated steps. */
+function roundScale(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }

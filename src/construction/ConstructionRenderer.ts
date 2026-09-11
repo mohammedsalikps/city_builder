@@ -12,6 +12,7 @@ export const INSTANCE_ID_KEY = 'instanceId';
 
 const EDGE_COLOR = 0x1e1a16;
 const SELECTED_EDGE_COLOR = 0xffd54a;
+const INVALID_EDGE_COLOR = 0xff5252;
 const SELECTED_EMISSIVE = 0x5a4300;
 const EDGE_THRESHOLD_DEGREES = 25;
 /** Outline strength on textured objects: a hint of drawing, not a wireframe. */
@@ -65,6 +66,10 @@ export class ConstructionRenderer {
   /** Invisible but raycastable: the gameplay shape under an asset visual. */
   private readonly proxyMaterial = new THREE.MeshBasicMaterial({ visible: false });
   private readonly selectedEdgeMaterial = new THREE.LineBasicMaterial({ color: SELECTED_EDGE_COLOR });
+  /** Shown instead of the selection colour while a gizmo drag is currently invalid. */
+  private readonly invalidEdgeMaterial = new THREE.LineBasicMaterial({ color: INVALID_EDGE_COLOR });
+  /** Selected instance currently being dragged to an invalid spot, if any. */
+  private invalidId: string | null = null;
   /**
    * Presentation-only fade (see InteriorReadability): ids drawn see-through
    * because they stand between the camera and an interior target. One faded
@@ -123,8 +128,33 @@ export class ConstructionRenderer {
     }
 
     this.syncWallOpenings(placedObjects);
+    if (this.selectedId !== selectedInstanceId) this.invalidId = null;
     this.selectedId = selectedInstanceId;
     this.instances.forEach((instance) => this.applyMaterials(instance));
+  }
+
+  /** The live three.js object for a placed instance, e.g. to attach a transform gizmo to. */
+  getObject3D(instanceId: string): THREE.Object3D | null {
+    return this.instances.get(instanceId)?.mesh ?? null;
+  }
+
+  /** Snap an instance's mesh back to its last authoritative transform (a rejected drag). */
+  resync(instanceId: string): void {
+    const instance = this.instances.get(instanceId);
+    if (instance) this.applyTransform(instance, instance.source);
+  }
+
+  /**
+   * Tint the selected instance's outline red while a gizmo drag would not be
+   * a valid transform, or back to the normal selection colour once it is (or
+   * once the drag ends). Presentation only; never touches placed-object data.
+   */
+  setSelectionValid(instanceId: string, valid: boolean): void {
+    const next = valid ? null : instanceId;
+    if (this.invalidId === next) return;
+    this.invalidId = next;
+    const instance = this.instances.get(instanceId);
+    if (instance) this.applyMaterials(instance);
   }
 
   /**
@@ -155,6 +185,7 @@ export class ConstructionRenderer {
     this.clear();
     this.edgeMaterial.dispose();
     this.selectedEdgeMaterial.dispose();
+    this.invalidEdgeMaterial.dispose();
     this.fadedEdgeMaterial.dispose();
     this.fadedMaterials.forEach((m) => m.dispose());
     this.fadedMaterials.clear();
@@ -339,7 +370,7 @@ export class ConstructionRenderer {
       // readability fades the model's own materials.
       instance.mesh.material = this.proxyMaterial;
       instance.edges.visible = id === this.selectedId;
-      instance.edges.material = this.selectedEdgeMaterial;
+      instance.edges.material = id === this.invalidId ? this.invalidEdgeMaterial : this.selectedEdgeMaterial;
       const faded = this.fadedIds.has(id) && id !== this.selectedId;
       instance.visual.traverse((node) => {
         const mesh = node as THREE.Mesh;
@@ -358,7 +389,7 @@ export class ConstructionRenderer {
         instance.selectedMaterial.emissive = new THREE.Color(SELECTED_EMISSIVE);
       }
       instance.mesh.material = instance.selectedMaterial;
-      instance.edges.material = this.selectedEdgeMaterial;
+      instance.edges.material = id === this.invalidId ? this.invalidEdgeMaterial : this.selectedEdgeMaterial;
     } else if (this.fadedIds.has(id)) {
       instance.mesh.material = this.fadedMaterialFor(baseMaterial);
       instance.edges.material = this.fadedEdgeMaterial;

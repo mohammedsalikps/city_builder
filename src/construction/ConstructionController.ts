@@ -12,6 +12,7 @@ import { PlacementPreview } from './PlacementPreview';
 import { ConstructionRaycaster } from './ConstructionRaycaster';
 import { PlacementResolver, type PlacementCandidate, type PlacementRulesContext } from './PlacementResolver';
 import type { AssetLibrary } from '@/visual/assets/AssetLibrary';
+import { ObjectTransformController } from './ObjectTransformController';
 
 /**
  * Glue between input, game state and the 3D construction visuals.
@@ -32,6 +33,7 @@ export class ConstructionController {
   readonly resources: ConstructionResources;
   readonly renderer: ConstructionRenderer;
   readonly preview: PlacementPreview;
+  readonly transform: ObjectTransformController;
   private readonly raycaster: ConstructionRaycaster;
   private readonly resolver: PlacementResolver;
 
@@ -59,6 +61,7 @@ export class ConstructionController {
     this.preview = new PlacementPreview(world.overlayRoot, this.resources);
     this.raycaster = new ConstructionRaycaster(world.camera);
     this.resolver = new PlacementResolver(registry, placementRules);
+    this.transform = new ObjectTransformController(store, actions, registry, this.renderer, world, placementRules);
   }
 
   start(): void {
@@ -100,6 +103,7 @@ export class ConstructionController {
   dispose(): void {
     this.disposers.forEach((d) => d());
     this.disposers.length = 0;
+    this.transform.dispose();
     this.preview.dispose();
     this.renderer.dispose();
     this.resources.dispose();
@@ -119,12 +123,14 @@ export class ConstructionController {
       ? this.registry.get(state.selectedObjectId) ?? null
       : null;
     this.preview.setDefinition(definition);
+    this.transform.sync(state);
   }
 
   // ----------------------------------------------------------------- input
 
   private readonly onClick = (click: PointerClick): void => {
     if (click.button !== 0) return;
+    if (this.transform.consumeSuppressClick()) return;
     const state = this.store.getState();
     if (state.mode !== 'playing') return;
 
@@ -152,6 +158,15 @@ export class ConstructionController {
     switch (key.code) {
       case 'KeyR':
         if (isPlacementMode(state)) this.actions.rotatePlacement(key.shift ? -1 : 1);
+        break;
+      case 'KeyW':
+        if (!isPlacementMode(state) && state.selectedInstanceId) this.actions.setTransformMode('move');
+        break;
+      case 'KeyE':
+        if (!isPlacementMode(state) && state.selectedInstanceId) this.actions.setTransformMode('rotate');
+        break;
+      case 'KeyS':
+        if (!isPlacementMode(state) && state.selectedInstanceId) this.actions.setTransformMode('scale');
         break;
       case 'Delete':
       case 'Backspace':

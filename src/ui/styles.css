@@ -204,6 +204,31 @@ body {
   display: none;
 }
 
+.button--active {
+  background: rgba(242, 165, 65, 0.3);
+  border-color: var(--ui-accent);
+}
+
+.hud__transform {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.hud__transform[hidden] {
+  display: none;
+}
+
+.hud__scale-stepper {
+  display: flex;
+  gap: 4px;
+}
+
+.hud__scale-stepper[hidden] {
+  display: none;
+}
+
 .hud__status {
   font-weight: 600;
   font-size: 13px;

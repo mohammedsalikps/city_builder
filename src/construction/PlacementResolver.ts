@@ -233,6 +233,152 @@ export class PlacementResolver {
     };
   }
 
+  /**
+   * Re-resolve an existing placed object at a new horizontal position, using
+   * the same role-specific snapping and validation as a fresh placement
+   * (wall corners, floor clearance, opening sliding along its host). The
+   * object's current relationship (ground / support / host wall) never
+   * changes, only its position within that relationship does.
+   */
+  resolveMove(
+    placed: PlacedObject,
+    definition: ConstructionObjectDefinition,
+    proposed: { x: number; z: number },
+    rotationY: number,
+    placedObjects: PlacedObject[],
+  ): PlacementCandidate | null {
+    let position: Vec3;
+    let surface: PlacementSurface;
+    let support: PlacedObject | null = null;
+    let supportDefinition: ConstructionObjectDefinition | null = null;
+    const hostId: string | null = placed.hostId;
+
+    if (placed.hostId) {
+      const host = placedObjects.find((p) => p.id === placed.hostId) ?? null;
+      const hostDefinition = host ? this.registry.get(host.definitionId) ?? null : null;
+      if (!host || !hostDefinition) return null;
+      const flip = rotationStepOf(rotationY) % 2 === 1;
+      const point: Vec3 = { x: proposed.x, y: placed.position.y, z: proposed.z };
+      const placement = placeOpeningInWall(hostDefinition, host, definition, point, flip, OPENING_SNAP_STEP);
+      if (!placement) {
+        return this.invalid(definition, placed.position, placed.rotationY, 'side', host, hostDefinition, 'does-not-fit', `${definition.name} does not fit this wall`);
+      }
+      position = placement.position;
+      rotationY = placement.rotationY;
+      surface = 'side';
+      support = host;
+      supportDefinition = hostDefinition;
+    } else if (placed.supportId) {
+      support = placedObjects.find((p) => p.id === placed.supportId) ?? null;
+      supportDefinition = support ? this.registry.get(support.definitionId) ?? null : null;
+      if (!support || !supportDefinition) return null;
+      const supportBounds = boundsOfPlaced(supportDefinition, support);
+      position = this.snapOnTop({ x: proposed.x, y: 0, z: proposed.z }, supportBounds, support, definition, rotationY);
+      surface = 'top';
+    } else {
+      position = this.snapOnGround({ x: proposed.x, y: 0, z: proposed.z }, definition, rotationY);
+      surface = 'ground';
+    }
+
+    const role = roleOf(definition);
+    let snapKind: PlacementSnap = null;
+    let hint: string | null = null;
+
+    if (role === 'wall') {
+      const walls = this.objectsWithRole(placedObjects, 'wall').filter((w) => w.placed.id !== placed.id);
+      const snapped = snapWallToNeighbours(definition, position, rotationY, walls, WALL_SNAP_RADIUS, {
+        x: proposed.x,
+        z: proposed.z,
+      });
+      if (snapped) {
+        const snappedBounds = computeBounds(definition, snapped.position, rotationY, UNIT_SCALE);
+        if (findInvalidReason(snappedBounds, placedObjects, this.registry, this.rules, [placed.id]) === null) {
+          position = snapped.position;
+          snapKind = snapped.kind;
+          hint = snapped.kind === 'corner' ? 'Snapped into a corner' : 'Continues the wall';
+        }
+      }
+    } else if (role === 'floor') {
+      const others = placedObjects.filter((p) => p.id !== placed.id);
+      const pushed = this.pushClearOfWalls(definition, position, rotationY, others);
+      if (pushed) {
+        position = pushed;
+        snapKind = 'edge';
+        hint = 'Against the wall';
+      }
+    }
+
+    const ruleHint =
+      checkSupportRules(definition, surface, supportDefinition) ??
+      checkTargetSupport(definition, surface, supportDefinition, this.registry, this.rules);
+    if (ruleHint) {
+      return this.invalid(definition, position, rotationY, surface, support, supportDefinition, 'wrong-support', ruleHint);
+    }
+
+    const bounds = computeBounds(definition, position, rotationY, placed.scale);
+    const ignoreIds = hostId ? [placed.id, hostId] : [placed.id];
+    const reason = findInvalidReason(bounds, placedObjects, this.registry, this.rules, ignoreIds);
+    return {
+      position,
+      rotationY,
+      bounds,
+      hostId,
+      status: makeStatus(surface, support, supportDefinition, reason === null, reason, snapKind, reason ? null : hint),
+    };
+  }
+
+  /**
+   * Re-resolve an existing placed object at a new quarter-turn rotation, in
+   * place. A wall that hosts a door or window is never offered a rotate
+   * handle (see `transformCapabilitiesOf`), so this need not rotate hosted
+   * openings; every other role rotates around its own current position.
+   */
+  resolveRotate(
+    placed: PlacedObject,
+    definition: ConstructionObjectDefinition,
+    rotationY: number,
+    placedObjects: PlacedObject[],
+  ): PlacementCandidate | null {
+    let position = placed.position;
+    const surface: PlacementSurface = placed.hostId ? 'side' : placed.supportId ? 'top' : 'ground';
+    let support: PlacedObject | null = null;
+    let supportDefinition: ConstructionObjectDefinition | null = null;
+
+    if (placed.hostId) {
+      const host = placedObjects.find((p) => p.id === placed.hostId) ?? null;
+      const hostDefinition = host ? this.registry.get(host.definitionId) ?? null : null;
+      if (!host || !hostDefinition) return null;
+      const flip = rotationStepOf(rotationY) % 2 === 1;
+      const placement = placeOpeningInWall(hostDefinition, host, definition, placed.position, flip, OPENING_SNAP_STEP);
+      if (!placement) return null;
+      position = placement.position;
+      rotationY = placement.rotationY;
+      support = host;
+      supportDefinition = hostDefinition;
+    } else if (placed.supportId) {
+      support = placedObjects.find((p) => p.id === placed.supportId) ?? null;
+      supportDefinition = support ? this.registry.get(support.definitionId) ?? null : null;
+    }
+
+    const ruleHint =
+      checkSupportRules(definition, surface, supportDefinition) ??
+      checkTargetSupport(definition, surface, supportDefinition, this.registry, this.rules);
+    if (ruleHint) {
+      return this.invalid(definition, position, rotationY, surface, support, supportDefinition, 'wrong-support', ruleHint);
+    }
+
+    const bounds = computeBounds(definition, position, rotationY, placed.scale);
+    const ignoreIds = placed.hostId ? [placed.id, placed.hostId] : [placed.id];
+    const reason = findInvalidReason(bounds, placedObjects, this.registry, this.rules, ignoreIds);
+    return {
+      position,
+      rotationY,
+      bounds,
+      hostId: placed.hostId,
+      status: makeStatus(surface, support, supportDefinition, reason === null, reason, null, null),
+    };
+  }
+
   // -------------------------------------------------------------- snapping
 
   /**

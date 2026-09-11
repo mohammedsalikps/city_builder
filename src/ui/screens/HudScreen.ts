@@ -1,6 +1,7 @@
 import { Screen, el } from '../Screen';
 import { isPlacementMode, type GameState } from '@/state/GameState';
 import { describePlacementStatus } from '@/construction/PlacementResolver';
+import { transformCapabilitiesOf, hasAnyCapability, type TransformMode } from '@/construction/TransformCapabilities';
 
 /**
  * In-game heads-up display: session facts on top, construction status and
@@ -19,6 +20,13 @@ export class HudScreen extends Screen {
   private cancelButton: HTMLButtonElement | null = null;
   private deleteButton: HTMLButtonElement | null = null;
   private pauseOverlay: HTMLElement | null = null;
+  private transformGroup: HTMLElement | null = null;
+  private moveModeButton: HTMLButtonElement | null = null;
+  private rotateModeButton: HTMLButtonElement | null = null;
+  private scaleModeButton: HTMLButtonElement | null = null;
+  private scaleStepper: HTMLElement | null = null;
+  private scaleDownButton: HTMLButtonElement | null = null;
+  private scaleUpButton: HTMLButtonElement | null = null;
 
   private readonly onMenu = () => this.context.actions.returnToMenu();
   private readonly onPause = () => this.context.actions.pause();
@@ -26,6 +34,9 @@ export class HudScreen extends Screen {
   private readonly onRotate = () => this.context.actions.rotatePlacement(1);
   private readonly onCancel = () => this.context.actions.cancelPlacement();
   private readonly onDelete = () => this.context.actions.removeSelectedPlacedObject();
+  private readonly onSetMode = (mode: TransformMode) => () => this.context.actions.setTransformMode(mode);
+  private readonly onScaleDown = () => this.context.actions.scaleSelectedPlacedObject(-1);
+  private readonly onScaleUp = () => this.context.actions.scaleSelectedPlacedObject(1);
 
   protected build(): HTMLElement {
     const root = el('div', 'screen screen--hud');
@@ -48,8 +59,19 @@ export class HudScreen extends Screen {
     bottomBar.appendChild(el('span', 'hud__spacer'));
     this.rotateButton = this.button('Rotate (R)', this.onRotate);
     this.cancelButton = this.button('Cancel (Esc)', this.onCancel);
+
+    this.transformGroup = el('span', 'hud__transform');
+    this.moveModeButton = this.button('Move (W)', this.onSetMode('move'));
+    this.rotateModeButton = this.button('Rotate (E)', this.onSetMode('rotate'));
+    this.scaleModeButton = this.button('Scale (S)', this.onSetMode('scale'));
+    this.scaleStepper = el('span', 'hud__scale-stepper');
+    this.scaleDownButton = this.button('−', this.onScaleDown);
+    this.scaleUpButton = this.button('+', this.onScaleUp);
+    this.scaleStepper.append(this.scaleDownButton, this.scaleUpButton);
+    this.transformGroup.append(this.moveModeButton, this.rotateModeButton, this.scaleModeButton, this.scaleStepper);
+
     this.deleteButton = this.button('Delete (Del)', this.onDelete, 'button--danger');
-    bottomBar.append(this.rotateButton, this.cancelButton, this.deleteButton);
+    bottomBar.append(this.rotateButton, this.cancelButton, this.transformGroup, this.deleteButton);
     root.appendChild(bottomBar);
 
     this.pauseOverlay = el('div', 'hud__pause');
@@ -97,6 +119,36 @@ export class HudScreen extends Screen {
     if (this.rotateButton) this.rotateButton.hidden = !placing;
     if (this.cancelButton) this.cancelButton.hidden = !placing;
     if (this.deleteButton) this.deleteButton.hidden = selected === null;
+    this.updateTransformControls(state, selected);
+  }
+
+  /** Move / Rotate / Scale indicator: only the modes this selection actually supports. */
+  private updateTransformControls(state: GameState, selected: GameState['placedObjects'][number] | null): void {
+    const definition = selected ? this.context.registry.get(selected.definitionId) : undefined;
+    if (!selected || !definition) {
+      if (this.transformGroup) this.transformGroup.hidden = true;
+      return;
+    }
+    const hostsOpenings = state.placedObjects.some((p) => p.hostId === selected.id);
+    const caps = transformCapabilitiesOf(definition, state.challenge ? 'challenge' : 'freeplay', hostsOpenings);
+    if (this.transformGroup) this.transformGroup.hidden = !hasAnyCapability(caps);
+
+    if (this.moveModeButton) {
+      this.moveModeButton.hidden = !caps.movable;
+      this.moveModeButton.classList.toggle('button--active', state.transformMode === 'move');
+    }
+    if (this.rotateModeButton) {
+      this.rotateModeButton.hidden = !caps.rotatableY;
+      this.rotateModeButton.classList.toggle('button--active', state.transformMode === 'rotate');
+    }
+    if (this.scaleModeButton) {
+      this.scaleModeButton.hidden = !caps.scalable;
+      this.scaleModeButton.classList.toggle('button--active', state.transformMode === 'scale');
+    }
+    const showStepper = caps.scalable && state.transformMode === 'scale';
+    if (this.scaleStepper) this.scaleStepper.hidden = !showStepper;
+    if (this.scaleDownButton) this.scaleDownButton.disabled = selected.scale.x <= caps.minScale + 1e-6;
+    if (this.scaleUpButton) this.scaleUpButton.disabled = selected.scale.x >= caps.maxScale - 1e-6;
   }
 
   protected onUnmount(): void {
@@ -110,6 +162,13 @@ export class HudScreen extends Screen {
     this.cancelButton = null;
     this.deleteButton = null;
     this.pauseOverlay = null;
+    this.transformGroup = null;
+    this.moveModeButton = null;
+    this.rotateModeButton = null;
+    this.scaleModeButton = null;
+    this.scaleStepper = null;
+    this.scaleDownButton = null;
+    this.scaleUpButton = null;
   }
 
   private button(label: string, onClick: () => void, extraClass = ''): HTMLButtonElement {

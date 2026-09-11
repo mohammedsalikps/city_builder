@@ -5,6 +5,7 @@ import type { ChallengeAttemptResult, ChallengeState } from '@/challenges/Challe
 import type { PlacedObject } from '@/construction/PlacedObject';
 import type { PlacementStatus } from '@/construction/PlacementResolver';
 import type { ChallengeMatchResult } from '@/challenges/ChallengeMatcher';
+import type { TransformMode } from '@/construction/TransformCapabilities';
 
 /** Identifies which world is loaded. Terrain/content will be added later. */
 export interface WorldState {
@@ -58,6 +59,12 @@ export interface GameState {
   placedObjects: PlacedObject[];
   /** Instance id of the placed object the player has clicked, if any. */
   selectedInstanceId: string | null;
+  /**
+   * Which transform gizmo/indicator is active for the current selection.
+   * Meaningless while nothing is selected; reset to 'move' on every new
+   * selection so the gizmo is always predictable.
+   */
+  transformMode: TransformMode;
   /**
    * Where the pending placement would land and whether it is allowed.
    * Updated by the construction controller only when it changes, so the HUD
