@@ -1,0 +1,915 @@
+[
+  {
+    "id": "house_cottage_01",
+    "path": "architecture/house_cottage_01.glb",
+    "category": "architecture",
+    "footprint": {
+      "width": 7.2,
+      "depth": 6.7
+    },
+    "bounds": {
+      "width": 7.2,
+      "height": 6.3,
+      "depth": 6.7
+    },
+    "materials": "library",
+    "variants": [
+      {
+        "id": "sage",
+        "tints": {
+          "shutter": "#3f5f7a",
+          "plaster": "#e9e2cf",
+          "roof_tile": "#6b6f75"
+        }
+      },
+      {
+        "id": "honey",
+        "tints": {
+          "shutter": "#7a4a3a",
+          "plaster": "#f0d9a8"
+        }
+      }
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "house_modern_01",
+    "path": "architecture/house_modern_01.glb",
+    "category": "architecture",
+    "footprint": {
+      "width": 8.6,
+      "depth": 7.6
+    },
+    "bounds": {
+      "width": 8.6,
+      "height": 6.9,
+      "depth": 7.6
+    },
+    "materials": "library",
+    "variants": [
+      {
+        "id": "dark",
+        "tints": {
+          "wood": "#6b4a32",
+          "plaster": "#d9d6cf"
+        }
+      }
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "tree_oak_01",
+    "path": "vegetation/tree_oak_01.glb",
+    "category": "vegetation",
+    "footprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "bounds": {
+      "width": 4.8,
+      "height": 6.6,
+      "depth": 4.7
+    },
+    "materials": "library",
+    "lod": [
+      {
+        "path": "vegetation/tree_oak_01_lod1.glb",
+        "distance": 60
+      }
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "tree_pine_01",
+    "path": "vegetation/tree_pine_01.glb",
+    "category": "vegetation",
+    "footprint": {
+      "width": 1,
+      "depth": 1
+    },
+    "bounds": {
+      "width": 3.9,
+      "height": 7.8,
+      "depth": 3.9
+    },
+    "materials": "library",
+    "placeholder": true
+  },
+  {
+    "id": "bush_round_01",
+    "path": "vegetation/bush_round_01.glb",
+    "category": "vegetation",
+    "footprint": {
+      "width": 1.8,
+      "depth": 1.6
+    },
+    "bounds": {
+      "width": 1.8,
+      "height": 1.2,
+      "depth": 1.6
+    },
+    "materials": "library",
+    "placeholder": true
+  },
+  {
+    "id": "flower_patch_01",
+    "path": "vegetation/flower_patch_01.glb",
+    "category": "vegetation",
+    "footprint": {
+      "width": 1.6,
+      "depth": 1.6
+    },
+    "bounds": {
+      "width": 1.6,
+      "height": 0.6,
+      "depth": 1.6
+    },
+    "materials": "library",
+    "castShadow": false,
+    "placeholder": true
+  },
+  {
+    "id": "car_sedan_01",
+    "path": "vehicles/car_sedan_01.glb",
+    "category": "vehicles",
+    "footprint": {
+      "width": 1.9,
+      "depth": 4.6
+    },
+    "bounds": {
+      "width": 1.9,
+      "height": 1.5,
+      "depth": 4.6
+    },
+    "materials": "library",
+    "variants": [
+      {
+        "id": "blue",
+        "tints": {
+          "paint": "#2f5d9c"
+        }
+      },
+      {
+        "id": "yellow",
+        "tints": {
+          "paint": "#e0b33a"
+        }
+      },
+      {
+        "id": "white",
+        "tints": {
+          "paint": "#e8e6e1"
+        }
+      },
+      {
+        "id": "green",
+        "tints": {
+          "paint": "#3f7a5a"
+        }
+      }
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "streetlight_01",
+    "path": "props/streetlight_01.glb",
+    "category": "props",
+    "footprint": {
+      "width": 0.4,
+      "depth": 0.4
+    },
+    "bounds": {
+      "width": 1.5,
+      "height": 5.4,
+      "depth": 0.4
+    },
+    "materials": "library",
+    "placeholder": true
+  },
+  {
+    "id": "fence_picket_01",
+    "path": "props/fence_picket_01.glb",
+    "category": "props",
+    "footprint": {
+      "width": 2,
+      "depth": 0.1
+    },
+    "bounds": {
+      "width": 2,
+      "height": 1,
+      "depth": 0.1
+    },
+    "materials": "library",
+    "placeholder": true
+  },
+  {
+    "id": "bench_01",
+    "path": "props/bench_01.glb",
+    "category": "props",
+    "footprint": {
+      "width": 1.6,
+      "depth": 0.6
+    },
+    "bounds": {
+      "width": 1.6,
+      "height": 0.9,
+      "depth": 0.6
+    },
+    "materials": "library",
+    "placeholder": true
+  },
+  {
+    "id": "road_straight_01",
+    "path": "roads/road_straight_01.glb",
+    "category": "roads",
+    "footprint": {
+      "width": 8,
+      "depth": 8
+    },
+    "bounds": {
+      "width": 8,
+      "height": 0.05,
+      "depth": 8
+    },
+    "materials": "library",
+    "castShadow": false,
+    "placeholder": true
+  },
+  {
+    "id": "sidewalk_straight_01",
+    "path": "roads/sidewalk_straight_01.glb",
+    "category": "roads",
+    "footprint": {
+      "width": 2.5,
+      "depth": 8
+    },
+    "bounds": {
+      "width": 2.5,
+      "height": 0.18,
+      "depth": 8
+    },
+    "materials": "library",
+    "castShadow": false,
+    "placeholder": true
+  },
+  {
+    "id": "windmill_01",
+    "path": "environment/windmill_01.glb",
+    "category": "environment",
+    "footprint": {
+      "width": 3.8,
+      "depth": 3.8
+    },
+    "bounds": {
+      "width": 10.4,
+      "height": 13.5,
+      "depth": 3.9
+    },
+    "materials": "library",
+    "animations": {
+      "autoplay": "spin",
+      "loop": true
+    },
+    "placeholder": true
+  },
+  {
+    "id": "kenney_bk_wall",
+    "path": "kenney/building-kit/wall.glb",
+    "category": "construction",
+    "source": "Kenney Building Kit 1.0 (CC0)",
+    "scale": 1.0,
+    "rotationY": 90,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 2.0,
+      "depth": 0.1
+    },
+    "bounds": {
+      "width": 2.0,
+      "height": 2.4,
+      "depth": 0.1
+    }
+  },
+  {
+    "id": "kenney_bk_floor",
+    "path": "kenney/building-kit/floor.glb",
+    "category": "construction",
+    "source": "Kenney Building Kit 1.0 (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 2.0,
+      "depth": 2.0
+    },
+    "bounds": {
+      "width": 2.0,
+      "height": 0.1,
+      "depth": 2.0
+    }
+  },
+  {
+    "id": "kenney_bk_door",
+    "path": "kenney/building-kit/door-rotate-square-c.glb",
+    "category": "construction",
+    "source": "Kenney Building Kit 1.0 (CC0)",
+    "scale": 1.0,
+    "rotationY": 90,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.92,
+      "depth": 0.25
+    },
+    "bounds": {
+      "width": 0.92,
+      "height": 2.1,
+      "depth": 0.25
+    }
+  },
+  {
+    "id": "kenney_bk_stairs",
+    "path": "kenney/building-kit/stairs-closed-short.glb",
+    "category": "construction",
+    "source": "Kenney Building Kit 1.0 (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.3,
+      "depth": 2.0
+    },
+    "bounds": {
+      "width": 1.3,
+      "height": 1.3,
+      "depth": 2.0
+    }
+  },
+  {
+    "id": "kenney_bk_column",
+    "path": "kenney/building-kit/column.glb",
+    "category": "construction",
+    "source": "Kenney Building Kit 1.0 (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.5,
+      "depth": 0.5
+    },
+    "bounds": {
+      "width": 0.5,
+      "height": 2.4,
+      "depth": 0.5
+    }
+  },
+  {
+    "id": "kenney_sub_house_a",
+    "path": "kenney/suburban/building-type-a.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 9.1,
+      "depth": 7.21
+    },
+    "bounds": {
+      "width": 9.1,
+      "height": 5.81,
+      "depth": 7.21
+    }
+  },
+  {
+    "id": "kenney_sub_house_b",
+    "path": "kenney/suburban/building-type-b.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 12.81,
+      "depth": 7.98
+    },
+    "bounds": {
+      "width": 12.81,
+      "height": 7.98,
+      "depth": 7.98
+    }
+  },
+  {
+    "id": "kenney_sub_house_f",
+    "path": "kenney/suburban/building-type-f.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 10.01,
+      "depth": 9.87
+    },
+    "bounds": {
+      "width": 10.01,
+      "height": 7.98,
+      "depth": 9.87
+    }
+  },
+  {
+    "id": "kenney_sub_house_l",
+    "path": "kenney/suburban/building-type-l.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 7.21,
+      "depth": 7.14
+    },
+    "bounds": {
+      "width": 7.21,
+      "height": 7.35,
+      "depth": 7.14
+    }
+  },
+  {
+    "id": "kenney_sub_house_p",
+    "path": "kenney/suburban/building-type-p.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 8.68,
+      "depth": 6.93
+    },
+    "bounds": {
+      "width": 8.68,
+      "height": 6.44,
+      "depth": 6.93
+    }
+  },
+  {
+    "id": "kenney_sub_tree_large",
+    "path": "kenney/suburban/tree-large.glb",
+    "category": "vegetation",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.47,
+      "depth": 1.68
+    },
+    "bounds": {
+      "width": 1.47,
+      "height": 5.39,
+      "depth": 1.68
+    }
+  },
+  {
+    "id": "kenney_sub_tree_small",
+    "path": "kenney/suburban/tree-small.glb",
+    "category": "vegetation",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.47,
+      "depth": 1.68
+    },
+    "bounds": {
+      "width": 1.47,
+      "height": 3.99,
+      "depth": 1.68
+    }
+  },
+  {
+    "id": "kenney_sub_fence",
+    "path": "kenney/suburban/fence.glb",
+    "category": "props",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 3.36,
+      "depth": 0.56
+    },
+    "bounds": {
+      "width": 3.36,
+      "height": 1.89,
+      "depth": 0.56
+    }
+  },
+  {
+    "id": "kenney_sub_planter",
+    "path": "kenney/suburban/planter.glb",
+    "category": "props",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 2.8,
+      "depth": 2.1
+    },
+    "bounds": {
+      "width": 2.8,
+      "height": 1.26,
+      "depth": 2.1
+    }
+  },
+  {
+    "id": "kenney_sub_path_stones",
+    "path": "kenney/suburban/path-stones-long.glb",
+    "category": "props",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.98,
+      "depth": 2.8
+    },
+    "bounds": {
+      "width": 0.98,
+      "height": 0.07,
+      "depth": 2.8
+    }
+  },
+  {
+    "id": "kenney_sub_driveway",
+    "path": "kenney/suburban/driveway-long.glb",
+    "category": "roads",
+    "source": "Kenney City Kit Suburban 2.0 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 2.52,
+      "depth": 2.8
+    },
+    "bounds": {
+      "width": 2.52,
+      "height": 0.07,
+      "depth": 2.8
+    }
+  },
+  {
+    "id": "kenney_com_building_c",
+    "path": "kenney/commercial/building-c.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Commercial 2.1 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 6.16,
+      "depth": 7.63
+    },
+    "bounds": {
+      "width": 6.16,
+      "height": 6.23,
+      "depth": 7.63
+    }
+  },
+  {
+    "id": "kenney_com_building_k",
+    "path": "kenney/commercial/building-k.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Commercial 2.1 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 14.56,
+      "depth": 6.58
+    },
+    "bounds": {
+      "width": 14.56,
+      "height": 10.29,
+      "depth": 6.58
+    }
+  },
+  {
+    "id": "kenney_com_skyscraper_a",
+    "path": "kenney/commercial/building-skyscraper-a.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Commercial 2.1 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 9.52,
+      "depth": 9.52
+    },
+    "bounds": {
+      "width": 9.52,
+      "height": 20.16,
+      "depth": 9.52
+    }
+  },
+  {
+    "id": "kenney_com_skyscraper_b",
+    "path": "kenney/commercial/building-skyscraper-b.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Commercial 2.1 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 9.5,
+      "depth": 9.5
+    },
+    "bounds": {
+      "width": 9.5,
+      "height": 31.4,
+      "depth": 9.5
+    }
+  },
+  {
+    "id": "kenney_com_skyscraper_e",
+    "path": "kenney/commercial/building-skyscraper-e.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Commercial 2.1 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 9.1,
+      "depth": 8.7
+    },
+    "bounds": {
+      "width": 9.1,
+      "height": 28.6,
+      "depth": 8.7
+    }
+  },
+  {
+    "id": "kenney_com_building_g",
+    "path": "kenney/commercial/building-g.glb",
+    "category": "architecture",
+    "source": "Kenney City Kit Commercial 2.1 (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 6.8,
+      "depth": 6.5
+    },
+    "bounds": {
+      "width": 6.8,
+      "height": 11.9,
+      "depth": 6.5
+    }
+  },
+  {
+    "id": "kenney_road_straight",
+    "path": "kenney/roads/road-straight.glb",
+    "category": "roads",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 7.0,
+      "depth": 7.0
+    },
+    "bounds": {
+      "width": 7.0,
+      "height": 0.14,
+      "depth": 7.0
+    }
+  },
+  {
+    "id": "kenney_road_intersection",
+    "path": "kenney/roads/road-intersection.glb",
+    "category": "roads",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 7.0,
+      "depth": 7.0
+    },
+    "bounds": {
+      "width": 7.0,
+      "height": 0.14,
+      "depth": 7.0
+    }
+  },
+  {
+    "id": "kenney_road_crossing",
+    "path": "kenney/roads/road-crossing.glb",
+    "category": "roads",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 7.0,
+      "depth": 7.0
+    },
+    "bounds": {
+      "width": 7.0,
+      "height": 0.14,
+      "depth": 7.0
+    }
+  },
+  {
+    "id": "kenney_road_driveway",
+    "path": "kenney/roads/road-driveway-single.glb",
+    "category": "roads",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 7.0,
+      "depth": 7.0
+    },
+    "bounds": {
+      "width": 7.0,
+      "height": 0.14,
+      "depth": 7.0
+    }
+  },
+  {
+    "id": "kenney_road_tile",
+    "path": "kenney/roads/tile-low.glb",
+    "category": "roads",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 7.0,
+      "depth": 7.0
+    },
+    "bounds": {
+      "width": 7.0,
+      "height": 0.14,
+      "depth": 7.0
+    }
+  },
+  {
+    "id": "kenney_road_light",
+    "path": "kenney/roads/light-curved.glb",
+    "category": "props",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": -90,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.61,
+      "depth": 0.35
+    },
+    "bounds": {
+      "width": 1.61,
+      "height": 4.69,
+      "depth": 0.35
+    }
+  },
+  {
+    "id": "kenney_road_sign_stop",
+    "path": "kenney/roads/road-sign-stop.glb",
+    "category": "props",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.56,
+      "depth": 0.98
+    },
+    "bounds": {
+      "width": 0.56,
+      "height": 3.43,
+      "depth": 0.98
+    }
+  },
+  {
+    "id": "kenney_road_traffic_light",
+    "path": "kenney/roads/traffic-light.glb",
+    "category": "props",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.84,
+      "depth": 0.63
+    },
+    "bounds": {
+      "width": 0.84,
+      "height": 3.57,
+      "depth": 0.63
+    }
+  },
+  {
+    "id": "kenney_road_cone",
+    "path": "kenney/roads/construction-cone.glb",
+    "category": "props",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.56,
+      "depth": 0.56
+    },
+    "bounds": {
+      "width": 0.56,
+      "height": 0.63,
+      "depth": 0.56
+    }
+  },
+  {
+    "id": "kenney_road_dumpster",
+    "path": "kenney/roads/dumpster.glb",
+    "category": "props",
+    "source": "Kenney City Kit Roads (CC0)",
+    "scale": 7.0,
+    "rotationY": 0,
+    "recenter": true,
+    "textureFilter": "palette",
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.96,
+      "depth": 2.59
+    },
+    "bounds": {
+      "width": 1.96,
+      "height": 1.47,
+      "depth": 2.59
+    }
+  }
+]

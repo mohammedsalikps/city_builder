@@ -1,0 +1,1278 @@
+[
+  {
+    "id": "brick_standard",
+    "name": "Standard Brick",
+    "category": "structures",
+    "type": "brick",
+    "shape": "box",
+    "dimensions": {
+      "width": 0.215,
+      "height": 0.065,
+      "depth": 0.1025
+    },
+    "material": "clay",
+    "color": "#b5533c",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 1
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 2.3,
+      "tags": [
+        "wall",
+        "masonry",
+        "basic"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 2
+    }
+  },
+  {
+    "id": "block_concrete",
+    "name": "Concrete Block",
+    "category": "structures",
+    "type": "block",
+    "shape": "box",
+    "dimensions": {
+      "width": 0.44,
+      "height": 0.215,
+      "depth": 0.1
+    },
+    "material": "concrete",
+    "color": "#9a9a9a",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 2
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 12.5,
+      "tags": [
+        "wall",
+        "masonry",
+        "basic"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 2
+    }
+  },
+  {
+    "id": "wall_plain",
+    "name": "Wall",
+    "category": "structures",
+    "type": "wall",
+    "role": "wall",
+    "shape": "box",
+    "dimensions": {
+      "width": 2,
+      "height": 2.7,
+      "depth": 0.2
+    },
+    "material": "plaster",
+    "color": "#a4abcc",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 900,
+      "tags": [
+        "wall",
+        "room",
+        "house"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "wall",
+          "floor",
+          "pillar",
+          "beam"
+        ],
+        "hint": "Walls stand on the ground, a floor or another wall"
+      }
+    },
+    "visual": {
+      "asset": "kenney_bk_wall",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "wall_long",
+    "name": "Wall (long)",
+    "category": "structures",
+    "type": "wall",
+    "role": "wall",
+    "shape": "box",
+    "dimensions": {
+      "width": 2.2,
+      "height": 2.7,
+      "depth": 0.2
+    },
+    "material": "plaster",
+    "color": "#a4abcc",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 900,
+      "tags": [
+        "wall",
+        "room",
+        "house",
+        "long"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "wall",
+          "floor",
+          "pillar",
+          "beam"
+        ],
+        "hint": "Walls stand on the ground, a floor or another wall"
+      }
+    },
+    "visual": {
+      "asset": "kenney_bk_wall",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "wall_short",
+    "name": "Wall (short)",
+    "category": "structures",
+    "type": "wall",
+    "role": "wall",
+    "shape": "box",
+    "dimensions": {
+      "width": 1.8,
+      "height": 2.7,
+      "depth": 0.2
+    },
+    "material": "plaster",
+    "color": "#a4abcc",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 900,
+      "tags": [
+        "wall",
+        "room",
+        "house",
+        "short"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "wall",
+          "floor",
+          "pillar",
+          "beam"
+        ],
+        "hint": "Walls stand on the ground, a floor or another wall"
+      }
+    },
+    "visual": {
+      "asset": "kenney_bk_wall",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "floor_slab",
+    "name": "Floor",
+    "category": "structures",
+    "type": "floor",
+    "role": "floor",
+    "shape": "box",
+    "dimensions": {
+      "width": 1.8,
+      "height": 0.2,
+      "depth": 1.8
+    },
+    "material": "concrete",
+    "color": "#b8b2a6",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 1900,
+      "tags": [
+        "floor",
+        "slab",
+        "foundation"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "wall",
+          "floor",
+          "pillar",
+          "beam"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Floors go on the ground or on top of walls"
+      }
+    },
+    "visual": {
+      "asset": "kenney_bk_floor",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "floor_large",
+    "name": "Floor (large)",
+    "category": "structures",
+    "type": "floor",
+    "role": "floor",
+    "shape": "box",
+    "dimensions": {
+      "width": 2.0,
+      "height": 0.2,
+      "depth": 2.0
+    },
+    "material": "concrete",
+    "color": "#b8b2a6",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 1900,
+      "tags": [
+        "floor",
+        "slab",
+        "foundation",
+        "large"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "wall",
+          "floor",
+          "pillar",
+          "beam"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Floors go on the ground or on top of walls"
+      }
+    },
+    "visual": {
+      "asset": "kenney_bk_floor",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "pillar_round",
+    "name": "Pillar",
+    "category": "structures",
+    "type": "pillar",
+    "shape": "cylinder",
+    "dimensions": {
+      "width": 0.4,
+      "height": 2.7,
+      "depth": 0.4
+    },
+    "material": "concrete",
+    "color": "#cfcac0",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 12
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 800,
+      "tags": [
+        "column",
+        "support"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.25,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor",
+          "wall",
+          "pillar",
+          "beam"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Pillars stand on the ground or a floor"
+      }
+    },
+    "visual": {
+      "asset": "kenney_bk_column",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "beam_timber",
+    "name": "Timber Beam",
+    "category": "structures",
+    "type": "beam",
+    "shape": "box",
+    "dimensions": {
+      "width": 2.4,
+      "height": 0.15,
+      "depth": 0.05
+    },
+    "material": "timber",
+    "color": "#c49a5a",
+    "unlock": {
+      "type": "rank",
+      "rank": 2
+    },
+    "cost": {
+      "coins": 8
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 9,
+      "tags": [
+        "roof",
+        "floor",
+        "support"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "categories": [
+          "structures"
+        ],
+        "hint": "Beams rest on structures"
+      }
+    }
+  },
+  {
+    "id": "roof_gable",
+    "name": "Roof",
+    "category": "structures",
+    "type": "roof",
+    "role": "roof",
+    "shape": "roof-gable",
+    "dimensions": {
+      "width": 2.6,
+      "height": 1.0,
+      "depth": 2.6
+    },
+    "material": "tiles",
+    "color": "#a3412f",
+    "unlock": {
+      "type": "rank",
+      "rank": 2
+    },
+    "cost": {
+      "coins": 40
+    },
+    "reward": {
+      "xpOnFirstUse": 25
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 1500,
+      "tags": [
+        "roof",
+        "house"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": false,
+        "types": [
+          "wall",
+          "floor",
+          "beam",
+          "pillar"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Roofs need walls or a floor underneath"
+      }
+    }
+  },
+  {
+    "id": "stairs_straight",
+    "name": "Stairs",
+    "category": "structures",
+    "type": "stairs",
+    "shape": "stairs",
+    "dimensions": {
+      "width": 1,
+      "height": 1.35,
+      "depth": 2
+    },
+    "material": "concrete",
+    "color": "#a9a49b",
+    "unlock": {
+      "type": "rank",
+      "rank": 2
+    },
+    "cost": {
+      "coins": 25
+    },
+    "reward": {
+      "xpOnFirstUse": 20
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 700,
+      "tags": [
+        "stairs",
+        "steps",
+        "access"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.25,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Stairs stand on the ground or a floor"
+      }
+    },
+    "distinctOrientations": 4,
+    "visual": {
+      "asset": "kenney_bk_stairs",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "door_single",
+    "name": "Door",
+    "category": "openings",
+    "type": "door",
+    "role": "opening",
+    "shape": "door",
+    "dimensions": {
+      "width": 0.9,
+      "height": 2.1,
+      "depth": 0.1
+    },
+    "material": "timber",
+    "color": "#8b5a2b",
+    "colors": {
+      "frame": "#4a3323",
+      "handle": "#c9a227"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 18
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 45,
+      "tags": [
+        "door",
+        "opening",
+        "entrance"
+      ]
+    },
+    "placement": {
+      "sillHeight": 0,
+      "support": {
+        "ground": false,
+        "types": [
+          "wall"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "A door needs a wall"
+      }
+    },
+    "visual": {
+      "asset": "kenney_bk_door",
+      "fit": "height"
+    }
+  },
+  {
+    "id": "window_square",
+    "name": "Window",
+    "category": "openings",
+    "type": "window",
+    "role": "opening",
+    "shape": "window",
+    "dimensions": {
+      "width": 1.2,
+      "height": 1.2,
+      "depth": 0.1
+    },
+    "material": "glass",
+    "color": "#a7d8f0",
+    "colors": {
+      "frame": "#f3f4f6",
+      "glass": "#a7d8f0"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 16
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 30,
+      "tags": [
+        "window",
+        "opening",
+        "glass"
+      ]
+    },
+    "placement": {
+      "sillHeight": 0.9,
+      "support": {
+        "ground": false,
+        "types": [
+          "wall"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "A window needs a wall"
+      }
+    }
+  },
+  {
+    "id": "chair_wood",
+    "name": "Chair",
+    "category": "furniture",
+    "type": "chair",
+    "shape": "chair",
+    "dimensions": {
+      "width": 0.45,
+      "height": 0.9,
+      "depth": 0.45
+    },
+    "material": "timber",
+    "color": "#9c6b3c",
+    "unlock": {
+      "type": "rank",
+      "rank": 3
+    },
+    "cost": {
+      "coins": 6
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 6,
+      "tags": [
+        "seat",
+        "dining",
+        "interior"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Furniture needs a floor or the ground"
+      }
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "table_dining",
+    "name": "Table",
+    "category": "furniture",
+    "type": "table",
+    "shape": "table",
+    "dimensions": {
+      "width": 1.2,
+      "height": 0.75,
+      "depth": 0.8
+    },
+    "material": "timber",
+    "color": "#a8743f",
+    "unlock": {
+      "type": "rank",
+      "rank": 3
+    },
+    "cost": {
+      "coins": 12
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 25,
+      "tags": [
+        "dining",
+        "interior"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Furniture needs a floor or the ground"
+      }
+    }
+  },
+  {
+    "id": "bed_double",
+    "name": "Bed",
+    "category": "furniture",
+    "type": "bed",
+    "shape": "bed",
+    "dimensions": {
+      "width": 1.6,
+      "height": 0.9,
+      "depth": 2
+    },
+    "material": "timber",
+    "color": "#6f4a2e",
+    "colors": {
+      "mattress": "#f3f0e8",
+      "pillow": "#ffffff"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 3
+    },
+    "cost": {
+      "coins": 30
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "bedroom",
+        "interior",
+        "sleep"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Furniture needs a floor or the ground"
+      }
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "sofa_three_seat",
+    "name": "Sofa",
+    "category": "furniture",
+    "type": "sofa",
+    "shape": "sofa",
+    "dimensions": {
+      "width": 1.8,
+      "height": 0.8,
+      "depth": 0.9
+    },
+    "material": "fabric",
+    "color": "#5b6b8c",
+    "unlock": {
+      "type": "rank",
+      "rank": 3
+    },
+    "cost": {
+      "coins": 28
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 55,
+      "tags": [
+        "living",
+        "seat",
+        "interior"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Furniture needs a floor or the ground"
+      }
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "tree_pine",
+    "name": "Tree",
+    "category": "nature",
+    "type": "tree",
+    "shape": "tree",
+    "dimensions": {
+      "width": 1.6,
+      "height": 3.5,
+      "depth": 1.6
+    },
+    "material": "wood",
+    "color": "#3f8f3a",
+    "colors": {
+      "trunk": "#6b4a2b"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 4
+    },
+    "cost": {
+      "coins": 10
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 400,
+      "tags": [
+        "garden",
+        "park",
+        "forest",
+        "plant"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Plants grow on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_sub_tree_large",
+      "fit": "height"
+    }
+  },
+  {
+    "id": "bush_round",
+    "name": "Bush",
+    "category": "nature",
+    "type": "bush",
+    "shape": "bush",
+    "dimensions": {
+      "width": 0.9,
+      "height": 0.6,
+      "depth": 0.7
+    },
+    "material": "foliage",
+    "color": "#4c9a45",
+    "unlock": {
+      "type": "rank",
+      "rank": 4
+    },
+    "cost": {
+      "coins": 4
+    },
+    "reward": {
+      "xpOnFirstUse": 3
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 20,
+      "tags": [
+        "garden",
+        "hedge",
+        "plant"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Plants grow on the ground"
+      }
+    },
+    "visual": {
+      "asset": "bush_round_01"
+    }
+  },
+  {
+    "id": "flower_pink",
+    "name": "Flower",
+    "category": "nature",
+    "type": "flower",
+    "shape": "flower",
+    "dimensions": {
+      "width": 0.2,
+      "height": 0.4,
+      "depth": 0.2
+    },
+    "material": "plant",
+    "color": "#e86aa6",
+    "colors": {
+      "stem": "#3f8f3a"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 4
+    },
+    "cost": {
+      "coins": 1
+    },
+    "reward": {
+      "xpOnFirstUse": 2
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 0.2,
+      "tags": [
+        "garden",
+        "plant",
+        "decor"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Plants grow on the ground"
+      }
+    }
+  },
+  {
+    "id": "fence_wood",
+    "name": "Fence",
+    "category": "decoration",
+    "type": "fence",
+    "shape": "fence",
+    "dimensions": {
+      "width": 2,
+      "height": 1,
+      "depth": 0.1
+    },
+    "material": "timber",
+    "color": "#b48a5a",
+    "unlock": {
+      "type": "rank",
+      "rank": 4
+    },
+    "cost": {
+      "coins": 8
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 30,
+      "tags": [
+        "garden",
+        "boundary",
+        "exterior"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "fence"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "Fences stand on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_sub_fence",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "streetlight_single",
+    "name": "Streetlight",
+    "category": "decoration",
+    "type": "lamp",
+    "shape": "streetlight",
+    "dimensions": {
+      "width": 0.8,
+      "height": 4,
+      "depth": 0.3
+    },
+    "material": "steel",
+    "color": "#ffe9a8",
+    "colors": {
+      "pole": "#6b7280"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 5
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 90,
+      "tags": [
+        "street",
+        "light",
+        "exterior"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.25,
+      "support": {
+        "ground": true,
+        "types": [
+          "sidewalk"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Streetlights stand on the ground or a sidewalk"
+      }
+    },
+    "distinctOrientations": 4,
+    "visual": {
+      "asset": "kenney_road_light",
+      "fit": "height"
+    }
+  },
+  {
+    "id": "road_segment",
+    "name": "Road Segment",
+    "category": "roads",
+    "type": "road",
+    "shape": "road",
+    "dimensions": {
+      "width": 4,
+      "height": 0.05,
+      "depth": 4
+    },
+    "material": "asphalt",
+    "color": "#3d3f45",
+    "colors": {
+      "marking": "#f5f0dc"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 5
+    },
+    "cost": {
+      "coins": 30
+    },
+    "reward": {
+      "xpOnFirstUse": 15
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 3000,
+      "tags": [
+        "street",
+        "lane",
+        "traffic"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "road",
+          "sidewalk"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "Roads are laid on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_road_straight",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "sidewalk_segment",
+    "name": "Sidewalk",
+    "category": "roads",
+    "type": "sidewalk",
+    "shape": "sidewalk",
+    "dimensions": {
+      "width": 4,
+      "height": 0.12,
+      "depth": 1.5
+    },
+    "material": "concrete",
+    "color": "#c9c6bd",
+    "colors": {
+      "kerb": "#8a8f96"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 5
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 1200,
+      "tags": [
+        "street",
+        "pavement",
+        "kerb"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "road",
+          "sidewalk"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "Sidewalks are laid on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_road_tile",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "car_basic",
+    "name": "Car",
+    "category": "vehicles",
+    "type": "car",
+    "shape": "car",
+    "dimensions": {
+      "width": 1.8,
+      "height": 1.4,
+      "depth": 4.2
+    },
+    "material": "steel",
+    "color": "#c0392b",
+    "colors": {
+      "glass": "#a7d8f0",
+      "wheel": "#1f2326"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 6
+    },
+    "cost": {
+      "coins": 80
+    },
+    "reward": {
+      "xpOnFirstUse": 20
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 1300,
+      "tags": [
+        "vehicle",
+        "street",
+        "placeholder"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.25,
+      "support": {
+        "ground": true,
+        "types": [
+          "road",
+          "sidewalk",
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Cars park on the ground or a road"
+      }
+    },
+    "distinctOrientations": 4,
+    "visual": {
+      "asset": "car_sedan_01"
+    }
+  },
+  {
+    "id": "utility_box",
+    "name": "Utility Box",
+    "category": "utilities",
+    "type": "utility",
+    "shape": "box",
+    "dimensions": {
+      "width": 0.8,
+      "height": 1.2,
+      "depth": 0.4
+    },
+    "material": "steel",
+    "color": "#5f7a5a",
+    "unlock": {
+      "type": "rank",
+      "rank": 5
+    },
+    "cost": {
+      "coins": 10
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 80,
+      "tags": [
+        "electric",
+        "service",
+        "street"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.25,
+      "support": {
+        "ground": true,
+        "types": [
+          "sidewalk",
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Utility boxes stand on the ground or a sidewalk"
+      }
+    }
+  }
+]

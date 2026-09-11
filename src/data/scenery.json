@@ -1,0 +1,1032 @@
+{
+  "environment": {
+    "sun": {
+      "azimuth": 70,
+      "elevation": 40
+    },
+    "fog": {
+      "color": "#b9cfe2",
+      "near": 180,
+      "far": 1400
+    },
+    "terrain": {
+      "size": 1800,
+      "segments": 300,
+      "seed": 7,
+      "blend": 26,
+      "flatZones": [
+        {
+          "minX": -57,
+          "maxX": 74,
+          "minZ": -48,
+          "maxZ": 22
+        },
+        {
+          "minX": 14,
+          "maxX": 104,
+          "minZ": -132,
+          "maxZ": -46
+        }
+      ],
+      "lakes": [
+        {
+          "x": -88,
+          "z": -54,
+          "radius": 26,
+          "depth": 3.2
+        }
+      ],
+      "mountains": {
+        "inner": 280,
+        "outer": 560,
+        "height": 210
+      }
+    },
+    "water": [
+      {
+        "x": -88,
+        "z": -54,
+        "radius": 25,
+        "level": -0.55
+      }
+    ],
+    "clouds": {
+      "count": 14,
+      "seed": 3,
+      "minRadius": 180,
+      "maxRadius": 720,
+      "minHeight": 120,
+      "maxHeight": 230
+    }
+  },
+  "placements": [
+    {
+      "asset": "kenney_road_driveway",
+      "x": -45.5,
+      "z": -24.0,
+      "rotationY": 180
+    },
+    {
+      "asset": "kenney_road_driveway",
+      "x": -17.5,
+      "z": -24.0,
+      "rotationY": 180
+    },
+    {
+      "asset": "kenney_road_crossing",
+      "x": -3.5,
+      "z": -24.0
+    },
+    {
+      "asset": "kenney_road_driveway",
+      "x": 10.5,
+      "z": -24.0,
+      "rotationY": 180
+    },
+    {
+      "asset": "kenney_road_intersection",
+      "x": 38.5,
+      "z": -24.0,
+      "rotationY": 180
+    },
+    {
+      "asset": "kenney_road_driveway",
+      "x": 52.5,
+      "z": -24.0,
+      "rotationY": 180
+    },
+    {
+      "asset": "kenney_sub_house_f",
+      "x": -45.5,
+      "z": -37.92
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": -45.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": -45.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -49.37,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -41.63,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": -40.9,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": -50.4,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_house_a",
+      "x": -31.5,
+      "z": -36.6
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": -31.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": -31.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -34.57,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -28.43,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": -26.9,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": -36.4,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_house_b",
+      "x": -17.5,
+      "z": -36.99
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": -17.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": -17.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -21.37,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -13.63,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": -12.9,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": -22.4,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_house_p",
+      "x": -3.5,
+      "z": -36.47
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": -3.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": -3.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -6.57,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -0.43,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": 1.1,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": -8.4,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_house_l",
+      "x": 10.5,
+      "z": -36.57
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": 10.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": 10.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 6.63,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 14.37,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": 15.1,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": 5.6,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_house_a",
+      "x": 24.5,
+      "z": -36.6
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": 24.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": 24.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 21.43,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 27.57,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": 29.1,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": 19.6,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_house_b",
+      "x": 52.5,
+      "z": -36.99
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": 52.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_driveway",
+      "x": 52.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 48.63,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 56.37,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": 57.1,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": 47.6,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_house_l",
+      "x": 66.5,
+      "z": -36.57
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": 66.5,
+      "z": -29.0
+    },
+    {
+      "asset": "kenney_sub_path_stones",
+      "x": 66.5,
+      "z": -31.7
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 63.43,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 69.57,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": 71.1,
+      "z": -31.6
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": 61.6,
+      "z": -31.0
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -38.5,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -24.5,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": -10.5,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 3.5,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 17.5,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_fence",
+      "x": 59.5,
+      "z": -28.3
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -52,
+      "z": -47,
+      "scale": 1.2
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -38.5,
+      "z": -45.5,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -24.5,
+      "z": -47.5,
+      "scale": 1.15
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -10.5,
+      "z": -46.5,
+      "scale": 1.05
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 3.5,
+      "z": -45.5,
+      "scale": 1.2
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 17.5,
+      "z": -47.5,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 31,
+      "z": -46,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 44.5,
+      "z": -47.5,
+      "scale": 1.2
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 58.5,
+      "z": -46.5,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 71,
+      "z": -47,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_road_traffic_light",
+      "x": -7.3,
+      "z": -20.9,
+      "rotationY": 180
+    },
+    {
+      "asset": "kenney_road_traffic_light",
+      "x": 0.3,
+      "z": -27.1
+    },
+    {
+      "asset": "kenney_road_sign_stop",
+      "x": 35.3,
+      "z": -28.3,
+      "rotationY": 180
+    },
+    {
+      "asset": "car_sedan_01",
+      "x": -36,
+      "z": -22.6,
+      "rotationY": 90
+    },
+    {
+      "asset": "car_sedan_01",
+      "x": 18,
+      "z": -25.4,
+      "rotationY": -90,
+      "variant": "yellow"
+    },
+    {
+      "asset": "car_sedan_01",
+      "x": 58,
+      "z": -22.6,
+      "rotationY": 90,
+      "variant": "white"
+    },
+    {
+      "asset": "car_sedan_01",
+      "x": -17.5,
+      "z": -30.8,
+      "variant": "blue"
+    },
+    {
+      "asset": "car_sedan_01",
+      "x": 37.1,
+      "z": -70,
+      "rotationY": 180,
+      "variant": "green"
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -44,
+      "z": -14,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -30,
+      "z": -15.5,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -24,
+      "z": -12,
+      "scale": 1.2
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 22,
+      "z": -14,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 30,
+      "z": -12,
+      "scale": 1.15
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 46,
+      "z": -15,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_road_dumpster",
+      "x": -16.5,
+      "z": -13,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_road_cone",
+      "x": -13.2,
+      "z": -12.2
+    },
+    {
+      "asset": "kenney_road_cone",
+      "x": -12.2,
+      "z": -14.1
+    },
+    {
+      "asset": "kenney_road_cone",
+      "x": -19.6,
+      "z": -11.8
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -40,
+      "z": -6,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -45,
+      "z": 4,
+      "scale": 1.25
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -38,
+      "z": 12,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -47,
+      "z": 15,
+      "scale": 1.15
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 38,
+      "z": -4,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 43,
+      "z": 7,
+      "scale": 1.2
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 37,
+      "z": 15,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 48,
+      "z": 0,
+      "scale": 1.3
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": -40,
+      "z": 0
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": -41,
+      "z": 7
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": 41,
+      "z": 1
+    },
+    {
+      "asset": "kenney_sub_tree_small",
+      "x": 42,
+      "z": 12
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": -36,
+      "z": 3
+    },
+    {
+      "asset": "kenney_sub_planter",
+      "x": 36,
+      "z": 5
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": -12,
+      "z": 26
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 8,
+      "z": 28
+    },
+    {
+      "asset": "kenney_sub_tree_large",
+      "x": 24,
+      "z": 25
+    },
+    {
+      "asset": "kenney_road_crossing",
+      "x": 38.5,
+      "z": -87,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_com_building_c",
+      "x": 30.2,
+      "z": -50,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_com_building_k",
+      "x": 30.7,
+      "z": -65,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_com_building_c",
+      "x": 30.2,
+      "z": -80,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_com_skyscraper_a",
+      "x": 29.2,
+      "z": -100,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_com_building_k",
+      "x": 46.3,
+      "z": -52,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_building_c",
+      "x": 46.8,
+      "z": -66,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_skyscraper_a",
+      "x": 47.8,
+      "z": -82,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_building_c",
+      "x": 46.8,
+      "z": -100,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_building_k",
+      "x": 46.3,
+      "z": -114,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_building_g",
+      "x": 62,
+      "z": -60,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_skyscraper_b",
+      "x": 64,
+      "z": -78,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_building_g",
+      "x": 62,
+      "z": -96,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_com_skyscraper_a",
+      "x": 76,
+      "z": -88
+    },
+    {
+      "asset": "kenney_com_skyscraper_e",
+      "x": 80,
+      "z": -108
+    },
+    {
+      "asset": "kenney_com_building_k",
+      "x": 92,
+      "z": -70
+    },
+    {
+      "asset": "kenney_com_skyscraper_b",
+      "x": 90,
+      "z": -118
+    },
+    {
+      "asset": "kenney_com_skyscraper_a",
+      "x": 70,
+      "z": -118
+    },
+    {
+      "asset": "kenney_com_building_g",
+      "x": 20,
+      "z": -118,
+      "rotationY": 90
+    }
+  ],
+  "rows": [
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": -52.5,
+        "z": -24.0
+      },
+      "to": {
+        "x": -52.5,
+        "z": -24.0
+      },
+      "spacing": 7
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": -38.5,
+        "z": -24.0
+      },
+      "to": {
+        "x": -24.5,
+        "z": -24.0
+      },
+      "spacing": 7
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": -10.5,
+        "z": -24.0
+      },
+      "to": {
+        "x": -10.5,
+        "z": -24.0
+      },
+      "spacing": 7
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": 3.5,
+        "z": -24.0
+      },
+      "to": {
+        "x": 3.5,
+        "z": -24.0
+      },
+      "spacing": 7
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": 17.5,
+        "z": -24.0
+      },
+      "to": {
+        "x": 31.5,
+        "z": -24.0
+      },
+      "spacing": 7
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": 45.5,
+        "z": -24.0
+      },
+      "to": {
+        "x": 45.5,
+        "z": -24.0
+      },
+      "spacing": 7
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": 59.5,
+        "z": -24.0
+      },
+      "to": {
+        "x": 66.5,
+        "z": -24.0
+      },
+      "spacing": 7
+    },
+    {
+      "asset": "kenney_road_light",
+      "from": {
+        "x": -49,
+        "z": -26.54
+      },
+      "to": {
+        "x": 63,
+        "z": -26.54
+      },
+      "spacing": 16,
+      "rotationY": -90
+    },
+    {
+      "asset": "kenney_road_light",
+      "from": {
+        "x": -41,
+        "z": -21.46
+      },
+      "to": {
+        "x": 55,
+        "z": -21.46
+      },
+      "spacing": 16,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": 38.5,
+        "z": -31
+      },
+      "to": {
+        "x": 38.5,
+        "z": -80
+      },
+      "spacing": 7,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_road_straight",
+      "from": {
+        "x": 38.5,
+        "z": -94
+      },
+      "to": {
+        "x": 38.5,
+        "z": -122
+      },
+      "spacing": 7,
+      "rotationY": 90
+    },
+    {
+      "asset": "kenney_road_light",
+      "from": {
+        "x": 41.04,
+        "z": -36
+      },
+      "to": {
+        "x": 41.04,
+        "z": -120
+      },
+      "spacing": 14,
+      "rotationY": 180
+    },
+    {
+      "asset": "kenney_road_light",
+      "from": {
+        "x": 35.96,
+        "z": -43
+      },
+      "to": {
+        "x": 35.96,
+        "z": -113
+      },
+      "spacing": 14
+    }
+  ],
+  "scatter": [
+    {
+      "assets": [
+        "kenney_sub_tree_large"
+      ],
+      "count": 170,
+      "seed": 21,
+      "ring": {
+        "inner": 58,
+        "outer": 180
+      },
+      "scale": [
+        1.0,
+        1.6
+      ],
+      "avoid": [
+        {
+          "minX": -52,
+          "maxX": 76,
+          "minZ": -52,
+          "maxZ": 24
+        },
+        {
+          "minX": 12,
+          "maxX": 106,
+          "minZ": -134,
+          "maxZ": -44
+        }
+      ]
+    },
+    {
+      "assets": [
+        "kenney_sub_tree_large",
+        "kenney_sub_tree_small"
+      ],
+      "count": 520,
+      "seed": 22,
+      "ring": {
+        "inner": 95,
+        "outer": 430
+      },
+      "scale": [
+        1.3,
+        2.3
+      ],
+      "maxHeight": 170,
+      "avoid": [
+        {
+          "minX": -52,
+          "maxX": 76,
+          "minZ": -52,
+          "maxZ": 24
+        },
+        {
+          "minX": 12,
+          "maxX": 106,
+          "minZ": -134,
+          "maxZ": -44
+        }
+      ]
+    },
+    {
+      "assets": [
+        "kenney_sub_tree_small"
+      ],
+      "count": 110,
+      "seed": 23,
+      "ring": {
+        "inner": 56,
+        "outer": 150
+      },
+      "scale": [
+        0.8,
+        1.3
+      ],
+      "avoid": [
+        {
+          "minX": -52,
+          "maxX": 76,
+          "minZ": -52,
+          "maxZ": 24
+        },
+        {
+          "minX": 12,
+          "maxX": 106,
+          "minZ": -134,
+          "maxZ": -44
+        }
+      ]
+    }
+  ]
+}

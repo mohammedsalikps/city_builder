@@ -1,0 +1,1416 @@
+[
+  {
+    "id": "challenge_001",
+    "index": 1,
+    "worldId": "world_001",
+    "title": "Build a Wall",
+    "description": "Lay four standard bricks in a straight row on the ground, end to end.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Fill the blue outline with bricks."
+    },
+    "buildOrigin": {
+      "x": 2,
+      "y": 0,
+      "z": 1
+    },
+    "buildAreaHalfSize": 1.5,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_wall_4",
+      "name": "Four-brick row",
+      "description": "Four standard bricks side by side along one line.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "fixed"
+      },
+      "objects": [
+        {
+          "id": "brick_1",
+          "definitionId": "brick_standard",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "brick_2",
+          "definitionId": "brick_standard",
+          "position": {
+            "x": 0.215,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "brick_3",
+          "definitionId": "brick_standard",
+          "position": {
+            "x": 0.43,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "brick_4",
+          "definitionId": "brick_standard",
+          "position": {
+            "x": 0.645,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": 0.3,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "distance": 3.2,
+      "azimuth": 40,
+      "elevation": 32
+    }
+  },
+  {
+    "id": "challenge_002",
+    "index": 2,
+    "worldId": "world_001",
+    "title": "Build a Room",
+    "description": "Put up four walls that close into a room, then lay the floor inside.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Snap walls into the corners of the blue outline, then add the floor."
+    },
+    "buildOrigin": {
+      "x": 8,
+      "y": 0,
+      "z": 0
+    },
+    "buildAreaHalfSize": 3,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_room_2m",
+      "name": "Closed room",
+      "description": "Four 2 m walls in a closed ring with a floor filling the inside.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_a",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": -1.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_b",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0.9,
+            "y": 0,
+            "z": 0.1
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_c",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -0.2,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_d",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -1.1,
+            "y": 0,
+            "z": -0.1
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor",
+          "definitionId": "floor_slab",
+          "position": {
+            "x": -0.1,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": -0.1,
+        "y": 0.4,
+        "z": 0.0
+      },
+      "distance": 7.5,
+      "azimuth": 35,
+      "elevation": 48
+    }
+  },
+  {
+    "id": "challenge_003",
+    "index": 3,
+    "worldId": "world_001",
+    "title": "Build a House",
+    "description": "Build a room with a floor, set a door and two windows into the walls, and finish with a roof.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Walls and floor first, then door and windows into the walls, then the roof on top."
+    },
+    "buildOrigin": {
+      "x": -8,
+      "y": 0,
+      "z": 0
+    },
+    "buildAreaHalfSize": 3.5,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_house_small",
+      "name": "Small house",
+      "description": "A closed room with floor, a door, two windows and a gable roof.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_a",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": -1.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_b",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0.9,
+            "y": 0,
+            "z": 0.1
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_c",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -0.2,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_d",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -1.1,
+            "y": 0,
+            "z": -0.1
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor",
+          "definitionId": "floor_slab",
+          "position": {
+            "x": -0.1,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "door",
+          "definitionId": "door_single",
+          "position": {
+            "x": -0.5,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 2,
+          "host": "wall_c",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "window_1",
+          "definitionId": "window_square",
+          "position": {
+            "x": 0.9,
+            "y": 0.9,
+            "z": 0.2
+          },
+          "rotationStep": 1,
+          "host": "wall_b",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "window_2",
+          "definitionId": "window_square",
+          "position": {
+            "x": 0.3,
+            "y": 0.9,
+            "z": -1.0
+          },
+          "rotationStep": 0,
+          "host": "wall_a",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "roof",
+          "definitionId": "roof_gable",
+          "position": {
+            "x": -0.1,
+            "y": 2.7,
+            "z": 0
+          },
+          "rotationStep": 0,
+          "support": [
+            "wall_a",
+            "wall_b",
+            "wall_c",
+            "wall_d"
+          ],
+          "rules": {
+            "positionTolerance": 0.05
+          }
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": -0.1,
+        "y": 0.9,
+        "z": 0.0
+      },
+      "distance": 8.5,
+      "azimuth": 30,
+      "elevation": 30
+    }
+  },
+  {
+    "id": "challenge_004",
+    "index": 4,
+    "worldId": "world_001",
+    "title": "Build a Wall with a Window",
+    "description": "Put up one wall on the ground, then set a window into it.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Place the wall on its outline, then point at the wall to set the window into it."
+    },
+    "buildOrigin": {
+      "x": 2,
+      "y": 0,
+      "z": -6
+    },
+    "buildAreaHalfSize": 2,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_wall_window",
+      "name": "Wall with window",
+      "description": "One wall with a window set into it.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "window",
+          "definitionId": "window_square",
+          "position": {
+            "x": 0.3,
+            "y": 0.9,
+            "z": 0
+          },
+          "rotationStep": 0,
+          "host": "wall",
+          "rules": {
+            "rotationMatters": false
+          }
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": 0.0,
+        "y": 1.1,
+        "z": 0.0
+      },
+      "distance": 6.0,
+      "azimuth": 15,
+      "elevation": 22
+    }
+  },
+  {
+    "id": "challenge_005",
+    "index": 5,
+    "worldId": "world_001",
+    "title": "Build Two Rooms",
+    "description": "Build two rooms side by side that share one wall in the middle. Give each room a floor.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Two rooms share the middle wall. Six walls, one short wall on the left, two floors."
+    },
+    "buildOrigin": {
+      "x": 8,
+      "y": 0,
+      "z": -6
+    },
+    "buildAreaHalfSize": 4,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_two_rooms",
+      "name": "Two rooms",
+      "description": "Two closed rooms sharing one middle wall, each with a floor.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_n1",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0.0,
+            "y": 0,
+            "z": 0.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_n2",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 2.0,
+            "y": 0,
+            "z": 0.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_w",
+          "definitionId": "wall_short",
+          "position": {
+            "x": -0.9,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_s1",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0.0,
+            "y": 0,
+            "z": 2.0
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_m",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 1.1,
+            "y": 0,
+            "z": 1.1
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_s2",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 2.2,
+            "y": 0,
+            "z": 2.0
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_e",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 3.1,
+            "y": 0,
+            "z": 0.9
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor_1",
+          "definitionId": "floor_slab",
+          "position": {
+            "x": 0.1,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "floor_2",
+          "definitionId": "floor_slab",
+          "position": {
+            "x": 2.1,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 0
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": 1.1,
+        "y": 0.4,
+        "z": 1.0
+      },
+      "distance": 9.5,
+      "azimuth": 30,
+      "elevation": 50
+    }
+  },
+  {
+    "id": "challenge_006",
+    "index": 6,
+    "worldId": "world_001",
+    "title": "Build a Furnished House",
+    "description": "Build the house, then put a table and two chairs on the floor inside before adding the roof.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Furnish the inside before you add the roof: table and chairs go on the floor."
+    },
+    "buildOrigin": {
+      "x": -8,
+      "y": 0,
+      "z": -6
+    },
+    "buildAreaHalfSize": 3.5,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_house_furnished",
+      "name": "Furnished house",
+      "description": "The small house with a table and two chairs inside.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_a",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": -1.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_b",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0.9,
+            "y": 0,
+            "z": 0.1
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_c",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -0.2,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_d",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -1.1,
+            "y": 0,
+            "z": -0.1
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor",
+          "definitionId": "floor_slab",
+          "position": {
+            "x": -0.1,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "door",
+          "definitionId": "door_single",
+          "position": {
+            "x": -0.5,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 2,
+          "host": "wall_c",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "window_1",
+          "definitionId": "window_square",
+          "position": {
+            "x": 0.9,
+            "y": 0.9,
+            "z": 0.2
+          },
+          "rotationStep": 1,
+          "host": "wall_b",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "window_2",
+          "definitionId": "window_square",
+          "position": {
+            "x": 0.3,
+            "y": 0.9,
+            "z": -1.0
+          },
+          "rotationStep": 0,
+          "host": "wall_a",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "table",
+          "definitionId": "table_dining",
+          "position": {
+            "x": -0.5,
+            "y": 0.2,
+            "z": 0
+          },
+          "rotationStep": 1,
+          "support": [
+            "floor"
+          ]
+        },
+        {
+          "id": "chair_1",
+          "definitionId": "chair_wood",
+          "position": {
+            "x": 0.4,
+            "y": 0.2,
+            "z": 0
+          },
+          "rotationStep": 3,
+          "support": [
+            "floor"
+          ]
+        },
+        {
+          "id": "chair_2",
+          "definitionId": "chair_wood",
+          "position": {
+            "x": 0.4,
+            "y": 0.2,
+            "z": -0.5
+          },
+          "rotationStep": 3,
+          "support": [
+            "floor"
+          ]
+        },
+        {
+          "id": "roof",
+          "definitionId": "roof_gable",
+          "position": {
+            "x": -0.1,
+            "y": 2.7,
+            "z": 0
+          },
+          "rotationStep": 0,
+          "support": [
+            "wall_a",
+            "wall_b",
+            "wall_c",
+            "wall_d"
+          ],
+          "rules": {
+            "positionTolerance": 0.05
+          }
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": -0.1,
+        "y": 0.6,
+        "z": 0.0
+      },
+      "distance": 8.0,
+      "azimuth": 25,
+      "elevation": 55
+    }
+  },
+  {
+    "id": "challenge_007",
+    "index": 7,
+    "worldId": "world_001",
+    "title": "Build a Garden",
+    "description": "Build the house, then fence the front garden and plant a tree, two bushes and two flowers.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "House first, then the fence, then the tree, bushes and flowers on the ground."
+    },
+    "buildOrigin": {
+      "x": 16,
+      "y": 0,
+      "z": 0
+    },
+    "buildAreaHalfSize": 4,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_garden",
+      "name": "House with garden",
+      "description": "A small house with a fenced garden, a tree, bushes and flowers.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_a",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": -1.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_b",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0.9,
+            "y": 0,
+            "z": 0.1
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_c",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -0.2,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_d",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -1.1,
+            "y": 0,
+            "z": -0.1
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor",
+          "definitionId": "floor_slab",
+          "position": {
+            "x": -0.1,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "door",
+          "definitionId": "door_single",
+          "position": {
+            "x": -0.5,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 2,
+          "host": "wall_c",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "roof",
+          "definitionId": "roof_gable",
+          "position": {
+            "x": -0.1,
+            "y": 2.7,
+            "z": 0
+          },
+          "rotationStep": 0,
+          "support": [
+            "wall_a",
+            "wall_b",
+            "wall_c",
+            "wall_d"
+          ],
+          "rules": {
+            "positionTolerance": 0.05
+          }
+        },
+        {
+          "id": "fence_1",
+          "definitionId": "fence_wood",
+          "position": {
+            "x": -2.0,
+            "y": 0,
+            "z": 3.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "fence_2",
+          "definitionId": "fence_wood",
+          "position": {
+            "x": 0.0,
+            "y": 0,
+            "z": 3.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "tree",
+          "definitionId": "tree_pine",
+          "position": {
+            "x": 2.0,
+            "y": 0,
+            "z": 1.5
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "bush_1",
+          "definitionId": "bush_round",
+          "position": {
+            "x": -2.0,
+            "y": 0,
+            "z": 1.5
+          },
+          "rotationStep": 0,
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "bush_2",
+          "definitionId": "bush_round",
+          "position": {
+            "x": -2.0,
+            "y": 0,
+            "z": 2.25
+          },
+          "rotationStep": 0,
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "flower_1",
+          "definitionId": "flower_pink",
+          "position": {
+            "x": 0.5,
+            "y": 0,
+            "z": 2.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "flower_2",
+          "definitionId": "flower_pink",
+          "position": {
+            "x": -0.5,
+            "y": 0,
+            "z": 2.0
+          },
+          "rotationStep": 0
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": -0.3,
+        "y": 0.6,
+        "z": 1.0
+      },
+      "distance": 10.5,
+      "azimuth": 20,
+      "elevation": 40
+    }
+  },
+  {
+    "id": "challenge_008",
+    "index": 8,
+    "worldId": "world_001",
+    "title": "Build a House with a Driveway",
+    "description": "Build the house, lay a road segment in front of it as a driveway, and park the car on it.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "House at the back, driveway in front, and the car parked on the driveway."
+    },
+    "buildOrigin": {
+      "x": -16,
+      "y": 0,
+      "z": 0
+    },
+    "buildAreaHalfSize": 5,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "blueprint": {
+      "id": "bp_driveway",
+      "name": "House with driveway",
+      "description": "A small house, a road segment as driveway, and a car parked on it.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_a",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": -4.2
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_b",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 0.9,
+            "y": 0,
+            "z": -3.1
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_c",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -0.2,
+            "y": 0,
+            "z": -2.2
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_d",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": -1.1,
+            "y": 0,
+            "z": -3.3
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor",
+          "definitionId": "floor_slab",
+          "position": {
+            "x": -0.1,
+            "y": 0,
+            "z": -3.2
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "door",
+          "definitionId": "door_single",
+          "position": {
+            "x": -0.5,
+            "y": 0,
+            "z": -2.2
+          },
+          "rotationStep": 2,
+          "host": "wall_c",
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "roof",
+          "definitionId": "roof_gable",
+          "position": {
+            "x": -0.1,
+            "y": 2.7,
+            "z": -3.2
+          },
+          "rotationStep": 0,
+          "support": [
+            "wall_a",
+            "wall_b",
+            "wall_c",
+            "wall_d"
+          ],
+          "rules": {
+            "positionTolerance": 0.05
+          }
+        },
+        {
+          "id": "driveway",
+          "definitionId": "road_segment",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "rotationStep": 0,
+          "rules": {
+            "rotationMatters": false
+          }
+        },
+        {
+          "id": "car",
+          "definitionId": "car_basic",
+          "position": {
+            "x": 0.5,
+            "y": 0.05,
+            "z": 0.25
+          },
+          "rotationStep": 0,
+          "support": [
+            "driveway"
+          ]
+        }
+      ]
+    },
+    "camera": {
+      "target": {
+        "x": 0.0,
+        "y": 0.6,
+        "z": -1.4
+      },
+      "distance": 11.5,
+      "azimuth": 25,
+      "elevation": 38
+    }
+  },
+  {
+    "id": "challenge_009",
+    "index": 9,
+    "worldId": "world_001",
+    "title": "Build a Bedroom",
+    "description": "Build a long room, lay two floors inside, then furnish it: a bed, a table and a chair. Set a door and a window into the walls.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Walls first, then the two floors, then the bed, table and chair on the floors. Door in the front wall, window over the bed."
+    },
+    "buildOrigin": {
+      "x": 2,
+      "y": 0,
+      "z": 7
+    },
+    "buildAreaHalfSize": 4,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "camera": {
+      "target": {
+        "x": 1.1,
+        "y": 0.5,
+        "z": 1.1
+      },
+      "distance": 10.0,
+      "azimuth": 15,
+      "elevation": 62
+    },
+    "blueprint": {
+      "id": "bp_bedroom",
+      "name": "Bedroom",
+      "description": "A 4 m by 2 m room with two large floors, a bed, a table and a chair, a door and a window.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_n1",
+          "definitionId": "wall_long",
+          "position": {
+            "x": 0.0,
+            "y": 0,
+            "z": 0.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_n2",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 2.1,
+            "y": 0,
+            "z": 0.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_e",
+          "definitionId": "wall_long",
+          "position": {
+            "x": 3.2,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_s1",
+          "definitionId": "wall_plain",
+          "position": {
+            "x": 2.3,
+            "y": 0,
+            "z": 2.2
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_s2",
+          "definitionId": "wall_long",
+          "position": {
+            "x": 0.2,
+            "y": 0,
+            "z": 2.2
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_w",
+          "definitionId": "wall_long",
+          "position": {
+            "x": -1.0,
+            "y": 0,
+            "z": 1.2
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor_1",
+          "definitionId": "floor_large",
+          "position": {
+            "x": 0.1,
+            "y": 0,
+            "z": 1.1
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "floor_2",
+          "definitionId": "floor_large",
+          "position": {
+            "x": 2.1,
+            "y": 0,
+            "z": 1.1
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "door",
+          "definitionId": "door_single",
+          "position": {
+            "x": 2.8,
+            "y": 0,
+            "z": 2.2
+          },
+          "rotationStep": 2,
+          "host": "wall_s1"
+        },
+        {
+          "id": "window",
+          "definitionId": "window_square",
+          "position": {
+            "x": 0.0,
+            "y": 0.9,
+            "z": 0.0
+          },
+          "rotationStep": 0,
+          "host": "wall_n1"
+        },
+        {
+          "id": "bed",
+          "definitionId": "bed_double",
+          "position": {
+            "x": -0.1,
+            "y": 0.2,
+            "z": 1.1
+          },
+          "rotationStep": 0,
+          "support": [
+            "floor_1"
+          ]
+        },
+        {
+          "id": "table",
+          "definitionId": "table_dining",
+          "position": {
+            "x": 2.0,
+            "y": 0.2,
+            "z": 0.6
+          },
+          "rotationStep": 0,
+          "support": [
+            "floor_2"
+          ]
+        },
+        {
+          "id": "chair",
+          "definitionId": "chair_wood",
+          "position": {
+            "x": 2.0,
+            "y": 0.2,
+            "z": 1.4
+          },
+          "rotationStep": 2,
+          "support": [
+            "floor_2"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "challenge_010",
+    "index": 10,
+    "worldId": "world_001",
+    "title": "Build a Living Room",
+    "description": "Build a square room from four long walls and lay one large floor. Then arrange a living room: sofa at the back, table in front of it, armchair beside the table.",
+    "reference": {
+      "kind": "ghost",
+      "caption": "Sofa against the back wall, table in front of the sofa, armchair on the right facing the table. Door in the front wall, window in the left wall."
+    },
+    "buildOrigin": {
+      "x": -8,
+      "y": 0,
+      "z": 7
+    },
+    "buildAreaHalfSize": 3.5,
+    "allowedObjectIds": [],
+    "rewards": [],
+    "camera": {
+      "target": {
+        "x": -0.1,
+        "y": 0.4,
+        "z": 1.3
+      },
+      "distance": 8.0,
+      "azimuth": 15,
+      "elevation": 78
+    },
+    "blueprint": {
+      "id": "bp_living_room",
+      "name": "Living room",
+      "description": "A 2 m by 2 m room of four long walls with one large floor, a sofa, a table and an armchair, a door and a window.",
+      "rules": {
+        "positionTolerance": 0.02,
+        "rotationMatters": true,
+        "allowExtraObjects": true,
+        "rotationMode": "anyQuarterTurn"
+      },
+      "objects": [
+        {
+          "id": "wall_n",
+          "definitionId": "wall_long",
+          "position": {
+            "x": 0.0,
+            "y": 0,
+            "z": 0.0
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "wall_e",
+          "definitionId": "wall_long",
+          "position": {
+            "x": 1.0,
+            "y": 0,
+            "z": 1.2
+          },
+          "rotationStep": 1
+        },
+        {
+          "id": "wall_s",
+          "definitionId": "wall_long",
+          "position": {
+            "x": -0.2,
+            "y": 0,
+            "z": 2.2
+          },
+          "rotationStep": 2
+        },
+        {
+          "id": "wall_w",
+          "definitionId": "wall_long",
+          "position": {
+            "x": -1.2,
+            "y": 0,
+            "z": 1.0
+          },
+          "rotationStep": 3
+        },
+        {
+          "id": "floor",
+          "definitionId": "floor_large",
+          "position": {
+            "x": -0.1,
+            "y": 0,
+            "z": 1.1
+          },
+          "rotationStep": 0
+        },
+        {
+          "id": "door",
+          "definitionId": "door_single",
+          "position": {
+            "x": 0.3,
+            "y": 0,
+            "z": 2.2
+          },
+          "rotationStep": 2,
+          "host": "wall_s"
+        },
+        {
+          "id": "window",
+          "definitionId": "window_square",
+          "position": {
+            "x": -1.2,
+            "y": 0.9,
+            "z": 1.1
+          },
+          "rotationStep": 3,
+          "host": "wall_w"
+        },
+        {
+          "id": "sofa",
+          "definitionId": "sofa_three_seat",
+          "position": {
+            "x": -0.1,
+            "y": 0.2,
+            "z": 0.6
+          },
+          "rotationStep": 0,
+          "support": [
+            "floor"
+          ],
+          "rules": {
+            "positionTolerance": 0.15
+          }
+        },
+        {
+          "id": "table",
+          "definitionId": "table_dining",
+          "position": {
+            "x": -0.3,
+            "y": 0.2,
+            "z": 1.5
+          },
+          "rotationStep": 0,
+          "support": [
+            "floor"
+          ],
+          "rules": {
+            "positionTolerance": 0.15
+          }
+        },
+        {
+          "id": "chair",
+          "definitionId": "chair_wood",
+          "position": {
+            "x": 0.6,
+            "y": 0.2,
+            "z": 1.5
+          },
+          "rotationStep": 3,
+          "support": [
+            "floor"
+          ],
+          "rules": {
+            "positionTolerance": 0.15
+          }
+        }
+      ]
+    }
+  }
+]
