@@ -283,6 +283,10 @@ export class PlacementResolver {
     const role = roleOf(definition);
     let snapKind: PlacementSnap = null;
     let hint: string | null = null;
+    // Openings hosted by this object move with it (see actions.moveSelectedPlacedObject),
+    // so they must not count as an obstacle against their own host's new spot.
+    const dependentIds = placedObjects.filter((p) => p.hostId === placed.id).map((p) => p.id);
+    const selfAndDependents = [placed.id, ...dependentIds];
 
     if (role === 'wall') {
       const walls = this.objectsWithRole(placedObjects, 'wall').filter((w) => w.placed.id !== placed.id);
@@ -292,7 +296,7 @@ export class PlacementResolver {
       });
       if (snapped) {
         const snappedBounds = computeBounds(definition, snapped.position, rotationY, UNIT_SCALE);
-        if (findInvalidReason(snappedBounds, placedObjects, this.registry, this.rules, [placed.id]) === null) {
+        if (findInvalidReason(snappedBounds, placedObjects, this.registry, this.rules, selfAndDependents) === null) {
           position = snapped.position;
           snapKind = snapped.kind;
           hint = snapped.kind === 'corner' ? 'Snapped into a corner' : 'Continues the wall';
@@ -316,7 +320,7 @@ export class PlacementResolver {
     }
 
     const bounds = computeBounds(definition, position, rotationY, placed.scale);
-    const ignoreIds = hostId ? [placed.id, hostId] : [placed.id];
+    const ignoreIds = hostId ? [...selfAndDependents, hostId] : selfAndDependents;
     const reason = findInvalidReason(bounds, placedObjects, this.registry, this.rules, ignoreIds);
     return {
       position,

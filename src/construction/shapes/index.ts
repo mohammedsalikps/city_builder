@@ -6,6 +6,7 @@ import {
   type ShapeId,
 } from '../ConstructionObjectDefinition';
 import { PartList, box, cone, cylinder, gablePrism, sphere } from './PartList';
+import { WALL_VISUAL_THICKNESS } from '../constants';
 
 type ShapeBuilder = (definition: ConstructionObjectDefinition) => THREE.BufferGeometry;
 
@@ -71,30 +72,38 @@ const BUILDERS: Record<ShapeId, ShapeBuilder> = {
 
   door(d) {
     const { width: w, height: h, depth: dp } = d.dimensions;
+    // The gameplay box can be thinner than the wall it sits in (collision
+    // only cares about width/height); the visual frame fills the wall's
+    // full thickness so the door reads flush on both faces, not recessed.
+    const visualDp = Math.max(dp, WALL_VISUAL_THICKNESS);
     const frame = partColor(d, 'frame', DARK_WOOD);
     const t = 0.05;
     return new PartList()
-      .add(box(t, h, dp), frame, { x: -w / 2 + t / 2, y: h / 2 })
-      .add(box(t, h, dp), frame, { x: w / 2 - t / 2, y: h / 2 })
-      .add(box(w, t, dp), frame, { y: h - t / 2 })
-      .add(box(w - 2 * t, h - t, dp * 0.6), d.color, { y: (h - t) / 2 })
-      .add(sphere(0.03), partColor(d, 'handle', METAL), { x: w / 2 - 0.15, y: h * 0.48, z: dp / 2 - 0.03 })
+      .add(box(t, h, visualDp), frame, { x: -w / 2 + t / 2, y: h / 2 })
+      .add(box(t, h, visualDp), frame, { x: w / 2 - t / 2, y: h / 2 })
+      .add(box(w, t, visualDp), frame, { y: h - t / 2 })
+      .add(box(w - 2 * t, h - t, visualDp * 0.75), d.color, { y: (h - t) / 2 })
+      .add(sphere(0.03), partColor(d, 'handle', METAL), { x: w / 2 - 0.15, y: h * 0.48, z: visualDp / 2 - 0.03 })
       .build();
   },
 
   window(d) {
     const { width: w, height: h, depth: dp } = d.dimensions;
+    const visualDp = Math.max(dp, WALL_VISUAL_THICKNESS);
     const frame = partColor(d, 'frame', '#f3f4f6');
     const glass = partColor(d, 'glass', GLASS);
+    const sill = partColor(d, 'sill', '#e7e5df');
     const t = 0.06;
     return new PartList()
-      .add(box(t, h, dp), frame, { x: -w / 2 + t / 2, y: h / 2 })
-      .add(box(t, h, dp), frame, { x: w / 2 - t / 2, y: h / 2 })
-      .add(box(w, t, dp), frame, { y: t / 2 })
-      .add(box(w, t, dp), frame, { y: h - t / 2 })
-      .add(box(w - 2 * t, h - 2 * t, dp * 0.3), glass, { y: h / 2 })
-      .add(box(0.04, h - 2 * t, dp * 0.5), frame, { y: h / 2 })
-      .add(box(w - 2 * t, 0.04, dp * 0.5), frame, { y: h / 2 })
+      .add(box(t, h, visualDp), frame, { x: -w / 2 + t / 2, y: h / 2 })
+      .add(box(t, h, visualDp), frame, { x: w / 2 - t / 2, y: h / 2 })
+      .add(box(w, t, visualDp), frame, { y: t / 2 })
+      .add(box(w, t, visualDp), frame, { y: h - t / 2 })
+      .add(box(w - 2 * t, h - 2 * t, visualDp * 0.55), glass, { y: h / 2 })
+      .add(box(0.04, h - 2 * t, visualDp * 0.7), frame, { y: h / 2 })
+      .add(box(w - 2 * t, 0.04, visualDp * 0.7), frame, { y: h / 2 })
+      // A small sill proud of the wall face reads as a real window ledge.
+      .add(box(w + 0.1, 0.03, visualDp * 0.4 + 0.06), sill, { y: 0.015 })
       .build();
   },
 

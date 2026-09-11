@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import type { ConstructionObjectDefinition } from './ConstructionObjectDefinition';
+import { partColor, type ConstructionObjectDefinition } from './ConstructionObjectDefinition';
 import type { PlacedObject, Vec3 } from './PlacedObject';
 import { boundsOfPlaced, roundCoord, type Bounds } from './bounds';
 import { PartList, box } from './shapes/PartList';
@@ -303,11 +303,18 @@ export function openingSignature(rects: OpeningRect[]): string {
   return rects.map((r) => [r.u0, r.u1, r.v0, r.v1].map((v) => v.toFixed(4)).join(',')).join('|');
 }
 
+/** Width of the moulding drawn around a cut opening, metres. */
+const TRIM_WIDTH = 0.045;
+/** How far the trim stands proud of the wall face, so it never z-fights the flat cut edge. */
+const TRIM_PROUD = 0.006;
+
 /**
  * Wall geometry with rectangular holes: the wall is cut into vertical strips
  * at the opening edges; strips without an opening are full-height boxes,
- * strips with one get a box below (if any) and a box above (if any).
- * Same bottom-centre convention as every other shape.
+ * strips with one get a box below (if any) and a box above (if any). A thin
+ * moulding is added around each opening so it reads as a real door/window
+ * surround rather than a raw cut. Same bottom-centre convention as every
+ * other shape.
  */
 export function buildWallGeometry(
   wallDefinition: ConstructionObjectDefinition,
@@ -315,6 +322,7 @@ export function buildWallGeometry(
 ): THREE.BufferGeometry {
   const { width: length, height, depth: thickness } = wallDefinition.dimensions;
   const color = wallDefinition.color;
+  const trimColor = partColor(wallDefinition, 'trim', '#f4f2ec');
   const parts = new PartList();
   const eps = 1e-6;
 
@@ -325,6 +333,28 @@ export function buildWallGeometry(
     parts.add(box(w, h, thickness), color, { x: (u0 + u1) / 2, y: (v0 + v1) / 2 });
   };
 
+  /**
+   * A moulding frame around one opening's true extent (not clamped to the
+   * wall's own bounds, so a door reaching the floor gets no sill piece).
+   * Top/bottom bars run past the corners so the side bars butt cleanly
+   * against them with no gap.
+   */
+  const addTrim = (rect: OpeningRect): void => {
+    const u0 = rect.u0;
+    const u1 = rect.u1;
+    const v0 = Math.max(0, rect.v0);
+    const v1 = Math.min(height, rect.v1);
+    const trimDepth = thickness + TRIM_PROUD * 2;
+    const outerWidth = u1 - u0 + TRIM_WIDTH * 2;
+    const cx = (u0 + u1) / 2;
+    parts.add(box(outerWidth, TRIM_WIDTH, trimDepth), trimColor, { x: cx, y: v1 + TRIM_WIDTH / 2 });
+    if (v0 > eps) {
+      parts.add(box(outerWidth, TRIM_WIDTH, trimDepth), trimColor, { x: cx, y: v0 - TRIM_WIDTH / 2 });
+    }
+    parts.add(box(TRIM_WIDTH, v1 - v0, trimDepth), trimColor, { x: u0 - TRIM_WIDTH / 2, y: (v0 + v1) / 2 });
+    parts.add(box(TRIM_WIDTH, v1 - v0, trimDepth), trimColor, { x: u1 + TRIM_WIDTH / 2, y: (v0 + v1) / 2 });
+  };
+
   let cursor = -length / 2;
   for (const rect of rects) {
     const u0 = Math.max(cursor, rect.u0);
@@ -333,6 +363,7 @@ export function buildWallGeometry(
     if (u1 > u0) {
       addStrip(u0, u1, 0, Math.max(0, rect.v0));
       addStrip(u0, u1, Math.min(height, rect.v1), height);
+      addTrim(rect);
     }
     cursor = Math.max(cursor, u1);
   }
