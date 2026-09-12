@@ -25,6 +25,20 @@ const SANDBOX_ICON = `
   <rect x="48.5" y="20" width="3" height="7" fill="#6b4a2b"/>
 </svg>`;
 
+/** Small mark for the Eavara parent-brand lockup: an arched doorway, echoing the main badge. */
+const EAVARA_MARK = `
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="30" height="30" rx="9" fill="none" stroke="url(#cb-eavara-grad)" stroke-width="2"/>
+  <path d="M11 23v-7a5 5 0 0 1 10 0v7" stroke="url(#cb-eavara-grad)" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="16" cy="9" r="1.6" fill="url(#cb-eavara-grad)"/>
+  <defs>
+    <linearGradient id="cb-eavara-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffe3a1"/>
+      <stop offset="1" stop-color="#f2a541"/>
+    </linearGradient>
+  </defs>
+</svg>`;
+
 /** Logo badge: a friendly little rooftop-and-sun mark, not a wordmark substitute. */
 const LOGO_BADGE = `
 <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -62,7 +76,9 @@ export class MainMenuScreen extends Screen {
   private campaignSummary: HTMLElement | null = null;
 
   private readonly onStartSandbox = () => {
-    this.context.actions.startNewGame(this.nameInput?.value ?? '');
+    // Resumes the player's saved world if one exists, otherwise starts a
+    // fresh one - see GameActions.enterMyWorld.
+    this.context.actions.enterMyWorld(this.nameInput?.value ?? '');
   };
   private readonly onContinue = () => {
     this.context.actions.continueGame();
@@ -90,6 +106,10 @@ export class MainMenuScreen extends Screen {
     root.appendChild(topbar);
 
     const hero = el('div', 'home__hero');
+    const brand = el('div', 'brand__eyebrow');
+    brand.appendChild(icon(EAVARA_MARK, 'brand__mark'));
+    brand.appendChild(el('span', 'brand__name', 'EAVARA'));
+    hero.appendChild(brand);
     const logo = el('div', 'logo');
     logo.appendChild(icon(LOGO_BADGE, 'logo__badge'));
     const word = el('div', 'logo__word');

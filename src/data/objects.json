@@ -1274,5 +1274,883 @@
         "hint": "Utility boxes stand on the ground or a sidewalk"
       }
     }
+  },
+  {
+    "id": "building_house_small",
+    "name": "Small House",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 9.1,
+      "height": 5.81,
+      "depth": 7.21
+    },
+    "material": "concrete",
+    "color": "#c9cdd6",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "house",
+        "home"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_sub_house_a",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_villa",
+    "name": "Villa",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 8.68,
+      "height": 6.44,
+      "depth": 6.93
+    },
+    "material": "concrete",
+    "color": "#d7cdb8",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "house",
+        "villa"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_sub_house_p",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_villa_modern",
+    "name": "Modern Villa",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 10.01,
+      "height": 7.98,
+      "depth": 9.87
+    },
+    "material": "concrete",
+    "color": "#9aa3ad",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "house",
+        "villa",
+        "modern"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_sub_house_f",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_apartment",
+    "name": "Apartment",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 12.81,
+      "height": 7.98,
+      "depth": 7.98
+    },
+    "material": "concrete",
+    "color": "#c7c2b6",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "apartment",
+        "flats"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_sub_house_b",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_shop",
+    "name": "Shop",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 6.16,
+      "height": 6.23,
+      "depth": 7.63
+    },
+    "material": "concrete",
+    "color": "#e0dccd",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "shop",
+        "store"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_com_building_c",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_school",
+    "name": "School",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 14.56,
+      "height": 10.29,
+      "depth": 6.58
+    },
+    "material": "concrete",
+    "color": "#cfd6dd",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "school"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_com_building_k",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_tower",
+    "name": "City Tower",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 9.52,
+      "height": 20.16,
+      "depth": 9.52
+    },
+    "material": "concrete",
+    "color": "#aeb8c2",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "tower",
+        "skyscraper",
+        "commercial"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_com_skyscraper_a",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_sedan",
+    "name": "Sedan",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.5,
+      "height": 1.3,
+      "depth": 2.55
+    },
+    "material": "paint",
+    "color": "#c0392b",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "car",
+        "sedan"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_sedan",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_suv",
+    "name": "SUV",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.5,
+      "height": 1.3,
+      "depth": 2.7
+    },
+    "material": "paint",
+    "color": "#2c3e50",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "car",
+        "suv"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_suv",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_taxi",
+    "name": "Taxi",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.5,
+      "height": 1.5,
+      "depth": 2.75
+    },
+    "material": "paint",
+    "color": "#e8c547",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "car",
+        "taxi"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_taxi",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_van",
+    "name": "Van",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.5,
+      "height": 1.35,
+      "depth": 2.75
+    },
+    "material": "paint",
+    "color": "#7f8c8d",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "car",
+        "van",
+        "delivery"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_van",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_hatchback",
+    "name": "Hatchback",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.3,
+      "height": 1.1,
+      "depth": 2.85
+    },
+    "material": "paint",
+    "color": "#27ae60",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "car",
+        "hatchback"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_hatchback",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "road_intersection",
+    "name": "Road Crossroads",
+    "category": "roads",
+    "type": "road",
+    "dimensions": {
+      "width": 4,
+      "height": 0.05,
+      "depth": 4
+    },
+    "material": "asphalt",
+    "color": "#3d3f45",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "street",
+        "junction",
+        "crossroads"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_road_intersection",
+      "fit": "stretch"
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "road",
+          "sidewalk"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "Roads are laid on the ground"
+      }
+    }
+  },
+  {
+    "id": "road_crossing",
+    "name": "Road Crossing",
+    "category": "roads",
+    "type": "road",
+    "dimensions": {
+      "width": 4,
+      "height": 0.05,
+      "depth": 4
+    },
+    "material": "asphalt",
+    "color": "#3d3f45",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "street",
+        "crosswalk"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_road_crossing",
+      "fit": "stretch"
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "road",
+          "sidewalk"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "Roads are laid on the ground"
+      }
+    }
+  },
+  {
+    "id": "road_driveway",
+    "name": "Driveway",
+    "category": "roads",
+    "type": "road",
+    "dimensions": {
+      "width": 4,
+      "height": 0.05,
+      "depth": 4
+    },
+    "material": "asphalt",
+    "color": "#3d3f45",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "street",
+        "driveway"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_road_driveway",
+      "fit": "stretch"
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "road",
+          "sidewalk"
+        ],
+        "surfaces": [
+          "side"
+        ],
+        "hint": "Roads are laid on the ground"
+      }
+    }
+  },
+  {
+    "id": "furniture_bed",
+    "name": "Modern Bed",
+    "category": "furniture",
+    "type": "bed",
+    "dimensions": {
+      "width": 1.6,
+      "height": 0.6,
+      "depth": 2.0
+    },
+    "material": "timber",
+    "color": "#6f4a2e",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "bed",
+        "bedroom"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_furn_bed",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "furniture_sofa",
+    "name": "Lounge Sofa",
+    "category": "furniture",
+    "type": "sofa",
+    "dimensions": {
+      "width": 1.8,
+      "height": 0.8,
+      "depth": 0.9
+    },
+    "material": "fabric",
+    "color": "#5b6b8c",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "sofa",
+        "living room"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_furn_sofa",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "furniture_table",
+    "name": "Modern Table",
+    "category": "furniture",
+    "type": "table",
+    "dimensions": {
+      "width": 1.2,
+      "height": 0.75,
+      "depth": 0.8
+    },
+    "material": "timber",
+    "color": "#a8743f",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "table"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_furn_table",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "furniture_chair",
+    "name": "Modern Chair",
+    "category": "furniture",
+    "type": "chair",
+    "dimensions": {
+      "width": 0.5,
+      "height": 0.9,
+      "depth": 0.5
+    },
+    "material": "timber",
+    "color": "#9c6b3c",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "chair"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_furn_chair",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "decor_sign_stop",
+    "name": "Stop Sign",
+    "category": "decoration",
+    "type": "sign",
+    "dimensions": {
+      "width": 0.56,
+      "height": 3.43,
+      "depth": 0.98
+    },
+    "material": "paint",
+    "color": "#c0392b",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "sign",
+        "traffic"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_road_sign_stop",
+      "fit": "contain"
+    }
+  },
+  {
+    "id": "decor_dumpster",
+    "name": "Dumpster",
+    "category": "decoration",
+    "type": "dumpster",
+    "dimensions": {
+      "width": 1.96,
+      "height": 1.47,
+      "depth": 2.59
+    },
+    "material": "paint",
+    "color": "#2e7d32",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "dumpster",
+        "prop"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_road_dumpster",
+      "fit": "contain"
+    }
+  },
+  {
+    "id": "decor_planter",
+    "name": "Garden Planter",
+    "category": "decoration",
+    "type": "planter",
+    "dimensions": {
+      "width": 2.8,
+      "height": 1.26,
+      "depth": 2.1
+    },
+    "material": "concrete",
+    "color": "#b7a98f",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "planter",
+        "garden"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_sub_planter",
+      "fit": "contain"
+    }
+  },
+  {
+    "id": "decor_rock_small",
+    "name": "Small Rock",
+    "category": "nature",
+    "type": "rock",
+    "dimensions": {
+      "width": 0.7,
+      "height": 0.5,
+      "depth": 0.6
+    },
+    "material": "stone",
+    "color": "#8b8b83",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 2
+    },
+    "reward": {
+      "xpOnFirstUse": 2
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 150,
+      "tags": [
+        "garden",
+        "park",
+        "nature"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Rocks sit on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_nat_rock_small",
+      "fit": "contain"
+    }
+  },
+  {
+    "id": "decor_rock_large",
+    "name": "Large Rock",
+    "category": "nature",
+    "type": "rock",
+    "dimensions": {
+      "width": 1.4,
+      "height": 1.0,
+      "depth": 1.2
+    },
+    "material": "stone",
+    "color": "#84847c",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 4
+    },
+    "reward": {
+      "xpOnFirstUse": 3
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 600,
+      "tags": [
+        "garden",
+        "park",
+        "nature"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Rocks sit on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_nat_rock_large",
+      "fit": "contain"
+    }
   }
 ]

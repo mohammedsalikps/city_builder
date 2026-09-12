@@ -1,4 +1,5 @@
 import type { GameState } from './GameState';
+import type { PlayerProfile } from '@/player/Player';
 import {
   createInitialProgress,
   createInitialUnlocks,
@@ -6,11 +7,21 @@ import {
   type PlayerProgress,
 } from '@/progression/Progression';
 
-/** `progress` may be supplied from persistent storage. */
-export function createInitialState(progress: PlayerProgress = createInitialProgress()): GameState {
+/**
+ * `progress` may be supplied from persistent storage (Challenge Mode's
+ * stars/unlocks). `player` may likewise be supplied from a saved My World
+ * (see MyWorldStorage) so "Continue where you left off" and the My World
+ * card can resume it instead of starting over after a reload; `placedObjects`
+ * stays empty here regardless - MyWorldPersistenceService restores it the
+ * moment free-build actually starts, the same path used mid-session.
+ */
+export function createInitialState(
+  progress: PlayerProgress = createInitialProgress(),
+  player: PlayerProfile | null = null,
+): GameState {
   return {
     mode: 'boot',
-    player: null,
+    player,
     world: null,
     level: null,
     challenge: null,

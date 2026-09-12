@@ -2,6 +2,7 @@ import type { GameState } from '@/state/GameState';
 import type { GameActions } from '@/state/actions';
 import type { ObjectRegistry } from '@/construction/ObjectRegistry';
 import type { ChallengeRegistry } from '@/challenges/ChallengeRegistry';
+import type { TemplateRegistry } from '@/creative/Template';
 
 export interface ScreenContext {
   actions: GameActions;
@@ -9,6 +10,8 @@ export interface ScreenContext {
   registry: ObjectRegistry;
   /** Read-only access to challenge levels for data-driven UI. */
   challenges: ChallengeRegistry;
+  /** Read-only access to My World's creative templates for data-driven UI. */
+  templates: TemplateRegistry;
 }
 
 /**

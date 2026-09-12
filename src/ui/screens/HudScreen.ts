@@ -1,6 +1,7 @@
 import { Screen, el } from '../Screen';
-import { isPlacementMode, type GameState } from '@/state/GameState';
+import { isFreeBuildMode, isPlacementMode, type GameState } from '@/state/GameState';
 import { describePlacementStatus } from '@/construction/PlacementResolver';
+import { roleOf } from '@/construction/ConstructionObjectDefinition';
 import { transformCapabilitiesOf, hasAnyCapability, type TransformMode } from '@/construction/TransformCapabilities';
 
 /**
@@ -14,11 +15,15 @@ export class HudScreen extends Screen {
   private worldLabel: HTMLElement | null = null;
   private levelLabel: HTMLElement | null = null;
   private placedLabel: HTMLElement | null = null;
+  private savedLabel: HTMLElement | null = null;
+  private lastPlacedObjects: GameState['placedObjects'] | null = null;
+  private savedTimeout: ReturnType<typeof setTimeout> | null = null;
   private statusLabel: HTMLElement | null = null;
   private hintLabel: HTMLElement | null = null;
   private rotateButton: HTMLButtonElement | null = null;
   private cancelButton: HTMLButtonElement | null = null;
   private deleteButton: HTMLButtonElement | null = null;
+  private duplicateButton: HTMLButtonElement | null = null;
   private pauseOverlay: HTMLElement | null = null;
   private transformGroup: HTMLElement | null = null;
   private moveModeButton: HTMLButtonElement | null = null;
@@ -34,6 +39,7 @@ export class HudScreen extends Screen {
   private readonly onRotate = () => this.context.actions.rotatePlacement(1);
   private readonly onCancel = () => this.context.actions.cancelPlacement();
   private readonly onDelete = () => this.context.actions.removeSelectedPlacedObject();
+  private readonly onDuplicate = () => this.context.actions.duplicateSelectedPlacedObject();
   private readonly onSetMode = (mode: TransformMode) => () => this.context.actions.setTransformMode(mode);
   private readonly onScaleDown = () => this.context.actions.scaleSelectedPlacedObject(-1);
   private readonly onScaleUp = () => this.context.actions.scaleSelectedPlacedObject(1);
@@ -46,7 +52,9 @@ export class HudScreen extends Screen {
     this.worldLabel = el('span', 'hud__stat');
     this.levelLabel = el('span', 'hud__stat');
     this.placedLabel = el('span', 'hud__stat');
-    topBar.append(this.playerLabel, this.worldLabel, this.levelLabel, this.placedLabel);
+    this.savedLabel = el('span', 'hud__saved', 'Saved');
+    this.savedLabel.hidden = true;
+    topBar.append(this.playerLabel, this.worldLabel, this.levelLabel, this.placedLabel, this.savedLabel);
     topBar.appendChild(el('span', 'hud__spacer'));
     topBar.appendChild(this.button('Pause', this.onPause));
     topBar.appendChild(this.button('Menu', this.onMenu));
@@ -70,8 +78,9 @@ export class HudScreen extends Screen {
     this.scaleStepper.append(this.scaleDownButton, this.scaleUpButton);
     this.transformGroup.append(this.moveModeButton, this.rotateModeButton, this.scaleModeButton, this.scaleStepper);
 
+    this.duplicateButton = this.button('Duplicate', this.onDuplicate);
     this.deleteButton = this.button('Delete (Del)', this.onDelete, 'button--danger');
-    bottomBar.append(this.rotateButton, this.cancelButton, this.transformGroup, this.deleteButton);
+    bottomBar.append(this.rotateButton, this.cancelButton, this.transformGroup, this.duplicateButton, this.deleteButton);
     root.appendChild(bottomBar);
 
     this.pauseOverlay = el('div', 'hud__pause');
@@ -91,6 +100,7 @@ export class HudScreen extends Screen {
     if (this.levelLabel) this.levelLabel.textContent = `Level: ${state.level?.index ?? '-'}`;
     if (this.placedLabel) this.placedLabel.textContent = `Placed: ${state.placedObjects.length}`;
     if (this.pauseOverlay) this.pauseOverlay.hidden = state.mode !== 'paused';
+    this.updateSavedIndicator(state);
 
     const placing = isPlacementMode(state);
     const selected = state.selectedInstanceId
@@ -119,7 +129,33 @@ export class HudScreen extends Screen {
     if (this.rotateButton) this.rotateButton.hidden = !placing;
     if (this.cancelButton) this.cancelButton.hidden = !placing;
     if (this.deleteButton) this.deleteButton.hidden = selected === null;
+    if (this.duplicateButton) {
+      const selectedDefinition = selected ? this.context.registry.get(selected.definitionId) : undefined;
+      this.duplicateButton.hidden = selected === null || !selectedDefinition || roleOf(selectedDefinition) === 'opening';
+    }
     this.updateTransformControls(state, selected);
+  }
+
+  /**
+   * Subtle "Saved" flash whenever My World's build actually changes - the
+   * only player-visible sign that persistence happened (see
+   * MyWorldPersistenceService). Never shown in Challenge Mode, where
+   * placedObjects isn't durable and saving would be meaningless.
+   */
+  private updateSavedIndicator(state: GameState): void {
+    if (!isFreeBuildMode(state) || state.mode !== 'playing') {
+      this.lastPlacedObjects = null;
+      return;
+    }
+    if (this.lastPlacedObjects !== null && state.placedObjects !== this.lastPlacedObjects) {
+      if (this.savedLabel) this.savedLabel.hidden = false;
+      if (this.savedTimeout !== null) clearTimeout(this.savedTimeout);
+      this.savedTimeout = setTimeout(() => {
+        if (this.savedLabel) this.savedLabel.hidden = true;
+        this.savedTimeout = null;
+      }, 1600);
+    }
+    this.lastPlacedObjects = state.placedObjects;
   }
 
   /** Move / Rotate / Scale indicator: only the modes this selection actually supports. */
@@ -152,15 +188,20 @@ export class HudScreen extends Screen {
   }
 
   protected onUnmount(): void {
+    if (this.savedTimeout !== null) clearTimeout(this.savedTimeout);
+    this.savedTimeout = null;
+    this.lastPlacedObjects = null;
     this.playerLabel = null;
     this.worldLabel = null;
     this.levelLabel = null;
     this.placedLabel = null;
+    this.savedLabel = null;
     this.statusLabel = null;
     this.hintLabel = null;
     this.rotateButton = null;
     this.cancelButton = null;
     this.deleteButton = null;
+    this.duplicateButton = null;
     this.pauseOverlay = null;
     this.transformGroup = null;
     this.moveModeButton = null;

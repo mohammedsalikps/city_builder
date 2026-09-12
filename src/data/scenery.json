@@ -483,37 +483,33 @@
       "rotationY": 180
     },
     {
-      "asset": "car_sedan_01",
+      "asset": "kenney_car_sedan",
       "x": -36,
       "z": -22.6,
       "rotationY": 90
     },
     {
-      "asset": "car_sedan_01",
+      "asset": "kenney_car_taxi",
       "x": 18,
       "z": -25.4,
-      "rotationY": -90,
-      "variant": "yellow"
+      "rotationY": -90
     },
     {
-      "asset": "car_sedan_01",
+      "asset": "kenney_car_suv",
       "x": 58,
       "z": -22.6,
-      "rotationY": 90,
-      "variant": "white"
+      "rotationY": 90
     },
     {
-      "asset": "car_sedan_01",
+      "asset": "kenney_car_van",
       "x": -17.5,
-      "z": -30.8,
-      "variant": "blue"
+      "z": -30.8
     },
     {
-      "asset": "car_sedan_01",
+      "asset": "kenney_car_hatchback",
       "x": 37.1,
       "z": -70,
-      "rotationY": 180,
-      "variant": "green"
+      "rotationY": 180
     },
     {
       "asset": "kenney_sub_tree_large",
@@ -773,6 +769,153 @@
       "x": 20,
       "z": -118,
       "rotationY": 90
+    },
+    {
+      "asset": "kenney_nat_rock_large",
+      "x": -66,
+      "z": -58,
+      "rotationY": 40,
+      "scale": 1.6
+    },
+    {
+      "asset": "kenney_nat_rock_small",
+      "x": -63,
+      "z": -66,
+      "rotationY": 110,
+      "scale": 1.4
+    },
+    {
+      "asset": "kenney_nat_rock_large",
+      "x": -108,
+      "z": -50,
+      "rotationY": -30,
+      "scale": 1.8
+    },
+    {
+      "asset": "kenney_nat_rock_small",
+      "x": -112,
+      "z": -60,
+      "rotationY": 200,
+      "scale": 1.3
+    },
+    {
+      "asset": "kenney_nat_rock_small",
+      "x": -70,
+      "z": -34,
+      "rotationY": 80,
+      "scale": 1.2
+    },
+    {
+      "asset": "kenney_nat_bush_large",
+      "x": -42.9,
+      "z": -30.6,
+      "rotationY": 0,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": -49.1,
+      "z": -30.4,
+      "rotationY": 0,
+      "scale": 0.9
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": -28.9,
+      "z": -30.6,
+      "rotationY": 47,
+      "scale": 1.15
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": -35.1,
+      "z": -30.4,
+      "rotationY": 83,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_nat_bush_large",
+      "x": -14.9,
+      "z": -30.6,
+      "rotationY": 94,
+      "scale": 1.3
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": -21.1,
+      "z": -30.4,
+      "rotationY": 166,
+      "scale": 0.9
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": -0.8999999999999999,
+      "z": -30.6,
+      "rotationY": 141,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": -7.1,
+      "z": -30.4,
+      "rotationY": 249,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_nat_bush_large",
+      "x": 13.1,
+      "z": -30.6,
+      "rotationY": 188,
+      "scale": 1.15
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": 6.9,
+      "z": -30.4,
+      "rotationY": 332,
+      "scale": 0.9
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": 27.1,
+      "z": -30.6,
+      "rotationY": 235,
+      "scale": 1.3
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": 20.9,
+      "z": -30.4,
+      "rotationY": 55,
+      "scale": 1.1
+    },
+    {
+      "asset": "kenney_nat_bush_large",
+      "x": 55.1,
+      "z": -30.6,
+      "rotationY": 282,
+      "scale": 1.0
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": 48.9,
+      "z": -30.4,
+      "rotationY": 138,
+      "scale": 0.9
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": 69.1,
+      "z": -30.6,
+      "rotationY": 329,
+      "scale": 1.15
+    },
+    {
+      "asset": "kenney_nat_bush",
+      "x": 62.9,
+      "z": -30.4,
+      "rotationY": 221,
+      "scale": 1.1
     }
   ],
   "rows": [
@@ -941,7 +1084,9 @@
   "scatter": [
     {
       "assets": [
-        "kenney_sub_tree_large"
+        "kenney_sub_tree_large",
+        "kenney_nat_tree_oak",
+        "kenney_nat_tree_round"
       ],
       "count": 170,
       "seed": 21,
@@ -1001,7 +1146,9 @@
     },
     {
       "assets": [
-        "kenney_sub_tree_small"
+        "kenney_sub_tree_small",
+        "kenney_nat_tree_pine_round",
+        "kenney_nat_bush_large"
       ],
       "count": 110,
       "seed": 23,

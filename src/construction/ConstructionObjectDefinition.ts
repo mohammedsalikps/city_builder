@@ -7,6 +7,7 @@
 export const OBJECT_CATEGORIES = [
   'structures',
   'openings',
+  'buildings',
   'furniture',
   'nature',
   'decoration',
@@ -20,6 +21,7 @@ export type ObjectCategory = (typeof OBJECT_CATEGORIES)[number];
 export const CATEGORY_LABELS: Record<ObjectCategory, string> = {
   structures: 'Structures',
   openings: 'Openings',
+  buildings: 'Buildings',
   furniture: 'Furniture',
   nature: 'Nature',
   decoration: 'Decoration',

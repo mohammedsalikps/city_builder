@@ -911,5 +911,333 @@
       "height": 1.47,
       "depth": 2.59
     }
+  },
+  {
+    "id": "kenney_nat_tree_oak",
+    "path": "kenney/nature/tree_oak.glb",
+    "category": "vegetation",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.64,
+      "depth": 0.74
+    },
+    "bounds": {
+      "width": 0.64,
+      "height": 1.23,
+      "depth": 0.74
+    }
+  },
+  {
+    "id": "kenney_nat_tree_pine_round",
+    "path": "kenney/nature/tree_pineRoundC.glb",
+    "category": "vegetation",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.48,
+      "depth": 0.56
+    },
+    "bounds": {
+      "width": 0.48,
+      "height": 1.25,
+      "depth": 0.56
+    }
+  },
+  {
+    "id": "kenney_nat_tree_pine_tall",
+    "path": "kenney/nature/tree_pineTallA.glb",
+    "category": "vegetation",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.39,
+      "depth": 0.39
+    },
+    "bounds": {
+      "width": 0.39,
+      "height": 1.53,
+      "depth": 0.39
+    }
+  },
+  {
+    "id": "kenney_nat_tree_round",
+    "path": "kenney/nature/tree_default.glb",
+    "category": "vegetation",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.76,
+      "depth": 0.65
+    },
+    "bounds": {
+      "width": 0.76,
+      "height": 1.71,
+      "depth": 0.65
+    }
+  },
+  {
+    "id": "kenney_nat_bush",
+    "path": "kenney/nature/plant_bush.glb",
+    "category": "vegetation",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.4,
+      "depth": 0.4
+    },
+    "bounds": {
+      "width": 0.4,
+      "height": 0.24,
+      "depth": 0.4
+    }
+  },
+  {
+    "id": "kenney_nat_bush_large",
+    "path": "kenney/nature/plant_bushLarge.glb",
+    "category": "vegetation",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.37,
+      "depth": 0.34
+    },
+    "bounds": {
+      "width": 0.37,
+      "height": 0.24,
+      "depth": 0.34
+    }
+  },
+  {
+    "id": "kenney_nat_rock_large",
+    "path": "kenney/nature/rock_largeA.glb",
+    "category": "props",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.79,
+      "depth": 1.02
+    },
+    "bounds": {
+      "width": 0.79,
+      "height": 0.26,
+      "depth": 1.02
+    }
+  },
+  {
+    "id": "kenney_nat_rock_small",
+    "path": "kenney/nature/rock_smallA.glb",
+    "category": "props",
+    "source": "Kenney Nature Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.36,
+      "depth": 0.36
+    },
+    "bounds": {
+      "width": 0.36,
+      "height": 0.19,
+      "depth": 0.36
+    }
+  },
+  {
+    "id": "kenney_car_sedan",
+    "path": "kenney/cars/sedan.glb",
+    "category": "vehicles",
+    "source": "Kenney Car Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.5,
+      "depth": 2.55
+    },
+    "bounds": {
+      "width": 1.5,
+      "height": 1.3,
+      "depth": 2.55
+    },
+    "textureFilter": "palette"
+  },
+  {
+    "id": "kenney_car_suv",
+    "path": "kenney/cars/suv.glb",
+    "category": "vehicles",
+    "source": "Kenney Car Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.5,
+      "depth": 2.7
+    },
+    "bounds": {
+      "width": 1.5,
+      "height": 1.3,
+      "depth": 2.7
+    },
+    "textureFilter": "palette"
+  },
+  {
+    "id": "kenney_car_taxi",
+    "path": "kenney/cars/taxi.glb",
+    "category": "vehicles",
+    "source": "Kenney Car Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.5,
+      "depth": 2.75
+    },
+    "bounds": {
+      "width": 1.5,
+      "height": 1.5,
+      "depth": 2.75
+    },
+    "textureFilter": "palette"
+  },
+  {
+    "id": "kenney_car_van",
+    "path": "kenney/cars/van.glb",
+    "category": "vehicles",
+    "source": "Kenney Car Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.5,
+      "depth": 2.75
+    },
+    "bounds": {
+      "width": 1.5,
+      "height": 1.35,
+      "depth": 2.75
+    },
+    "textureFilter": "palette"
+  },
+  {
+    "id": "kenney_car_hatchback",
+    "path": "kenney/cars/hatchback-sports.glb",
+    "category": "vehicles",
+    "source": "Kenney Car Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.3,
+      "depth": 2.85
+    },
+    "bounds": {
+      "width": 1.3,
+      "height": 1.1,
+      "depth": 2.85
+    },
+    "textureFilter": "palette"
+  },
+  {
+    "id": "kenney_furn_bed",
+    "path": "kenney/furniture/bedDouble.glb",
+    "category": "furniture",
+    "source": "Kenney Furniture Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.62,
+      "depth": 2.68
+    },
+    "bounds": {
+      "width": 1.62,
+      "height": 0.38,
+      "depth": 2.68
+    }
+  },
+  {
+    "id": "kenney_furn_sofa",
+    "path": "kenney/furniture/loungeDesignSofa.glb",
+    "category": "furniture",
+    "source": "Kenney Furniture Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 1.12,
+      "depth": 0.41
+    },
+    "bounds": {
+      "width": 1.12,
+      "height": 0.4,
+      "depth": 0.41
+    }
+  },
+  {
+    "id": "kenney_furn_table",
+    "path": "kenney/furniture/table.glb",
+    "category": "furniture",
+    "source": "Kenney Furniture Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.84,
+      "depth": 0.45
+    },
+    "bounds": {
+      "width": 0.84,
+      "height": 0.33,
+      "depth": 0.45
+    }
+  },
+  {
+    "id": "kenney_furn_chair",
+    "path": "kenney/furniture/chairModernCushion.glb",
+    "category": "furniture",
+    "source": "Kenney Furniture Kit (CC0)",
+    "scale": 1.0,
+    "rotationY": 0,
+    "recenter": true,
+    "materials": "embedded",
+    "footprint": {
+      "width": 0.2,
+      "depth": 0.2
+    },
+    "bounds": {
+      "width": 0.2,
+      "height": 0.46,
+      "depth": 0.2
+    }
   }
 ]

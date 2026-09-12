@@ -77,3 +77,20 @@ export interface GameState {
 export function isPlacementMode(state: GameState): boolean {
   return state.mode === 'playing' && state.selectedObjectId !== null;
 }
+
+/** True while no challenge is active: My World's free-building session. */
+export function isFreeBuildMode(state: GameState): boolean {
+  return state.challenge === null;
+}
+
+/**
+ * Whether the player may select/place this object right now. Challenge Mode
+ * gates the catalogue by the active level's own unlock list, so each level
+ * only offers the pieces it teaches. My World has no such curriculum - it is
+ * meant to be open-ended creative building - so every registered object is
+ * available there regardless of `unlocks` (which stays untouched and keeps
+ * gating Challenge Mode exactly as before).
+ */
+export function isObjectUnlocked(state: GameState, objectId: string): boolean {
+  return isFreeBuildMode(state) || state.unlocks.objectIds.includes(objectId);
+}

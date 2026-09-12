@@ -8,7 +8,17 @@ import { ChallengeRegistry } from '@/challenges/ChallengeRegistry';
 import { BlueprintRenderer } from '@/challenges/BlueprintRenderer';
 import { ChallengePlacementTargets } from '@/challenges/PlacementTargets';
 import { ChallengeSystem } from '@/challenges/ChallengeSystem';
-import { objectDefinitions, challengeDefinitions, worldDefinitions, assetDefinitions, sceneryDefinition } from '@/data';
+import {
+  objectDefinitions,
+  challengeDefinitions,
+  worldDefinitions,
+  assetDefinitions,
+  sceneryDefinition,
+  templateDefinitions,
+} from '@/data';
+import { TemplateRegistry } from '@/creative/Template';
+import { MyWorldPersistenceService } from '@/creative/MyWorldPersistenceService';
+import { LocalMyWorldStorage } from '@/state/MyWorldStorage';
 import { AssetRegistry } from '@/visual/assets/AssetRegistry';
 import { AssetLibrary } from '@/visual/assets/AssetLibrary';
 import { Scenery } from '@/visual/scenery/Scenery';
@@ -44,6 +54,16 @@ const HOME_AUTOROTATE_SPEED = 0.05;
 const HOME_EXPOSURE = 1.08;
 const DEFAULT_EXPOSURE = 0.9;
 
+/**
+ * My World's own default framing: centred on the buildable ground plane so a
+ * fresh sandbox session opens looking at something to build on, instead of
+ * wherever the menu's cinematic camera happened to be. Only used when there
+ * is no active challenge - Challenge Mode keeps its own per-level framing
+ * (see ChallengeSystem), which this must never override.
+ */
+const SANDBOX_FOCUS = { x: 0, y: 0, z: 0 };
+const SANDBOX_VIEW = { distance: 40, azimuth: 25, elevation: 38 };
+
 /** Number keys choose presentation views (see CameraController presets). */
 const CAMERA_KEYS: Record<string, CameraPreset | undefined> = {
   Digit1: 'close',
@@ -72,8 +92,10 @@ export class Game {
   readonly actions: GameActions;
   readonly registry: ObjectRegistry;
   readonly challenges: ChallengeRegistry;
+  readonly templates: TemplateRegistry;
   readonly challengeSystem: ChallengeSystem;
   readonly progression: ProgressionService;
+  readonly myWorldPersistence: MyWorldPersistenceService;
   readonly world: World;
   readonly input: InputManager;
   readonly construction: ConstructionController;
@@ -94,6 +116,9 @@ export class Game {
     this.challenges = new ChallengeRegistry(this.registry);
     this.challenges.registerWorlds(worldDefinitions);
     this.challenges.registerAll(challengeDefinitions);
+    this.templates = new TemplateRegistry();
+    this.templates.registerAll(templateDefinitions);
+    this.checkTemplateReferences();
     this.assetRegistry = new AssetRegistry(assetDefinitions);
     this.assetRegistry.checkReferences(objectDefinitions);
 
@@ -105,7 +130,8 @@ export class Game {
     this.world.homeRoot.add(this.homeShowcase.root);
 
     const storage = new LocalProgressStorage();
-    this.store = new GameStore(createInitialState(storage.load() ?? undefined));
+    const myWorldStorage = new LocalMyWorldStorage();
+    this.store = new GameStore(createInitialState(storage.load() ?? undefined, myWorldStorage.load()?.player ?? null));
     const placementTargets = new ChallengePlacementTargets(this.store, this.challenges);
     const placementRules = {
       getBuildArea: () => this.currentBuildArea(),
@@ -140,10 +166,12 @@ export class Game {
     );
     this.construction.setPlacementSeeThrough(() => this.interior.placementOccluderIds);
     this.progression = new ProgressionService(this.store, this.actions, storage);
+    this.myWorldPersistence = new MyWorldPersistenceService(this.store, this.actions, myWorldStorage, this.registry);
     this.ui = new UIManager(elements.uiRoot, this.store, {
       actions: this.actions,
       registry: this.registry,
       challenges: this.challenges,
+      templates: this.templates,
     });
 
     this.loop = new GameLoop((delta) => this.frame(delta));
@@ -154,8 +182,9 @@ export class Game {
     this.construction.start();
     this.challengeSystem.start();
     this.progression.start();
+    this.myWorldPersistence.start();
     this.unsubscribeStore = this.store.subscribe((state, previous) => {
-      if (state.mode !== previous.mode) this.onModeChanged(state.mode);
+      if (state.mode !== previous.mode) this.onModeChanged(state.mode, previous.mode, state.challenge === null);
       // The helper grid belongs to free building (My World); levels show their site pad.
       this.world.setGridVisible(state.mode === 'playing' && state.challenge === null);
     });
@@ -196,6 +225,7 @@ export class Game {
     this.assets.dispose();
     this.ui.dispose();
     this.progression.dispose();
+    this.myWorldPersistence.dispose();
     this.challengeSystem.dispose();
     this.construction.dispose();
     this.input.dispose();
@@ -212,6 +242,17 @@ export class Game {
     this.world.render();
   }
 
+  /** Fail fast at boot if a template references an object id that doesn't exist. */
+  private checkTemplateReferences(): void {
+    for (const template of this.templates.list()) {
+      for (const spec of template.objects) {
+        if (!this.registry.has(spec.definitionId)) {
+          throw new Error(`Template "${template.id}" references unknown object "${spec.definitionId}"`);
+        }
+      }
+    }
+  }
+
   /** Soil-coloured ground under a level's build area: "this is your building site". */
   private createSiteMaterial(): THREE.Material {
     const material = cloneMaterial(this.world.materials.forAsset('soil', new THREE.Color('#9a7a55')));
@@ -224,7 +265,7 @@ export class Game {
     return material;
   }
 
-  private onModeChanged(mode: string): void {
+  private onModeChanged(mode: string, previousMode?: string, freeBuild?: boolean): void {
     // The camera is only controllable while actually playing.
     this.world.cameraController.setEnabled(mode === 'playing');
     // The home screen gets its own cinematic composition and presentation;
@@ -239,6 +280,13 @@ export class Game {
       this.world.cameraController.transitionTo(MENU_FOCUS, MENU_VIEW, 1.6);
     } else {
       this.world.cameraController.setAutoRotate(false);
+      // Freshly entering free-build (not resuming from pause, and not a
+      // challenge - that has its own framing via ChallengeSystem) starts the
+      // player looking at the buildable ground instead of stuck wherever the
+      // menu's camera last was.
+      if (mode === 'playing' && previousMode !== 'paused' && freeBuild) {
+        this.world.cameraController.transitionTo(SANDBOX_FOCUS, SANDBOX_VIEW, 1.4);
+      }
     }
   }
 }

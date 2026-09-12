@@ -1,5 +1,5 @@
 import type { GameStore } from './GameStore';
-import type { GameState } from './GameState';
+import { isObjectUnlocked, type GameState } from './GameState';
 import { createPlayer } from '@/player/Player';
 import type { ObjectRegistry } from '@/construction/ObjectRegistry';
 import { roleOf, type ConstructionObjectDefinition } from '@/construction/ConstructionObjectDefinition';
@@ -82,6 +82,52 @@ export class GameActions {
     const { player, mode } = this.store.getState();
     if (player === null || mode !== 'menu') return;
     this.store.setState({ mode: 'playing' });
+  }
+
+  /**
+   * The My World card's action: resume the player's saved sandbox if one
+   * exists (a returning player, whether from earlier this session or from
+   * before a reload - see MyWorldPersistenceService), or start a brand new
+   * one. Always lands in free-build, regardless of what the player was
+   * doing before (including a challenge merely paused via `returnToMenu`,
+   * which leaves `challenge` set) - My World must never carry Challenge
+   * Mode session state into it.
+   */
+  enterMyWorld(playerName = 'Builder'): void {
+    const state = this.store.getState();
+    if (state.player === null) {
+      this.startNewGame(playerName);
+      return;
+    }
+    this.store.setState({
+      mode: 'playing',
+      challenge: null,
+      challengeMatch: null,
+      challengeResult: null,
+      world: { id: 'sandbox', name: 'Sandbox' },
+      level: { id: 'sandbox', index: 0 },
+      selectedObjectId: null,
+      selectedInstanceId: null,
+      placementStatus: null,
+      transformMode: 'move',
+    });
+  }
+
+  /**
+   * Replace My World's build with a previously saved one. Called only by
+   * MyWorldPersistenceService, right after free-build starts; never a
+   * player-facing action. Clears transient selection/placement state along
+   * with it - a restored world starts with nothing selected, exactly like a
+   * fresh one.
+   */
+  restoreMyWorld(placedObjects: PlacedObject[]): void {
+    this.store.setState({
+      placedObjects,
+      selectedObjectId: null,
+      selectedInstanceId: null,
+      placementStatus: null,
+      transformMode: 'move',
+    });
   }
 
   returnToMenu(): void {
@@ -304,8 +350,8 @@ export class GameActions {
       console.warn(`[actions] Unknown construction object: ${objectId}`);
       return;
     }
-    const { unlocks } = this.store.getState();
-    if (!unlocks.objectIds.includes(objectId)) {
+    const state = this.store.getState();
+    if (!isObjectUnlocked(state, objectId)) {
       console.warn(`[actions] Object is locked: ${objectId}`);
       return;
     }
@@ -358,7 +404,63 @@ export class GameActions {
       console.warn(`[actions] Cannot place unknown object: ${state.selectedObjectId}`);
       return null;
     }
-    if (!state.unlocks.objectIds.includes(definition.id)) {
+    return this.placeDefinition(definition, position, options);
+  }
+
+  /**
+   * Instantiate a creative template (see `src/creative/Template.ts`): a
+   * small, fixed arrangement of ordinary objects, placed relative to
+   * `origin`. Every piece goes through the exact same validation a manual
+   * placement would - one that would overlap something already there, or
+   * land outside the buildable area, is simply skipped, never forced in.
+   * There is no separate "template state": once placed, each object is a
+   * normal `placedObjects` entry, selectable, movable, deletable like
+   * anything the player built by hand. My World only - never available
+   * mid-challenge.
+   */
+  instantiateTemplate(
+    template: { objects: Array<{ definitionId: string; position: Vec3; rotationY?: number }> },
+    origin: Vec3 = { x: 0, y: 0, z: 0 },
+  ): { placed: number; skipped: number } {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null) {
+      console.warn('[actions] Templates are only available in My World');
+      return { placed: 0, skipped: template.objects.length };
+    }
+    let placed = 0;
+    let skipped = 0;
+    for (const spec of template.objects) {
+      const definition = this.registry.get(spec.definitionId);
+      if (!definition) {
+        skipped++;
+        continue;
+      }
+      const position: Vec3 = {
+        x: origin.x + spec.position.x,
+        y: origin.y + spec.position.y,
+        z: origin.z + spec.position.z,
+      };
+      const result = this.placeDefinition(definition, position, { rotationY: spec.rotationY ?? 0 });
+      if (result) placed++;
+      else skipped++;
+    }
+    return { placed, skipped };
+  }
+
+  /**
+   * Core placement pipeline shared by `placeObject` (reads the toolbar's
+   * current selection) and `instantiateTemplate` (places a known list of
+   * definitions). Kept private: callers never bypass the unlock/rule/bounds
+   * checks below, whichever entry point they came through.
+   */
+  private placeDefinition(
+    definition: ConstructionObjectDefinition,
+    position: Vec3,
+    options: PlaceOptions,
+  ): PlacedObject | null {
+    const state = this.store.getState();
+    if (state.mode !== 'playing') return null;
+    if (!isObjectUnlocked(state, definition.id)) {
       console.warn(`[actions] Cannot place locked object: ${definition.id}`);
       return null;
     }
@@ -460,6 +562,49 @@ export class GameActions {
     const { selectedInstanceId } = this.store.getState();
     if (selectedInstanceId === null) return false;
     return this.removePlacedObject(selectedInstanceId);
+  }
+
+  /**
+   * Place a second, independent copy of the selected object just beside it -
+   * same definition, rotation and scale, resting on the same support if it
+   * had one. Goes through the same move/snap/collision validation as
+   * `moveSelectedPlacedObject`, so the copy can never land on top of the
+   * original or break a role's rules (a wall still snaps to neighbours, a
+   * floor still clears them). Doors/windows are skipped: a duplicate would
+   * need a host wall of its own, which this simple nudge cannot supply.
+   * Selects the new copy so the player can immediately move it further.
+   * Returns the resulting status, or null if nothing could be duplicated.
+   */
+  duplicateSelectedPlacedObject(): PlacementStatus | null {
+    const state = this.store.getState();
+    const selected = this.selectedPlacedObject(state);
+    if (!selected) return null;
+    const { placed, definition } = selected;
+    if (roleOf(definition) === 'opening') return null;
+
+    // Offset along one axis only, by the object's own full span (whichever
+    // axis is larger, so a rotated footprint is still cleared) plus a gap -
+    // guaranteed clear of the original regardless of role, since only walls
+    // and floors get any further automatic push-apart from `resolveMove`.
+    const span = Math.max(definition.dimensions.width, definition.dimensions.depth) * placed.scale.x;
+    const nudge = span + 0.4;
+    // A placed object that does not yet exist in `placedObjects`, so the
+    // duplicate is validated against the original like any other neighbour
+    // (including being pushed clear of it, for a role that does that).
+    const proposal: PlacedObject = { ...placed, id: `${placed.id}:duplicate-preview` };
+    const proposed = { x: placed.position.x + nudge, z: placed.position.z };
+    const candidate = this.resolver.resolveMove(proposal, definition, proposed, placed.rotationY, state.placedObjects);
+    if (!candidate) return null;
+    if (!candidate.status.valid) return candidate.status;
+
+    const copy = createPlacedObject(definition, candidate.position, candidate.rotationY, {
+      supportId: placed.supportId,
+      hostId: null,
+    });
+    copy.scale = { ...placed.scale };
+    copy.materialOverrides = { ...placed.materialOverrides };
+    this.store.setState({ placedObjects: [...state.placedObjects, copy], selectedInstanceId: copy.id });
+    return candidate.status;
   }
 
   // -------------------------------------------------------------- transform

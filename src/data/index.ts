@@ -5,8 +5,10 @@ import challengesJson from './challenges.json';
 import worldsJson from './worlds.json';
 import assetsJson from './assets.json';
 import sceneryJson from './scenery.json';
+import templatesJson from './templates.json';
 import type { AssetDefinition } from '@/visual/assets/AssetRegistry';
 import type { SceneryDefinition } from '@/visual/scenery/Scenery';
+import type { TemplateDefinition } from '@/creative/Template';
 
 /**
  * Entry point for all static game content. Later steps add levels,
@@ -25,3 +27,6 @@ export const assetDefinitions = assetsJson as AssetDefinition[];
 
 /** The world around the construction site: environment and neighbourhood. */
 export const sceneryDefinition = sceneryJson as unknown as SceneryDefinition;
+
+/** My World creative templates - starting arrangements, never levels. */
+export const templateDefinitions = templatesJson as TemplateDefinition[];

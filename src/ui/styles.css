@@ -115,8 +115,38 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   margin: clamp(4px, 2vh, 20px) 0 clamp(12px, 3vh, 28px);
+}
+
+/*
+ * The Eavara lockup: a small arched mark plus wordmark, sized and weighted
+ * so it reads as an actual parent brand sitting above the game's own
+ * identity - present and legible, but clearly a level below CITY BUILDER.
+ */
+.brand__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px 5px;
+  background: rgba(12, 16, 14, 0.32);
+  border: 1px solid rgba(255, 227, 161, 0.35);
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+
+.brand__mark svg {
+  display: block;
+  width: clamp(16px, 1.6vw, 20px);
+  height: clamp(16px, 1.6vw, 20px);
+}
+
+.brand__name {
+  font-size: clamp(15px, 1.7vw, 19px);
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: #ffe3a1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
 .logo {
@@ -389,6 +419,35 @@ body {
   flex: 1;
 }
 
+.hud__saved {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8fe0a0;
+  background: rgba(143, 224, 160, 0.14);
+  border-radius: 999px;
+  animation: hud-saved-fade 1.6s ease-out;
+}
+
+.hud__saved[hidden] {
+  display: none;
+}
+
+@keyframes hud-saved-fade {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .hud__pause {
   position: absolute;
   inset: 0;
@@ -452,158 +511,292 @@ body {
   color: var(--ui-muted);
 }
 
-/* Construction toolbar */
+/*
+ * Build palette: a compact floating bar at the bottom of the screen instead
+ * of a permanent sidebar, so the 3D world stays the visual priority. One row
+ * of category chips is always visible; tapping a chip slides open a single
+ * horizontal strip of its pieces just above the bar.
+ */
 .screen--toolbar {
   pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
-.toolbar {
-  position: absolute;
-  top: 64px;
-  left: 12px;
-  width: 232px;
-  max-height: calc(100vh - 200px);
+.palette {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
-  padding: 10px;
+  width: min(94vw, 760px);
+  margin-bottom: 12px;
+}
+
+.palette__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
   background: var(--ui-bg-soft);
   border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius);
-  backdrop-filter: blur(6px);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
-.toolbar__title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ui-muted);
-}
-
-.toolbar__list {
+.palette__tabs {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  min-height: 0;
-  padding-right: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
-.toolbar__search {
-  padding: 7px 10px;
+.palette__tabs[hidden] {
+  display: none;
+}
+
+.palette__groups {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.group-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--ui-fg);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--ui-border);
-  border-radius: 6px;
-}
-
-.toolbar__search:focus {
-  outline: 2px solid var(--ui-accent);
-  outline-offset: 1px;
-}
-
-.toolbar__tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.tab {
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 11px;
-  color: var(--ui-muted);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--ui-border);
   border-radius: 999px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.tab:hover {
-  color: var(--ui-fg);
-  background: rgba(255, 255, 255, 0.12);
+.group-chip__icon {
+  font-size: 15px;
 }
 
-.tab--active {
+.group-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.group-chip--active {
   color: var(--ui-accent-fg);
   background: var(--ui-accent);
   border-color: transparent;
 }
 
-.tool[hidden] {
-  display: none;
-}
-
-.toolbar__empty {
-  padding: 8px;
-  font-size: 12px;
-  color: var(--ui-muted);
-}
-
-.tool {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  font: inherit;
-  text-align: left;
+.palette__search-toggle {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+  line-height: 1;
   color: var(--ui-fg);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--ui-border);
-  border-radius: 6px;
+  border-radius: 999px;
   cursor: pointer;
 }
 
-.tool:hover:not(:disabled) {
+.palette__search-toggle:hover {
   background: rgba(255, 255, 255, 0.14);
 }
 
-.tool--active {
+.palette__search-toggle--active {
+  background: var(--ui-accent);
+  border-color: transparent;
+}
+
+.palette__search {
+  width: 100%;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ui-fg);
+  background: var(--ui-bg-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+
+.palette__search[hidden] {
+  display: none;
+}
+
+.palette__search:focus {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 1px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ui-fg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip[hidden] {
+  display: none;
+}
+
+.chip__icon {
+  font-size: 14px;
+}
+
+.chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.chip--active {
+  color: var(--ui-accent-fg);
+  background: var(--ui-accent);
+}
+
+.palette__strip {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  overflow-x: auto;
+  background: var(--ui-bg-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.palette__strip[hidden] {
+  display: none;
+}
+
+.palette__empty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--ui-muted);
+  white-space: nowrap;
+}
+
+.piece[hidden] {
+  display: none;
+}
+
+.piece {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 84px;
+  padding: 10px 8px 8px;
+  font: inherit;
+  text-align: center;
+  color: var(--ui-fg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.piece:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.piece--active {
   background: rgba(242, 165, 65, 0.25);
   border-color: var(--ui-accent);
 }
 
-.tool--locked {
+.piece--locked {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.tool__swatch {
-  flex: none;
+.piece__swatch {
   display: inline-block;
-  min-width: 10px;
-  min-height: 10px;
-  border-radius: 3px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
-.tool__text {
-  flex: 1;
+.piece__text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   line-height: 1.2;
 }
 
-.tool__name {
-  font-size: 13px;
+.piece__name {
+  font-size: 11px;
   font-weight: 600;
 }
 
-.tool__category {
-  font-size: 11px;
-  color: var(--ui-muted);
-}
-
-.tool__status {
-  font-size: 10px;
+.piece__status {
+  min-height: 10px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ui-accent);
 }
 
-.tool--locked .tool__status {
+.piece--locked .piece__status {
+  color: var(--ui-muted);
+}
+
+.palette__strip--templates {
+  gap: 10px;
+}
+
+.template-card {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 150px;
+  padding: 12px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--ui-fg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.template-card:hover {
+  background: rgba(242, 165, 65, 0.18);
+  border-color: var(--ui-accent);
+}
+
+.template-card__name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.template-card__desc {
+  font-size: 11px;
+  line-height: 1.35;
   color: var(--ui-muted);
 }
 
