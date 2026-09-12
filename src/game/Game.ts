@@ -12,6 +12,7 @@ import { objectDefinitions, challengeDefinitions, worldDefinitions, assetDefinit
 import { AssetRegistry } from '@/visual/assets/AssetRegistry';
 import { AssetLibrary } from '@/visual/assets/AssetLibrary';
 import { Scenery } from '@/visual/scenery/Scenery';
+import { HomeShowcase } from '@/visual/scenery/HomeShowcase';
 import { cloneMaterial } from '@/visual/materials/MaterialLibrary';
 import type { CameraPreset } from '@/world/CameraController';
 import * as THREE from 'three';
@@ -23,9 +24,25 @@ import { UIManager } from '@/ui/UIManager';
 import { GameLoop } from './GameLoop';
 import { InteriorReadability } from './InteriorReadability';
 
-/** Where the menu camera looks: the street and houses beyond the building sites. */
+/** Where the world-map camera looks: the street and houses beyond the building sites. */
 const MENU_FOCUS = { x: 0, y: 2, z: -22 };
 const MENU_VIEW = { distance: 62, azimuth: 28, elevation: 17 };
+const MENU_AUTOROTATE_SPEED = 0.35;
+
+/**
+ * The home screen's own cinematic composition: the "under construction" site
+ * near the origin in the foreground, the neighbourhood and commercial
+ * skyline in the middle distance, the lake, forest and mountains beyond.
+ * Orbits far slower than the world map so it reads as alive without ever
+ * competing with the menu for attention.
+ */
+const HOME_FOCUS = { x: 2, y: 2.5, z: -20 };
+const HOME_VIEW = { distance: 78, azimuth: 12, elevation: 14 };
+const HOME_AUTOROTATE_SPEED = 0.05;
+
+/** Renderer exposure while the home screen is showing, vs. the game's own (0.9). */
+const HOME_EXPOSURE = 1.08;
+const DEFAULT_EXPOSURE = 0.9;
 
 /** Number keys choose presentation views (see CameraController presets). */
 const CAMERA_KEYS: Record<string, CameraPreset | undefined> = {
@@ -66,6 +83,7 @@ export class Game {
   readonly assetRegistry: AssetRegistry;
   readonly assets: AssetLibrary;
   readonly scenery: Scenery;
+  readonly homeShowcase: HomeShowcase;
 
   private unsubscribeStore: (() => void) | null = null;
   private unsubscribeKeys: (() => void) | null = null;
@@ -83,6 +101,8 @@ export class Game {
     this.assets = new AssetLibrary(this.assetRegistry, this.world.materials);
     this.scenery = new Scenery(sceneryDefinition, this.assets, (x, z) => this.world.environment.terrain.heightAt(x, z));
     this.world.sceneryRoot.add(this.scenery.root);
+    this.homeShowcase = new HomeShowcase(this.assets, (x, z) => this.world.environment.terrain.heightAt(x, z));
+    this.world.homeRoot.add(this.homeShowcase.root);
 
     const storage = new LocalProgressStorage();
     this.store = new GameStore(createInitialState(storage.load() ?? undefined));
@@ -147,6 +167,7 @@ export class Game {
       if (preset) this.world.cameraController.setPreset(preset);
     });
     void this.scenery.build().catch((error) => console.warn('[scenery] could not be built', error));
+    void this.homeShowcase.build().catch((error) => console.warn('[home] showcase could not be built', error));
     this.loop.start();
     this.actions.finishBoot();
 
@@ -206,9 +227,18 @@ export class Game {
   private onModeChanged(mode: string): void {
     // The camera is only controllable while actually playing.
     this.world.cameraController.setEnabled(mode === 'playing');
-    // Menus show the neighbourhood from a slowly orbiting vantage point.
-    const showcase = mode === 'menu' || mode === 'world-map';
-    this.world.cameraController.setAutoRotate(showcase);
-    if (showcase) this.world.cameraController.transitionTo(MENU_FOCUS, MENU_VIEW, 1.6);
+    // The home screen gets its own cinematic composition and presentation;
+    // the world map keeps the original showcase view unchanged.
+    this.world.homeRoot.visible = mode === 'menu';
+    this.world.renderer.toneMappingExposure = mode === 'menu' ? HOME_EXPOSURE : DEFAULT_EXPOSURE;
+    if (mode === 'menu') {
+      this.world.cameraController.setAutoRotate(true, HOME_AUTOROTATE_SPEED);
+      this.world.cameraController.transitionTo(HOME_FOCUS, HOME_VIEW, 1.8);
+    } else if (mode === 'world-map') {
+      this.world.cameraController.setAutoRotate(true, MENU_AUTOROTATE_SPEED);
+      this.world.cameraController.transitionTo(MENU_FOCUS, MENU_VIEW, 1.6);
+    } else {
+      this.world.cameraController.setAutoRotate(false);
+    }
   }
 }

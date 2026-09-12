@@ -39,6 +39,8 @@ export class World {
   readonly overlayRoot: THREE.Group;
   /** Decorative neighbourhood around the site. Never raycast. */
   readonly sceneryRoot: THREE.Group;
+  /** Decorative "under construction" vignette shown only behind the home menu. Never raycast. */
+  readonly homeRoot: THREE.Group;
   /** Invisible placement plane at y = 0. */
   readonly ground: THREE.Mesh;
   readonly grid: THREE.GridHelper;
@@ -80,6 +82,11 @@ export class World {
     this.sceneryRoot = new THREE.Group();
     this.sceneryRoot.name = 'sceneryRoot';
     this.scene.add(this.sceneryRoot);
+
+    this.homeRoot = new THREE.Group();
+    this.homeRoot.name = 'homeRoot';
+    this.homeRoot.visible = false;
+    this.scene.add(this.homeRoot);
 
     this.materials = new MaterialLibrary(this.renderer);
     this.environment = new Environment(this.scene, this.renderer, this.materials, options.environment);

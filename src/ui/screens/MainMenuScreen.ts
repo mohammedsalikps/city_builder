@@ -2,11 +2,56 @@ import { Screen, el } from '../Screen';
 import type { GameState } from '@/state/GameState';
 import { listLevels } from '@/progression/levelState';
 
+/** Small inline icon: a house sitting on a blueprint sheet (Challenge Mode). */
+const BLUEPRINT_ICON = `
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="4" y="8" width="56" height="48" rx="6" fill="#2f5fa8" opacity="0.35"/>
+  <path d="M12 16h18M12 24h12M44 16h8M44 24h8" stroke="#cfe3ff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <path d="M18 50V34l14-10 14 10v16z" fill="#f2f5f7"/>
+  <path d="M18 34l14-10 14 10" stroke="#1c2836" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+  <rect x="27" y="40" width="10" height="10" fill="#8b5a2b"/>
+  <rect x="21" y="36" width="6" height="6" fill="#a7d8f0" stroke="#1c2836" stroke-width="1"/>
+</svg>`;
+
+/** Small inline icon: houses and a tree around a winding path (My World). */
+const SANDBOX_ICON = `
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 50c8-10 18-10 26-2s20 8 26-4" stroke="#e7c07a" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
+  <path d="M12 46V34l9-7 9 7v12z" fill="#f2f5f7"/>
+  <path d="M12 34l9-7 9 7" stroke="#1c2836" stroke-width="2" stroke-linejoin="round" fill="none"/>
+  <path d="M36 44V30l8-6 8 6v14z" fill="#cfd8ea"/>
+  <path d="M36 30l8-6 8 6" stroke="#1c2836" stroke-width="2" stroke-linejoin="round" fill="none"/>
+  <circle cx="50" cy="16" r="6" fill="#5fae5a"/>
+  <rect x="48.5" y="20" width="3" height="7" fill="#6b4a2b"/>
+</svg>`;
+
+/** Logo badge: a friendly little rooftop-and-sun mark, not a wordmark substitute. */
+const LOGO_BADGE = `
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="16" fill="url(#cb-badge-grad)"/>
+  <circle cx="46" cy="20" r="7" fill="#ffe3a1"/>
+  <path d="M12 44l20-15 20 15v10a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2z" fill="#fff" opacity="0.95"/>
+  <path d="M12 44l20-15 20 15" stroke="#1c2836" stroke-width="3" stroke-linejoin="round" fill="none"/>
+  <rect x="27" y="44" width="10" height="12" fill="#8b5a2b"/>
+  <defs>
+    <linearGradient id="cb-badge-grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb95a"/>
+      <stop offset="1" stop-color="#f2a541"/>
+    </linearGradient>
+  </defs>
+</svg>`;
+
+function icon(markup: string, className: string): HTMLSpanElement {
+  const span = el('span', className);
+  span.innerHTML = markup;
+  return span;
+}
+
 /**
- * Main menu and the simple level selector. Every level is listed with its
- * state (locked / available / completed) and best stars, derived from
- * `state.progress` on each update. Locked levels are still clickable so the
- * player gets a friendly explanation instead of silence.
+ * The home screen: a gateway into the two existing modes (Challenge Mode's
+ * World 1 map, and My World's sandbox), presented over the live 3D city
+ * rather than a boxed form. Holds no game logic of its own - every click
+ * calls the same actions the old panel did.
  */
 export class MainMenuScreen extends Screen {
   readonly id = 'main-menu';
@@ -14,10 +59,9 @@ export class MainMenuScreen extends Screen {
   private nameInput: HTMLInputElement | null = null;
   private continueButton: HTMLButtonElement | null = null;
   private noticeLabel: HTMLElement | null = null;
-  private campaignTitle: HTMLElement | null = null;
   private campaignSummary: HTMLElement | null = null;
 
-  private readonly onStart = () => {
+  private readonly onStartSandbox = () => {
     this.context.actions.startNewGame(this.nameInput?.value ?? '');
   };
   private readonly onContinue = () => {
@@ -26,65 +70,86 @@ export class MainMenuScreen extends Screen {
   private readonly onResetProgress = () => {
     this.context.actions.resetProgress();
   };
+  private readonly onChallengeMode = () => {
+    this.context.actions.openWorldMap();
+  };
 
   protected build(): HTMLElement {
-    const root = el('div', 'screen screen--menu');
-    const panel = el('div', 'panel');
+    const root = el('div', 'screen screen--home');
 
-    panel.appendChild(el('h1', 'title', 'City Builder'));
-    panel.appendChild(el('p', 'subtitle', 'Learn construction. Build your world.'));
-
-    const label = el('label', 'field');
-    label.appendChild(el('span', 'field__label', 'Builder name'));
-    this.nameInput = el('input', 'field__input');
+    const topbar = el('div', 'home__topbar');
+    const profile = el('div', 'home__profile');
+    this.nameInput = el('input', 'home__name-input');
     this.nameInput.type = 'text';
     this.nameInput.placeholder = 'Builder';
     this.nameInput.maxLength = 24;
-    label.appendChild(this.nameInput);
-    panel.appendChild(label);
+    this.nameInput.setAttribute('aria-label', 'Builder name');
+    profile.appendChild(icon('<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" fill="#f2a541"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="#f2a541"/></svg>', 'home__avatar'));
+    profile.appendChild(this.nameInput);
+    topbar.appendChild(profile);
+    root.appendChild(topbar);
 
-    panel.appendChild(el('div', 'field__label', 'Challenge mode'));
-    const campaignButton = el('button', 'level level--available');
-    campaignButton.type = 'button';
-    campaignButton.dataset.action = 'challenge-mode';
-    const campaignBadge = el('span', 'level__badge', '▶');
-    const campaignText = el('span', 'level__text');
-    this.campaignTitle = el('span', 'level__title', 'Play the campaign');
-    this.campaignSummary = el('span', 'level__stars');
-    campaignText.append(this.campaignTitle, this.campaignSummary);
-    campaignButton.append(campaignBadge, campaignText);
-    campaignButton.addEventListener('click', () => this.context.actions.openWorldMap());
-    panel.appendChild(campaignButton);
+    const hero = el('div', 'home__hero');
+    const logo = el('div', 'logo');
+    logo.appendChild(icon(LOGO_BADGE, 'logo__badge'));
+    const word = el('div', 'logo__word');
+    word.appendChild(el('span', 'logo__line', 'CITY'));
+    word.appendChild(el('span', 'logo__line logo__line--accent', 'BUILDER'));
+    logo.appendChild(word);
+    hero.appendChild(logo);
+    hero.appendChild(el('p', 'logo__tagline', 'Learn. Build. Create.'));
+    root.appendChild(hero);
 
-    this.noticeLabel = el('div', 'menu__notice');
+    const modes = el('div', 'home__modes');
+
+    const challengeCard = el('button', 'mode-card mode-card--challenge');
+    challengeCard.type = 'button';
+    challengeCard.appendChild(icon(BLUEPRINT_ICON, 'mode-card__icon'));
+    challengeCard.appendChild(el('span', 'mode-card__title', 'Challenge Mode'));
+    challengeCard.appendChild(el('span', 'mode-card__desc', 'Learn construction step by step.'));
+    this.campaignSummary = el('span', 'mode-card__meta');
+    challengeCard.appendChild(this.campaignSummary);
+    challengeCard.appendChild(el('span', 'mode-card__cta', 'Play Levels'));
+    challengeCard.addEventListener('click', this.onChallengeMode);
+    modes.appendChild(challengeCard);
+
+    const sandboxCard = el('button', 'mode-card mode-card--sandbox');
+    sandboxCard.type = 'button';
+    sandboxCard.appendChild(icon(SANDBOX_ICON, 'mode-card__icon'));
+    sandboxCard.appendChild(el('span', 'mode-card__title', 'My World'));
+    sandboxCard.appendChild(el('span', 'mode-card__desc', 'Build freely. Create your own world.'));
+    sandboxCard.appendChild(el('span', 'mode-card__meta', 'Free building · no limits'));
+    sandboxCard.appendChild(el('span', 'mode-card__cta', 'Open Sandbox'));
+    sandboxCard.addEventListener('click', this.onStartSandbox);
+    modes.appendChild(sandboxCard);
+
+    root.appendChild(modes);
+
+    const footer = el('div', 'home__footer');
+    this.noticeLabel = el('div', 'menu__notice home__notice');
     this.noticeLabel.hidden = true;
-    panel.appendChild(this.noticeLabel);
+    footer.appendChild(this.noticeLabel);
 
-    panel.appendChild(el('div', 'field__label', 'My World · free building'));
-    const startButton = el('button', 'button', 'New Sandbox');
-    startButton.type = 'button';
-    startButton.addEventListener('click', this.onStart);
-    panel.appendChild(startButton);
-
-    this.continueButton = el('button', 'button', 'Continue');
+    this.continueButton = el('button', 'home__continue', 'Continue where you left off');
     this.continueButton.type = 'button';
+    this.continueButton.hidden = true;
     this.continueButton.addEventListener('click', this.onContinue);
-    panel.appendChild(this.continueButton);
+    footer.appendChild(this.continueButton);
 
-    const reset = el('button', 'menu__reset', 'Reset level progress');
+    const reset = el('button', 'home__reset', 'Reset level progress');
     reset.type = 'button';
     reset.addEventListener('click', this.onResetProgress);
-    panel.appendChild(reset);
+    footer.appendChild(reset);
+    root.appendChild(footer);
 
-    root.appendChild(panel);
     return root;
   }
 
   update(state: GameState): void {
-    if (this.continueButton) this.continueButton.hidden = state.player === null;
     if (this.nameInput && state.player && this.nameInput.value === '') {
       this.nameInput.value = state.player.name;
     }
+    if (this.continueButton) this.continueButton.hidden = state.player === null;
     if (this.noticeLabel) {
       this.noticeLabel.textContent = state.menuNotice ?? '';
       this.noticeLabel.hidden = state.menuNotice === null;
@@ -93,8 +158,6 @@ export class MainMenuScreen extends Screen {
     const entries = listLevels(this.context.challenges.list(), state.progress);
     const completed = entries.filter((e) => e.status === 'completed').length;
     const next = entries.find((e) => e.status === 'available');
-    const world = this.context.challenges.worlds()[0];
-    if (this.campaignTitle && world) this.campaignTitle.textContent = `World ${world.index}: ${world.title}`;
     if (this.campaignSummary) {
       this.campaignSummary.textContent = next
         ? `${completed} / ${entries.length} levels · next: Level ${next.challenge.index}`
@@ -106,7 +169,6 @@ export class MainMenuScreen extends Screen {
     this.nameInput = null;
     this.continueButton = null;
     this.noticeLabel = null;
-    this.campaignTitle = null;
     this.campaignSummary = null;
   }
 }
