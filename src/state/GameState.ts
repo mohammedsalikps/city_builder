@@ -71,7 +71,53 @@ export interface GameState {
    * can explain the preview. Null when not pointing at a valid surface.
    */
   placementStatus: PlacementStatus | null;
+  /**
+   * A creative template (Build Intent, or a browsed template) being
+   * positioned before it becomes real objects - see
+   * `TemplatePlacementController` and `GameActions.instantiateTemplate`.
+   * Transient UI state: never persisted, cleared on cancel/confirm and when
+   * leaving My World.
+   */
+  templatePlacement: TemplatePlacementState | null;
+  /**
+   * True while the child is drawing a street by dragging across the ground
+   * (see StreetDrawController). Transient; never persisted.
+   */
+  streetDrawing: boolean;
+  /**
+   * The object a creation just produced (e.g. the house a "Build a House"
+   * intent placed), so World Studio can open its "Make it yours" actions.
+   * Transient; cleared as soon as the selection moves elsewhere.
+   */
+  creationFocus: CreationFocus | null;
+  /** My World's identity: the child's own name for it and the story they chose. Persisted with the world. */
+  myWorld: MyWorldIdentity;
 }
+
+/** Which template is being positioned, and at what rotation, before it is placed. */
+export interface TemplatePlacementState {
+  templateId: string;
+  rotationY: number;
+  /** Child-facing name of what is being built ("Cozy House"); falls back to the template's own name. */
+  label?: string;
+  /** Build intent this placement came from, if any (see src/data/studio.json). */
+  creationId?: string;
+}
+
+export interface CreationFocus {
+  creationId: string;
+  instanceId: string;
+  /** What the child made, in their words ("Little Park"). */
+  label?: string;
+}
+
+/** Story ids come from src/data/studio.json; null until the child picks one. */
+export interface MyWorldIdentity {
+  name: string;
+  story: string | null;
+}
+
+export const DEFAULT_WORLD_NAME = 'My World';
 
 /** True while the player has a construction object chosen for placement. */
 export function isPlacementMode(state: GameState): boolean {

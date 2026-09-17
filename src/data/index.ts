@@ -6,9 +6,13 @@ import worldsJson from './worlds.json';
 import assetsJson from './assets.json';
 import sceneryJson from './scenery.json';
 import templatesJson from './templates.json';
+import studioJson from './studio.json';
+import worldJson from './world.json';
 import type { AssetDefinition } from '@/visual/assets/AssetRegistry';
 import type { SceneryDefinition } from '@/visual/scenery/Scenery';
 import type { TemplateDefinition } from '@/creative/Template';
+import type { StudioData } from '@/creative/Studio';
+import type { WorldSpec } from '@/world/WorldSpace';
 
 /**
  * Entry point for all static game content. Later steps add levels,
@@ -30,3 +34,9 @@ export const sceneryDefinition = sceneryJson as unknown as SceneryDefinition;
 
 /** My World creative templates - starting arrangements, never levels. */
 export const templateDefinitions = templatesJson as TemplateDefinition[];
+
+/** World Studio's creations, stories and "Make it yours" shortcuts. */
+export const studioDefinition = studioJson as unknown as StudioData;
+
+/** My World's large valley: size, districts, roads and terrain. */
+export const worldDefinition = worldJson as unknown as WorldSpec;

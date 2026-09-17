@@ -7,7 +7,9 @@ import { HudScreen } from './screens/HudScreen';
 import { ToolbarScreen } from './screens/ToolbarScreen';
 import { ChallengePanelScreen } from './screens/ChallengePanelScreen';
 import { WorldMapScreen } from './screens/WorldMapScreen';
+import { StudioScreen } from './screens/StudioScreen';
 import './styles.css';
+import './studio/studio.css';
 
 /**
  * Decides which screens are visible for the current game mode and keeps
@@ -30,6 +32,9 @@ export class UIManager {
     paused: ['hud', 'toolbar', 'challenge'],
   };
 
+  /** My World is its own experience (World Studio); Challenge Mode keeps the level HUD. */
+  private static readonly STUDIO_SCREENS = ['studio'];
+
   constructor(root: HTMLElement, private readonly store: GameStore, context: ScreenContext) {
     this.root = root;
     this.screens = this.createScreens(context);
@@ -38,6 +43,13 @@ export class UIManager {
   start(): void {
     this.apply(this.store.getState());
     this.unsubscribe = this.store.subscribe((state) => this.apply(state));
+  }
+
+  /** Per-frame hook for screens that follow the 3D view. */
+  frame(): void {
+    this.screens.forEach((screen) => {
+      if (screen.isMounted) screen.frame();
+    });
   }
 
   dispose(): void {
@@ -53,12 +65,14 @@ export class UIManager {
       new ToolbarScreen(context),
       new ChallengePanelScreen(context),
       new WorldMapScreen(context),
+      new StudioScreen(context),
     ];
     return new Map(list.map((screen) => [screen.id, screen]));
   }
 
   private apply(state: GameState): void {
-    const wanted = new Set(UIManager.SCREENS_BY_MODE[state.mode] ?? []);
+    const inStudio = (state.mode === 'playing' || state.mode === 'paused') && state.challenge === null;
+    const wanted = new Set(inStudio ? UIManager.STUDIO_SCREENS : UIManager.SCREENS_BY_MODE[state.mode] ?? []);
 
     this.screens.forEach((screen, id) => {
       const shouldShow = wanted.has(id);

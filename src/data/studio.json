@@ -1,0 +1,253 @@
+{
+  "stories": [
+    {
+      "id": "green",
+      "name": "Green Town",
+      "icon": "leaf",
+      "tagline": "Parks, trees and quiet paths",
+      "suggests": ["park", "nature", "street"]
+    },
+    {
+      "id": "modern",
+      "name": "Modern City",
+      "icon": "tower",
+      "tagline": "Tall buildings and busy streets",
+      "suggests": ["town", "street", "vehicle"]
+    },
+    {
+      "id": "family",
+      "name": "Family Town",
+      "icon": "home",
+      "tagline": "Homes, gardens and a school",
+      "suggests": ["house", "neighborhood", "park"]
+    },
+    {
+      "id": "lakeside",
+      "name": "Lakeside Town",
+      "icon": "wave",
+      "tagline": "Villas and green shores",
+      "suggests": ["villa", "park", "nature"]
+    }
+  ],
+  "creations": [
+    {
+      "id": "house",
+      "name": "House",
+      "verb": "Build a house",
+      "icon": "home",
+      "ring": "inner",
+      "kind": "template",
+      "improve": "home",
+      "variants": [
+        { "id": "cozy", "name": "Cozy", "hint": "Build it wall by wall", "templateId": "intent_house" },
+        { "id": "family", "name": "Family", "hint": "Two floors and a garden", "templateId": "house_family" },
+        { "id": "big", "name": "Big", "hint": "Room for everyone", "templateId": "house_big" },
+        { "id": "modern", "name": "Modern", "hint": "Flat roof, big windows", "templateId": "house_modern" }
+      ]
+    },
+    {
+      "id": "villa",
+      "name": "Villa",
+      "verb": "Build a villa",
+      "icon": "villa",
+      "ring": "inner",
+      "kind": "template",
+      "improve": "home",
+      "variants": [
+        { "id": "garden", "name": "Garden Villa", "hint": "Design it yourself", "templateId": "intent_villa" },
+        { "id": "classic", "name": "Classic", "hint": "Driveway, car and flowers", "templateId": "villa_classic" },
+        { "id": "grand", "name": "Grand", "hint": "Fence, garden and SUV", "templateId": "villa_grand" }
+      ]
+    },
+    {
+      "id": "street",
+      "name": "Street",
+      "verb": "Draw a street",
+      "icon": "road",
+      "ring": "inner",
+      "kind": "street",
+      "improve": "street",
+      "variants": []
+    },
+    {
+      "id": "park",
+      "name": "Park",
+      "verb": "Make a park",
+      "icon": "tree",
+      "ring": "inner",
+      "kind": "template",
+      "improve": "nature",
+      "variants": [
+        { "id": "pocket", "name": "Little Park", "hint": "A cosy green corner", "templateId": "park_small" },
+        { "id": "big", "name": "Big Park", "hint": "Paths, trees and rocks", "templateId": "template_park_area" }
+      ]
+    },
+    {
+      "id": "neighborhood",
+      "name": "Neighborhood",
+      "verb": "Create a neighborhood",
+      "icon": "neighborhood",
+      "ring": "inner",
+      "kind": "template",
+      "improve": "street",
+      "variants": [
+        { "id": "classic", "name": "Neighborhood", "hint": "Homes on both sides", "templateId": "template_neighborhood" },
+        { "id": "villas", "name": "Villa Street", "hint": "Three homes on one road", "templateId": "template_villa_street" }
+      ]
+    },
+    {
+      "id": "town",
+      "name": "Town Center",
+      "verb": "Create a town center",
+      "icon": "town",
+      "ring": "outer",
+      "kind": "template",
+      "improve": "street",
+      "variants": [
+        { "id": "center", "name": "Town Center", "hint": "Crossroads, shops and a school", "templateId": "template_town_center" },
+        { "id": "shops", "name": "Shopping Street", "hint": "Shops along a road", "templateId": "template_commercial_street" },
+        { "id": "city", "name": "City Block", "hint": "Tall towers on a busy street", "templateId": "template_city_block" }
+      ]
+    },
+    {
+      "id": "industry",
+      "name": "Industry",
+      "verb": "Build an industrial area",
+      "icon": "factory",
+      "ring": "outer",
+      "kind": "template",
+      "improve": "street",
+      "variants": [
+        { "id": "yard", "name": "Factory Yard", "hint": "Warehouse, workshop, trucks", "templateId": "template_factory_yard" },
+        { "id": "wind", "name": "Wind Farm", "hint": "Turbines for clean power", "templateId": "template_wind_farm" }
+      ]
+    },
+    {
+      "id": "nature",
+      "name": "Trees",
+      "verb": "Add nature",
+      "icon": "leaf",
+      "ring": "outer",
+      "kind": "piece",
+      "improve": "nature",
+      "variants": [
+        { "id": "tree", "name": "Tree", "definitionId": "tree_pine" },
+        { "id": "bush", "name": "Bush", "definitionId": "bush_round" },
+        { "id": "flower", "name": "Flowers", "definitionId": "flower_pink" },
+        { "id": "rock", "name": "Rock", "definitionId": "decor_rock_large" },
+        { "id": "planter", "name": "Planter", "definitionId": "decor_planter" }
+      ]
+    },
+    {
+      "id": "vehicle",
+      "name": "Vehicle",
+      "verb": "Add a vehicle",
+      "icon": "car",
+      "ring": "outer",
+      "kind": "piece",
+      "improve": "vehicle",
+      "variants": [
+        { "id": "sedan", "name": "Sedan", "definitionId": "vehicle_sedan" },
+        { "id": "suv", "name": "SUV", "definitionId": "vehicle_suv" },
+        { "id": "taxi", "name": "Taxi", "definitionId": "vehicle_taxi" },
+        { "id": "van", "name": "Van", "definitionId": "vehicle_van" },
+        { "id": "hatchback", "name": "Hatchback", "definitionId": "vehicle_hatchback" }
+      ]
+    },
+    {
+      "id": "furniture",
+      "name": "Furniture",
+      "verb": "Furnish",
+      "icon": "sofa",
+      "ring": "outer",
+      "kind": "piece",
+      "improve": "furniture",
+      "variants": [
+        { "id": "sofa", "name": "Sofa", "definitionId": "furniture_sofa" },
+        { "id": "bed", "name": "Bed", "definitionId": "furniture_bed" },
+        { "id": "table", "name": "Table", "definitionId": "furniture_table" },
+        { "id": "chair", "name": "Chair", "definitionId": "furniture_chair" }
+      ]
+    },
+    {
+      "id": "hand",
+      "name": "By hand",
+      "verb": "Build piece by piece",
+      "icon": "bricks",
+      "ring": "outer",
+      "kind": "drawer",
+      "improve": "home",
+      "variants": []
+    }
+  ],
+  "improvements": {
+    "home": {
+      "title": "Make it yours",
+      "actions": [
+        { "id": "garden", "name": "Garden", "icon": "flower", "type": "near", "items": ["bush_round", "flower_pink", "flower_pink", "bush_round"] },
+        { "id": "tree", "name": "Tree", "icon": "tree", "type": "near", "items": ["tree_pine"] },
+        { "id": "driveway", "name": "Driveway", "icon": "road", "type": "near", "items": ["road_driveway"] },
+        { "id": "car", "name": "Car", "icon": "car", "type": "near", "items": ["vehicle_sedan"] },
+        { "id": "fence", "name": "Fence", "icon": "fence", "type": "near", "items": ["fence_wood", "fence_wood"] },
+        { "id": "window", "name": "Window", "icon": "window", "type": "place", "definitionId": "window_square", "needs": "walls" },
+        { "id": "door", "name": "Door", "icon": "door", "type": "place", "definitionId": "door_single", "needs": "walls" },
+        { "id": "furnish", "name": "Furnish", "icon": "sofa", "type": "place", "definitionId": "furniture_sofa", "needs": "walls" }
+      ]
+    },
+    "street": {
+      "title": "Grow your street",
+      "actions": [
+        { "id": "trees", "name": "Trees", "icon": "tree", "type": "near", "items": ["tree_pine", "tree_pine"] },
+        { "id": "lights", "name": "Lights", "icon": "lamp", "type": "near", "items": ["streetlight_single", "streetlight_single"] },
+        { "id": "cars", "name": "Cars", "icon": "car", "type": "near", "items": ["vehicle_taxi", "vehicle_hatchback"] },
+        { "id": "shop", "name": "Shop", "icon": "shop", "type": "near", "items": ["building_shop"] },
+        { "id": "house", "name": "Home", "icon": "home", "type": "near", "items": ["building_house_small"] },
+        { "id": "extend", "name": "More road", "icon": "road", "type": "street" }
+      ]
+    },
+    "nature": {
+      "title": "Grow your park",
+      "actions": [
+        { "id": "flowers", "name": "Flowers", "icon": "flower", "type": "near", "items": ["flower_pink", "flower_pink", "flower_pink"] },
+        { "id": "trees", "name": "Trees", "icon": "tree", "type": "near", "items": ["tree_pine", "tree_pine"] },
+        { "id": "bushes", "name": "Bushes", "icon": "leaf", "type": "near", "items": ["bush_round", "bush_round"] },
+        { "id": "rocks", "name": "Rocks", "icon": "rock", "type": "near", "items": ["decor_rock_large", "decor_rock_small"] },
+        { "id": "planter", "name": "Planter", "icon": "planter", "type": "near", "items": ["decor_planter"] }
+      ]
+    },
+    "vehicle": {
+      "title": "More cars",
+      "actions": [
+        { "id": "another", "name": "Another car", "icon": "car", "type": "near", "items": ["vehicle_hatchback"] },
+        { "id": "taxi", "name": "Taxi", "icon": "car", "type": "near", "items": ["vehicle_taxi"] },
+        { "id": "light", "name": "Streetlight", "icon": "lamp", "type": "near", "items": ["streetlight_single"] }
+      ]
+    },
+    "furniture": {
+      "title": "Furnish more",
+      "actions": [
+        { "id": "sofa", "name": "Sofa", "icon": "sofa", "type": "place", "definitionId": "furniture_sofa" },
+        { "id": "table", "name": "Table", "icon": "table", "type": "place", "definitionId": "furniture_table" },
+        { "id": "chair", "name": "Chair", "icon": "chair", "type": "place", "definitionId": "furniture_chair" },
+        { "id": "bed", "name": "Bed", "icon": "bed", "type": "place", "definitionId": "furniture_bed" }
+      ]
+    },
+    "decor": {
+      "title": "Decorate",
+      "actions": [
+        { "id": "flowers", "name": "Flowers", "icon": "flower", "type": "near", "items": ["flower_pink", "flower_pink"] },
+        { "id": "tree", "name": "Tree", "icon": "tree", "type": "near", "items": ["tree_pine"] },
+        { "id": "light", "name": "Streetlight", "icon": "lamp", "type": "near", "items": ["streetlight_single"] }
+      ]
+    }
+  },
+  "pieces": [
+    { "id": "walls", "name": "Walls & floors", "icon": "bricks", "categories": ["structures"] },
+    { "id": "openings", "name": "Doors & windows", "icon": "door", "categories": ["openings"] },
+    { "id": "buildings", "name": "Buildings", "icon": "home", "categories": ["buildings"] },
+    { "id": "furniture", "name": "Furniture", "icon": "sofa", "categories": ["furniture"] },
+    { "id": "nature", "name": "Nature", "icon": "tree", "categories": ["nature"] },
+    { "id": "street", "name": "Street", "icon": "road", "categories": ["roads", "decoration", "utilities"] },
+    { "id": "vehicles", "name": "Vehicles", "icon": "car", "categories": ["vehicles"] }
+  ]
+}

@@ -13,6 +13,12 @@ import { ConstructionRaycaster } from './ConstructionRaycaster';
 import { PlacementResolver, type PlacementCandidate, type PlacementRulesContext } from './PlacementResolver';
 import type { AssetLibrary } from '@/visual/assets/AssetLibrary';
 import { ObjectTransformController } from './ObjectTransformController';
+import type { ConstructionObjectDefinition } from './ConstructionObjectDefinition';
+
+function angleGap(a: number, b: number): number {
+  const d = Math.abs((((a - b) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2));
+  return Math.min(d, Math.PI * 2 - d);
+}
 
 /**
  * Glue between input, game state and the 3D construction visuals.
@@ -79,9 +85,10 @@ export class ConstructionController {
    * only on pointer move, so it stays glued to surfaces while the camera is
    * still easing after an orbit.
    */
-  update(): void {
+  update(deltaSeconds = 1 / 60): void {
+    this.renderer.tick(deltaSeconds);
     const state = this.store.getState();
-    if (!isPlacementMode(state)) {
+    if (!isPlacementMode(state) || state.templatePlacement) {
       this.clearPreview();
       return;
     }
@@ -132,7 +139,7 @@ export class ConstructionController {
     if (click.button !== 0) return;
     if (this.transform.consumeSuppressClick()) return;
     const state = this.store.getState();
-    if (state.mode !== 'playing') return;
+    if (state.mode !== 'playing' || state.templatePlacement || state.streetDrawing) return;
 
     if (isPlacementMode(state)) {
       const candidate = this.resolveCandidate(click, state);
@@ -153,7 +160,7 @@ export class ConstructionController {
 
   private readonly onKeyDown = (key: KeyPress): void => {
     const state = this.store.getState();
-    if (state.mode !== 'playing') return;
+    if (state.mode !== 'playing' || state.templatePlacement || state.streetDrawing) return;
 
     switch (key.code) {
       case 'KeyR':
@@ -196,7 +203,37 @@ export class ConstructionController {
     if (!hit) return null;
 
     // Validation below always sees every placed object, see-through or not.
-    return this.resolver.resolve(hit, definition, this.actions.getPlacementRotation(), state.placedObjects);
+    const rotation = this.actions.getPlacementRotation();
+    const candidate = this.resolver.resolve(hit, definition, rotation, state.placedObjects);
+    return this.alignToRoad(candidate, hit, definition, rotation, state) ?? candidate;
+  }
+
+  /**
+   * My World's gentle help: a vehicle pointed at a road turns to drive along
+   * it. Only a suggestion - if the aligned pose would not fit, the child's
+   * own rotation is kept. Challenge Mode never gets this; its placement
+   * stays exactly as strict and literal as its levels expect.
+   */
+  private alignToRoad(
+    candidate: PlacementCandidate | null,
+    hit: NonNullable<ReturnType<ConstructionRaycaster['hitSurface']>>,
+    definition: ConstructionObjectDefinition,
+    rotation: number,
+    state: GameState,
+  ): PlacementCandidate | null {
+    if (!candidate || state.challenge !== null || definition.category !== 'vehicles') return null;
+    const supportId = candidate.status.supportId;
+    const road = supportId ? state.placedObjects.find((p) => p.id === supportId) : undefined;
+    const roadDefinition = road ? this.registry.get(road.definitionId) : undefined;
+    if (!road || roadDefinition?.category !== 'roads') return null;
+    // Car models are long along Z; a straight road tile runs along X at rotation 0.
+    const along = road.rotationY + Math.PI / 2;
+    const options = [along, along + Math.PI];
+    const aligned = options.reduce((best, option) =>
+      angleGap(option, rotation) < angleGap(best, rotation) ? option : best,
+    );
+    const snapped = this.resolver.resolve(hit, definition, aligned, state.placedObjects);
+    return snapped?.status.valid ? snapped : null;
   }
 
   private clearPreview(): void {

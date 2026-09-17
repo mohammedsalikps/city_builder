@@ -26,6 +26,15 @@ const PRESETS: Record<CameraPreset, { distance: number; elevation: number }> = {
 };
 
 const TRANSITION_SECONDS = 0.9;
+/** Default limits: the construction site and challenge levels. */
+const SITE_LIMITS: CameraLimits = { minDistance: 1.5, maxDistance: 240, halfSize: null };
+
+export interface CameraLimits {
+  minDistance: number;
+  maxDistance: number;
+  /** The focus point stays within this many metres of the origin (null = anywhere). */
+  halfSize: number | null;
+}
 
 interface Transition {
   fromPosition: THREE.Vector3;
@@ -34,6 +43,8 @@ interface Transition {
   toTarget: THREE.Vector3;
   elapsed: number;
   duration: number;
+  /** Extra height at the middle of the move (a gentle arc for long trips). */
+  lift: number;
 }
 
 function easeInOutCubic(t: number): number {
@@ -51,6 +62,7 @@ export class CameraController {
   private readonly controls: OrbitControls;
   private transition: Transition | null = null;
   private readonly scratch = new THREE.Vector3();
+  private limits: CameraLimits = SITE_LIMITS;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -59,8 +71,8 @@ export class CameraController {
     this.controls = new OrbitControls(camera, domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
-    this.controls.minDistance = 1.5;
-    this.controls.maxDistance = 240;
+    this.controls.minDistance = SITE_LIMITS.minDistance;
+    this.controls.maxDistance = SITE_LIMITS.maxDistance;
     // Keep the camera above the ground plane and out of straight top-down.
     this.controls.maxPolarAngle = Math.PI / 2 - 0.08;
     this.controls.minPolarAngle = 0.05;
@@ -81,6 +93,13 @@ export class CameraController {
 
   get isTransitioning(): boolean {
     return this.transition !== null;
+  }
+
+  /** Zoom range and how far the view may roam; `null` restores the site defaults. */
+  setLimits(limits: CameraLimits | null): void {
+    this.limits = limits ?? SITE_LIMITS;
+    this.controls.minDistance = this.limits.minDistance;
+    this.controls.maxDistance = this.limits.maxDistance;
   }
 
   setEnabled(enabled: boolean): void {
@@ -107,7 +126,7 @@ export class CameraController {
   }
 
   /** Ease the camera to look at `point` from the given view. */
-  transitionTo(point: CameraFocusPoint, view: CameraView = {}, duration = TRANSITION_SECONDS): void {
+  transitionTo(point: CameraFocusPoint, view: CameraView = {}, duration = TRANSITION_SECONDS, lift = 0): void {
     const toTarget = new THREE.Vector3(point.x, point.y, point.z);
     this.transition = {
       fromPosition: this.camera.position.clone(),
@@ -116,7 +135,29 @@ export class CameraController {
       toTarget,
       elapsed: 0,
       duration: Math.max(0.01, duration),
+      lift,
     };
+  }
+
+  /**
+   * Travel across the world to `point`: longer trips take a little longer
+   * and rise in a soft arc, so the child sees where they are going.
+   */
+  flyTo(point: CameraFocusPoint, view: CameraView = {}): void {
+    const travel = Math.hypot(point.x - this.controls.target.x, point.z - this.controls.target.z);
+    const duration = THREE.MathUtils.clamp(0.9 + travel / 320, 0.9, 2.4);
+    this.transitionTo(point, view, duration, Math.min(travel * 0.3, 140));
+  }
+
+  /** Current heading in degrees (see CameraView.azimuth). */
+  get azimuth(): number {
+    const offset = this.scratch.copy(this.camera.position).sub(this.controls.target);
+    return THREE.MathUtils.radToDeg(Math.atan2(offset.x, offset.z));
+  }
+
+  /** Distance from the camera to its focus point. */
+  get distance(): number {
+    return this.camera.position.distanceTo(this.controls.target);
   }
 
   /** Ease to a named view around the current target, keeping the current heading. */
@@ -137,6 +178,23 @@ export class CameraController {
   update(deltaSeconds: number): void {
     if (this.transition) this.stepTransition(deltaSeconds);
     this.controls.update();
+    this.keepInside();
+  }
+
+  /** Pull the focus point (and the camera with it) back inside the world. */
+  private keepInside(): void {
+    const half = this.limits.halfSize;
+    if (half === null) return;
+    const target = this.controls.target;
+    const x = THREE.MathUtils.clamp(target.x, -half, half);
+    const z = THREE.MathUtils.clamp(target.z, -half, half);
+    if (x === target.x && z === target.z) return;
+    const dx = x - target.x;
+    const dz = z - target.z;
+    target.x = x;
+    target.z = z;
+    this.camera.position.x += dx;
+    this.camera.position.z += dz;
   }
 
   dispose(): void {
@@ -149,6 +207,7 @@ export class CameraController {
     t.elapsed = Math.min(t.duration, t.elapsed + deltaSeconds);
     const k = easeInOutCubic(t.elapsed / t.duration);
     this.camera.position.lerpVectors(t.fromPosition, t.toPosition, k);
+    if (t.lift > 0) this.camera.position.y += Math.sin(Math.PI * k) * t.lift;
     this.controls.target.lerpVectors(t.fromTarget, t.toTarget, k);
     if (t.elapsed >= t.duration) this.transition = null;
     this.controls.update();

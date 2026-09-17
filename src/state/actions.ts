@@ -1,9 +1,10 @@
 import type { GameStore } from './GameStore';
-import { isObjectUnlocked, type GameState } from './GameState';
+import { DEFAULT_WORLD_NAME, isObjectUnlocked, type GameState } from './GameState';
 import { createPlayer } from '@/player/Player';
 import type { ObjectRegistry } from '@/construction/ObjectRegistry';
 import { roleOf, type ConstructionObjectDefinition } from '@/construction/ConstructionObjectDefinition';
-import { createPlacedObject, type PlacedObject, type Vec3 } from '@/construction/PlacedObject';
+import { createPlacedObject, type CreationGroupRef, type PlacedObject, type Vec3 } from '@/construction/PlacedObject';
+import { createId } from '@/utils/id';
 import { PLACEMENT_ROTATION_STEP, PLACEMENT_ROTATION_STEPS } from '@/construction/constants';
 import { computeBounds } from '@/construction/bounds';
 import {
@@ -12,6 +13,7 @@ import {
   findInvalidReason,
   placementStatusEquals,
   PlacementResolver,
+  type PlacementCandidate,
   type PlacementRulesContext,
   type PlacementStatus,
   type PlacementSurface,
@@ -22,6 +24,11 @@ import type { ChallengeMatchResult } from '@/challenges/ChallengeMatcher';
 import type { ChallengeStatus } from '@/challenges/Challenge';
 import { createInitialProgress, type StarRating } from '@/progression/Progression';
 import { getLevelStatus, lockedMessage, nextChallenge } from '@/progression/levelState';
+import type { TemplateObjectSpec } from '@/creative/Template';
+
+function roundTo(value: number, step: number): number {
+  return Math.round(value / step) * step;
+}
 
 /** How a placement was resolved; the action re-validates against it. */
 export interface PlaceOptions {
@@ -32,6 +39,8 @@ export interface PlaceOptions {
   rotationY?: number;
   /** Surface used; defaults to 'top' when a support is given, else 'ground'. */
   surface?: PlacementSurface;
+  /** Creation Group the new object joins. */
+  group?: CreationGroupRef;
 }
 
 /**
@@ -110,6 +119,9 @@ export class GameActions {
       selectedInstanceId: null,
       placementStatus: null,
       transformMode: 'move',
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
     });
   }
 
@@ -127,7 +139,179 @@ export class GameActions {
       selectedInstanceId: null,
       placementStatus: null,
       transformMode: 'move',
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
     });
+  }
+
+  // ------------------------------------------------------- template placement
+
+  /**
+   * Begin positioning a creative template (a Build Intent or a browsed
+   * template) - see `TemplatePlacementController`, which drives the ghost
+   * and turns this into real objects via `instantiateTemplate` once the
+   * player confirms. Cancels any single-object placement/selection first;
+   * the two never overlap.
+   */
+  startTemplatePlacement(templateId: string, options: { label?: string; creationId?: string } = {}): void {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null) return;
+    this.store.setState({
+      templatePlacement: { templateId, rotationY: 0, label: options.label, creationId: options.creationId },
+      streetDrawing: false,
+      selectedObjectId: null,
+      selectedInstanceId: null,
+      placementStatus: null,
+      creationFocus: null,
+    });
+  }
+
+  /** Turn the template being positioned by one quarter-turn. */
+  rotateTemplatePlacement(direction: 1 | -1): void {
+    const { templatePlacement } = this.store.getState();
+    if (!templatePlacement) return;
+    const steps = Math.round(templatePlacement.rotationY / PLACEMENT_ROTATION_STEP) + direction;
+    const rotationY = (((steps % PLACEMENT_ROTATION_STEPS) + PLACEMENT_ROTATION_STEPS) % PLACEMENT_ROTATION_STEPS) * PLACEMENT_ROTATION_STEP;
+    this.store.setState({ templatePlacement: { ...templatePlacement, rotationY } });
+  }
+
+  /** Leave template placement without building anything. */
+  cancelTemplatePlacement(): void {
+    if (this.store.getState().templatePlacement === null) return;
+    this.store.setState({ templatePlacement: null });
+  }
+
+  // ------------------------------------------------------------ world studio
+
+  /** Begin "Draw a Street": the next drag across the ground lays a road (see StreetDrawController). */
+  startStreetDrawing(): void {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null) return;
+    this.store.setState({
+      streetDrawing: true,
+      templatePlacement: null,
+      selectedObjectId: null,
+      selectedInstanceId: null,
+      placementStatus: null,
+      creationFocus: null,
+    });
+  }
+
+  cancelStreetDrawing(): void {
+    if (this.store.getState().streetDrawing) this.store.setState({ streetDrawing: false });
+  }
+
+  /**
+   * Select what a creation just produced and remember it came from that
+   * creation, so World Studio can offer its "Make it yours" actions.
+   */
+  focusCreation(creationId: string, instanceId: string, label?: string): void {
+    const state = this.store.getState();
+    if (!state.placedObjects.some((p) => p.id === instanceId)) return;
+    this.selectPlacedObject(instanceId);
+    this.store.setState({ creationFocus: { creationId, instanceId, label } });
+  }
+
+  /** The child's own name for My World. Blank names fall back to the default. */
+  setWorldName(name: string): void {
+    const trimmed = name.trim().slice(0, 32);
+    const state = this.store.getState();
+    const next = trimmed.length > 0 ? trimmed : DEFAULT_WORLD_NAME;
+    if (next === state.myWorld.name) return;
+    this.store.setState({ myWorld: { ...state.myWorld, name: next } });
+  }
+
+  /** The kind of place the child is building. Shapes suggestions only - never restricts anything. */
+  setWorldStory(story: string | null): void {
+    const state = this.store.getState();
+    if (story === state.myWorld.story) return;
+    this.store.setState({ myWorld: { ...state.myWorld, story } });
+  }
+
+  /**
+   * Replace My World's objects with a snapshot (undo/redo - see
+   * HistoryService). Selection is kept only if the selected object still
+   * exists; the snapshot itself is ordinary placedObjects data.
+   */
+  applyMyWorldSnapshot(placedObjects: PlacedObject[]): void {
+    const state = this.store.getState();
+    if (state.challenge !== null) return;
+    const keepSelection = state.selectedInstanceId !== null && placedObjects.some((p) => p.id === state.selectedInstanceId);
+    this.store.setState({
+      placedObjects,
+      selectedInstanceId: keepSelection ? state.selectedInstanceId : null,
+      creationFocus: keepSelection ? state.creationFocus : null,
+    });
+  }
+
+  /**
+   * Rest an object on top of another placed object, centred on it - e.g.
+   * park a car on a driveway. Goes through the normal support and overlap
+   * validation. My World only.
+   */
+  placeOnTop(definitionId: string, supportId: string, rotationY: number): PlacedObject | null {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null) return null;
+    const definition = this.registry.get(definitionId);
+    const support = state.placedObjects.find((p) => p.id === supportId);
+    const supportDefinition = support ? this.registry.get(support.definitionId) : undefined;
+    if (!definition || !support || !supportDefinition) return null;
+    const position: Vec3 = {
+      x: support.position.x,
+      y: support.position.y + supportDefinition.dimensions.height * support.scale.y,
+      z: support.position.z,
+    };
+    return this.placeDefinition(definition, position, { supportId, surface: 'top', rotationY }, true);
+  }
+
+  /**
+   * Place one object somewhere free near `anchor` - the "Make it yours"
+   * shortcuts (add a tree beside a house, a car in front of it...). Tries
+   * the preferred offsets first (relative to `anchorRotationY`), then an
+   * outward ring, each through the normal placement validation. Returns the
+   * new object, or null if nothing nearby was free. My World only.
+   */
+  placeNearby(
+    definitionId: string,
+    anchor: Vec3,
+    options: {
+      anchorRotationY?: number;
+      offsets?: Array<{ x: number; z: number }>;
+      rotationY?: number;
+      /** Closest ring to try, e.g. just outside the anchor's own footprint. */
+      minRadius?: number;
+    } = {},
+  ): PlacedObject | null {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null) return null;
+    const definition = this.registry.get(definitionId);
+    if (!definition) return null;
+    const turn = options.anchorRotationY ?? 0;
+    const cos = Math.cos(turn);
+    const sin = Math.sin(turn);
+    const candidates: Array<{ x: number; z: number }> = [...(options.offsets ?? [])];
+    const base = Math.max(1.2, options.minRadius ?? 3);
+    for (const step of [0, 1, 2, 3.5, 5, 7]) {
+      const radius = base + step;
+      const slots = Math.max(8, Math.round(radius * 3));
+      for (let i = 0; i < slots; i++) {
+        // Front first (+z local), then fan out to the sides and the back.
+        const angle = Math.PI / 2 + (i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * ((Math.PI * 2) / slots);
+        candidates.push({ x: Math.cos(angle) * radius, z: Math.sin(angle) * radius });
+      }
+    }
+    const rotationY = (options.rotationY ?? 0) + turn;
+    for (const offset of candidates) {
+      const position: Vec3 = {
+        x: roundTo(anchor.x + offset.x * cos - offset.z * sin, 0.05),
+        y: 0,
+        z: roundTo(anchor.z + offset.x * sin + offset.z * cos, 0.05),
+      };
+      const placed = this.placeDefinition(definition, position, { rotationY }, true);
+      if (placed) return placed;
+    }
+    return null;
   }
 
   returnToMenu(): void {
@@ -136,6 +320,9 @@ export class GameActions {
       selectedObjectId: null,
       selectedInstanceId: null,
       placementStatus: null,
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
     });
   }
 
@@ -201,6 +388,9 @@ export class GameActions {
       selectedInstanceId: null,
       transformMode: 'move',
       placementStatus: null,
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
     });
     return true;
   }
@@ -222,6 +412,9 @@ export class GameActions {
       selectedInstanceId: null,
       transformMode: 'move',
       placementStatus: null,
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
     });
   }
 
@@ -238,6 +431,9 @@ export class GameActions {
       selectedInstanceId: null,
       transformMode: 'move',
       placementStatus: null,
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
     });
   }
 
@@ -355,7 +551,13 @@ export class GameActions {
       console.warn(`[actions] Object is locked: ${objectId}`);
       return;
     }
-    this.store.setState({ selectedObjectId: objectId, selectedInstanceId: null });
+    this.store.setState({
+      selectedObjectId: objectId,
+      selectedInstanceId: null,
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
+    });
   }
 
   /** Leave placement mode without placing. */
@@ -409,42 +611,83 @@ export class GameActions {
 
   /**
    * Instantiate a creative template (see `src/creative/Template.ts`): a
-   * small, fixed arrangement of ordinary objects, placed relative to
-   * `origin`. Every piece goes through the exact same validation a manual
-   * placement would - one that would overlap something already there, or
-   * land outside the buildable area, is simply skipped, never forced in.
-   * There is no separate "template state": once placed, each object is a
-   * normal `placedObjects` entry, selectable, movable, deletable like
-   * anything the player built by hand. My World only - never available
-   * mid-challenge.
+   * small, fixed arrangement of ordinary objects, placed and rotated as one
+   * group around `origin`. Every piece goes through the exact same
+   * validation a manual placement would - one that would overlap something
+   * already there, or land outside the buildable area, is simply skipped,
+   * never forced in. Pieces that reference another piece of the same
+   * template (a door's host wall, a roof's support) are placed in
+   * dependency order, in up to a few passes, exactly like the challenge
+   * blueprint's own dependency-aware build order; a piece whose dependency
+   * never got placed is skipped along with it. There is no separate
+   * "template state": once placed, each object is a normal `placedObjects`
+   * entry, selectable, movable, deletable like anything the player built by
+   * hand. My World only - never available mid-challenge.
    */
   instantiateTemplate(
-    template: { objects: Array<{ definitionId: string; position: Vec3; rotationY?: number }> },
+    template: { objects: TemplateObjectSpec[] },
     origin: Vec3 = { x: 0, y: 0, z: 0 },
-  ): { placed: number; skipped: number } {
+    groupRotationY = 0,
+    creation?: string,
+  ): { placed: number; skipped: number; ids: string[]; groupId: string | null } {
     const state = this.store.getState();
     if (state.mode !== 'playing' || state.challenge !== null) {
       console.warn('[actions] Templates are only available in My World');
-      return { placed: 0, skipped: template.objects.length };
+      return { placed: 0, skipped: template.objects.length, ids: [], groupId: null };
     }
+    const ids: string[] = [];
+    // Everything one creation places shares a Creation Group id.
+    const group: CreationGroupRef | undefined = creation ? { id: createId('grp'), creation } : undefined;
+    const cos = Math.cos(groupRotationY);
+    const sin = Math.sin(groupRotationY);
+    const localIds = new Map<string, string>(); // spec.localId -> real placedObject id
+
     let placed = 0;
     let skipped = 0;
-    for (const spec of template.objects) {
-      const definition = this.registry.get(spec.definitionId);
-      if (!definition) {
-        skipped++;
-        continue;
+    let pending = template.objects.slice();
+    for (let pass = 0; pass < 4 && pending.length > 0; pass++) {
+      const next: TemplateObjectSpec[] = [];
+      for (const spec of pending) {
+        const dependsOn = spec.hostRef ?? spec.supportRef;
+        if (dependsOn && !localIds.has(dependsOn)) {
+          next.push(spec); // its dependency hasn't been placed yet - try again next pass
+          continue;
+        }
+        const definition = this.registry.get(spec.definitionId);
+        if (!definition) {
+          skipped++;
+          continue;
+        }
+        const position: Vec3 = {
+          x: origin.x + (spec.position.x * cos - spec.position.z * sin),
+          y: origin.y + spec.position.y,
+          z: origin.z + (spec.position.x * sin + spec.position.z * cos),
+        };
+        const rotationY = (spec.rotationY ?? 0) + groupRotationY;
+        const options: PlaceOptions = { rotationY, group };
+        if (dependsOn) {
+          const refId = localIds.get(dependsOn);
+          if (spec.hostRef) {
+            options.hostId = refId;
+            options.surface = spec.surface ?? 'side';
+          } else {
+            options.supportId = refId;
+            options.surface = spec.surface ?? 'top';
+          }
+        }
+        const result = this.placeDefinition(definition, position, options, true);
+        if (result) {
+          placed++;
+          ids.push(result.id);
+          if (spec.localId) localIds.set(spec.localId, result.id);
+        } else {
+          skipped++;
+        }
       }
-      const position: Vec3 = {
-        x: origin.x + spec.position.x,
-        y: origin.y + spec.position.y,
-        z: origin.z + spec.position.z,
-      };
-      const result = this.placeDefinition(definition, position, { rotationY: spec.rotationY ?? 0 });
-      if (result) placed++;
-      else skipped++;
+      pending = next;
     }
-    return { placed, skipped };
+    skipped += pending.length; // dependencies that never resolved
+    return { placed, skipped, ids, groupId: group && placed > 0 ? group.id : null };
   }
 
   /**
@@ -457,7 +700,10 @@ export class GameActions {
     definition: ConstructionObjectDefinition,
     position: Vec3,
     options: PlaceOptions,
+    quiet = false,
   ): PlacedObject | null {
+    // Creative helpers probe many spots; a skipped probe is expected, not worth a warning.
+    const warn = quiet ? () => {} : (message: string) => console.warn(message);
     const state = this.store.getState();
     if (state.mode !== 'playing') return null;
     if (!isObjectUnlocked(state, definition.id)) {
@@ -475,7 +721,7 @@ export class GameActions {
       checkSupportRules(definition, surface, supportDefinition) ??
       checkTargetSupport(definition, surface, supportDefinition, this.registry, this.placementRules);
     if (ruleHint) {
-      console.warn(`[actions] Placement rejected (${ruleHint}) for ${definition.id}`);
+      warn(`[actions] Placement rejected (${ruleHint}) for ${definition.id}`);
       return null;
     }
 
@@ -484,7 +730,7 @@ export class GameActions {
       const host = options.hostId ? state.placedObjects.find((p) => p.id === options.hostId) ?? null : null;
       const hostDefinition = host ? this.registry.get(host.definitionId) ?? null : null;
       if (!host || !hostDefinition || roleOf(hostDefinition) !== 'wall') {
-        console.warn(`[actions] Placement rejected (opening needs a host wall) for ${definition.id}`);
+        warn(`[actions] Placement rejected (opening needs a host wall) for ${definition.id}`);
         return null;
       }
       hostId = host.id;
@@ -493,13 +739,14 @@ export class GameActions {
     const bounds = computeBounds(definition, position, rotationY, { x: 1, y: 1, z: 1 });
     const reason = findInvalidReason(bounds, state.placedObjects, this.registry, this.placementRules, hostId ? [hostId] : []);
     if (reason !== null) {
-      console.warn(`[actions] Placement rejected (${reason}) for ${definition.id}`);
+      warn(`[actions] Placement rejected (${reason}) for ${definition.id}`);
       return null;
     }
 
     const placed = createPlacedObject(definition, position, rotationY, {
       supportId: support ? support.id : null,
       hostId,
+      group: options.group,
     });
     this.store.setState({ placedObjects: [...state.placedObjects, placed] });
     return placed;
@@ -514,7 +761,7 @@ export class GameActions {
   selectPlacedObject(instanceId: string | null): void {
     const state = this.store.getState();
     if (instanceId === null) {
-      if (state.selectedInstanceId !== null) this.store.setState({ selectedInstanceId: null });
+      if (state.selectedInstanceId !== null) this.store.setState({ selectedInstanceId: null, creationFocus: null });
       return;
     }
     if (!state.placedObjects.some((p) => p.id === instanceId)) {
@@ -526,6 +773,7 @@ export class GameActions {
       selectedObjectId: null,
       transformMode: 'move',
       placementStatus: null,
+      creationFocus: state.creationFocus?.instanceId === instanceId ? state.creationFocus : null,
     });
   }
 
@@ -572,8 +820,10 @@ export class GameActions {
    * original or break a role's rules (a wall still snaps to neighbours, a
    * floor still clears them). Doors/windows are skipped: a duplicate would
    * need a host wall of its own, which this simple nudge cannot supply.
-   * Selects the new copy so the player can immediately move it further.
-   * Returns the resulting status, or null if nothing could be duplicated.
+   * If the spot beside it is taken, the other sides are tried, then a step
+   * further out. Selects the new copy so the player can immediately move it
+   * further. Returns the resulting status, or null if nothing could be
+   * duplicated.
    */
   duplicateSelectedPlacedObject(): PlacementStatus | null {
     const state = this.store.getState();
@@ -592,10 +842,25 @@ export class GameActions {
     // duplicate is validated against the original like any other neighbour
     // (including being pushed clear of it, for a role that does that).
     const proposal: PlacedObject = { ...placed, id: `${placed.id}:duplicate-preview` };
-    const proposed = { x: placed.position.x + nudge, z: placed.position.z };
-    const candidate = this.resolver.resolveMove(proposal, definition, proposed, placed.rotationY, state.placedObjects);
-    if (!candidate) return null;
-    if (!candidate.status.valid) return candidate.status;
+    // Beside it first; if that spot is taken, the other sides, then a step further out.
+    const offsets = [
+      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [1, 1], [-1, 1], [1, -1], [-1, -1],
+      [2, 0], [-2, 0], [0, 2], [0, -2],
+    ];
+    let candidate: PlacementCandidate | null = null;
+    let firstStatus: PlacementStatus | null = null;
+    for (const [dx, dz] of offsets) {
+      const proposed = { x: placed.position.x + dx * nudge, z: placed.position.z + dz * nudge };
+      const attempt = this.resolver.resolveMove(proposal, definition, proposed, placed.rotationY, state.placedObjects);
+      if (!attempt) continue;
+      firstStatus ??= attempt.status;
+      if (attempt.status.valid) {
+        candidate = attempt;
+        break;
+      }
+    }
+    if (!candidate) return firstStatus;
 
     const copy = createPlacedObject(definition, candidate.position, candidate.rotationY, {
       supportId: placed.supportId,

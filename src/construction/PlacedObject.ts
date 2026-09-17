@@ -8,6 +8,20 @@ export interface Vec3 {
 }
 
 /** Appearance values that override the definition for one instance. */
+/**
+ * Membership of a Creation Group: the pieces one creation placed together
+ * (a house's walls, roof, door and garden; a street's tiles and sidewalks;
+ * a whole neighbourhood). Every member stays an ordinary placed object that
+ * can be edited on its own; the shared id is what lets a whole creation be
+ * found - and, later, selected and moved - as one.
+ */
+export interface CreationGroupRef {
+  /** Shared by every member of one placed creation. */
+  id: string;
+  /** Which creation made it (World Studio creation id, e.g. "house"). */
+  creation: string;
+}
+
 export interface MaterialOverrides {
   /** Hex colour, e.g. "#ff0000". */
   color?: string;
@@ -46,11 +60,14 @@ export interface PlacedObject {
   hostId: string | null;
   /** ISO timestamp of placement. */
   createdAt: string;
+  /** Set when a World Studio creation placed this piece (absent for single pieces). */
+  group?: CreationGroupRef;
 }
 
 export interface PlacedObjectLinks {
   supportId?: string | null;
   hostId?: string | null;
+  group?: CreationGroupRef;
 }
 
 export function createPlacedObject(
@@ -69,6 +86,7 @@ export function createPlacedObject(
     supportId: links.supportId ?? null,
     hostId: links.hostId ?? null,
     createdAt: new Date().toISOString(),
+    ...(links.group ? { group: { ...links.group } } : {}),
   };
 }
 

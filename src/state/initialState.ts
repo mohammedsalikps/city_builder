@@ -1,4 +1,4 @@
-import type { GameState } from './GameState';
+import { DEFAULT_WORLD_NAME, type GameState, type MyWorldIdentity } from './GameState';
 import type { PlayerProfile } from '@/player/Player';
 import {
   createInitialProgress,
@@ -18,6 +18,7 @@ import {
 export function createInitialState(
   progress: PlayerProgress = createInitialProgress(),
   player: PlayerProfile | null = null,
+  myWorld: MyWorldIdentity = { name: DEFAULT_WORLD_NAME, story: null },
 ): GameState {
   return {
     mode: 'boot',
@@ -37,5 +38,9 @@ export function createInitialState(
     selectedInstanceId: null,
     transformMode: 'move',
     placementStatus: null,
+    templatePlacement: null,
+    streetDrawing: false,
+    creationFocus: null,
+    myWorld,
   };
 }

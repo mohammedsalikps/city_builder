@@ -4,6 +4,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { AssetDefinition, AssetRegistry } from './AssetRegistry';
 import { cloneMaterial, type MaterialLibrary } from '../materials/MaterialLibrary';
+import { displayScaleOf } from './scalePolicy';
 
 /** A loaded, normalised model every instance is cloned from. */
 interface Template {
@@ -40,6 +41,9 @@ export class AssetLibrary {
   private readonly variantMaterials = new Map<string, THREE.Material>();
   private readonly mixers = new Map<THREE.Object3D, THREE.AnimationMixer>();
   private readonly fallbackMaterial = new THREE.MeshStandardMaterial({ color: 0xb9b2a6, roughness: 0.9 });
+  private readonly textureLoader = new THREE.TextureLoader();
+  private readonly paletteTextures = new Map<string, THREE.Texture>();
+  private readonly paletteMaterials = new Map<string, THREE.Material>();
   private readonly baseUrl: string;
   private failures = 0;
 
@@ -132,8 +136,10 @@ export class AssetLibrary {
     const sx = box.width / Math.max(size.x, 1e-6);
     const sy = box.height / Math.max(size.y, 1e-6);
     const sz = box.depth / Math.max(size.z, 1e-6);
-    if (fit === 'stretch') object.scale.set(sx, sy, sz);
-    else object.scale.setScalar(fit === 'height' ? sy : Math.min(sx, sy, sz));
+    // Visual scale policy rule 3: some kinds draw larger than their gameplay box.
+    const display = displayScaleOf(this.registry.get(id));
+    if (fit === 'stretch') object.scale.set(sx * display, sy * display, sz * display);
+    else object.scale.setScalar((fit === 'height' ? sy : Math.min(sx, sy, sz)) * display);
     return object;
   }
 
@@ -163,6 +169,60 @@ export class AssetLibrary {
       group.add(instanced);
     });
     return group;
+  }
+
+  /**
+   * The sub-meshes of a loaded asset with their transforms inside the
+   * corrected model, for batching static scenery. Geometry and materials are
+   * the template's own (shared, never to be disposed by the caller).
+   */
+  parts(
+    id: string,
+    palette?: string,
+  ): Array<{ geometry: THREE.BufferGeometry; material: THREE.Material; matrix: THREE.Matrix4; castShadow: boolean }> {
+    const template = this.templates.get(id) ?? this.fallbackTemplate(id);
+    template.root.updateMatrixWorld(true);
+    const parts: Array<{ geometry: THREE.BufferGeometry; material: THREE.Material; matrix: THREE.Matrix4; castShadow: boolean }> = [];
+    template.root.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+      const material = palette ? this.paletteMaterial(template.definition, mesh.material, palette) : mesh.material;
+      parts.push({ geometry: mesh.geometry, material, matrix: mesh.matrixWorld.clone(), castShadow: mesh.castShadow });
+    });
+    return parts;
+  }
+
+  /**
+   * The same material drawn with one of the pack's alternative colour
+   * atlases (AssetDefinition.palettes). One texture per atlas file, one
+   * material per (source material, atlas); both cached.
+   */
+  private paletteMaterial(definition: AssetDefinition, material: THREE.Material, palette: string): THREE.Material {
+    const source = material as THREE.MeshStandardMaterial;
+    if (!source.map || !definition.palettes?.includes(palette)) return material;
+    const key = `${source.uuid}|${palette}`;
+    let result = this.paletteMaterials.get(key);
+    if (result) return result;
+    const folder = definition.path.slice(0, definition.path.lastIndexOf('/'));
+    const file = `${folder}/Textures/${palette}`;
+    let texture = this.paletteTextures.get(file);
+    if (!texture) {
+      texture = this.textureLoader.load(this.baseUrl + file);
+      const original = source.map;
+      texture.flipY = original.flipY;
+      texture.colorSpace = original.colorSpace;
+      texture.wrapS = original.wrapS;
+      texture.wrapT = original.wrapT;
+      texture.minFilter = original.minFilter;
+      texture.magFilter = original.magFilter;
+      texture.generateMipmaps = original.generateMipmaps;
+      this.paletteTextures.set(file, texture);
+    }
+    const clone = source.clone();
+    clone.map = texture;
+    this.paletteMaterials.set(key, clone);
+    result = clone;
+    return result;
   }
 
   /** Advance animation mixers. */
@@ -206,6 +266,10 @@ export class AssetLibrary {
     this.templates.clear();
     this.variantMaterials.forEach((m) => m.dispose());
     this.variantMaterials.clear();
+    this.paletteMaterials.forEach((m) => m.dispose());
+    this.paletteMaterials.clear();
+    this.paletteTextures.forEach((t) => t.dispose());
+    this.paletteTextures.clear();
     this.fallbackMaterial.dispose();
   }
 
@@ -282,6 +346,8 @@ export class AssetLibrary {
     if (definition.surface && material.name !== 'glass') {
       if (definition.surface.roughness !== undefined) material.roughness = definition.surface.roughness;
       if (definition.surface.metalness !== undefined) material.metalness = definition.surface.metalness;
+      const color = definition.surface.colors?.[material.name];
+      if (color) material.color.set(color);
     }
   }
 
@@ -290,6 +356,7 @@ export class AssetLibrary {
       id,
       path: 'missing.glb',
       category: 'props',
+      kind: 'decoration',
       footprint: { width: 1, depth: 1 },
       bounds: { width: 1, height: 1, depth: 1 },
     };

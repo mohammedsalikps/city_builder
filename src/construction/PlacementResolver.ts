@@ -17,6 +17,7 @@ export type PlacementSurface = 'ground' | 'top' | 'side';
 export type PlacementInvalidReason =
   | 'overlap'
   | 'outside-area'
+  | 'blocked'
   | 'unsupported-face'
   | 'wrong-support'
   | 'does-not-fit';
@@ -75,6 +76,11 @@ export interface PlacementRulesContext {
    * building, where only the catalogue rules apply.
    */
   getPlacementTargets?: (definitionId: string) => PlacementTargetSet;
+  /**
+   * Ground the world itself occupies (water, the starting scenery). Absent in
+   * challenges. Checked for ground-standing footprints only.
+   */
+  isBlocked?: (bounds: Bounds) => boolean;
 }
 
 const NO_TARGETS: PlacementTargetSet = { targets: [], requiredSupport: null };
@@ -722,6 +728,7 @@ export function findInvalidReason(
   ) {
     return 'outside-area';
   }
+  if (rules.isBlocked && bounds.minY < 0.5 && rules.isBlocked(bounds)) return 'blocked';
   for (const other of placedObjects) {
     if (ignoreIds.includes(other.id)) continue;
     const definition = registry.get(other.definitionId);
@@ -754,6 +761,8 @@ export function describePlacementStatus(status: PlacementStatus): string {
         return 'Invalid: overlaps another object.';
       case 'outside-area':
         return 'Invalid: outside the build area.';
+      case 'blocked':
+        return 'Invalid: something is already there.';
       default:
         return 'Invalid placement.';
     }

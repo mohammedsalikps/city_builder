@@ -1,0 +1,87 @@
+{
+  "id": "eavara-valley",
+  "name": "Eavara Valley",
+  "seed": 20250,
+  "size": 500,
+  "buildHalfSize": 250,
+  "tile": 7,
+  "homePlot": { "minX": -49, "maxX": 49, "minZ": -43, "maxZ": 60 },
+  "terrain": {
+    "size": 2800,
+    "segments": 250,
+    "centreBias": 0.28,
+    "seed": 7,
+    "blend": 75,
+    "lawnStripes": false,
+    "edgeNoise": 34,
+    "forest": { "scale": 0.006, "seed": 31, "threshold": -0.05, "color": "#2f5f2c" },
+    "flatZones": [
+      { "minX": -252, "maxX": 252, "minZ": -252, "maxZ": 252 },
+      { "minX": -40, "maxX": 330, "minZ": -430, "maxZ": -250 }
+    ],
+    "lakes": [{ "x": -163, "z": -128, "radius": 44, "depth": 3.4 }, { "x": -84, "z": 206, "radius": 15, "depth": 1.6 }],
+    "mountains": { "inner": 470, "outer": 1000, "height": 290 },
+    "tints": [
+      { "shape": "rect", "minX": -49, "maxX": 49, "minZ": -43, "maxZ": 60, "color": "#77b957", "strength": 0.3, "feather": 10 },
+      { "shape": "rect", "minX": -24, "maxX": 250, "minZ": -250, "maxZ": -136, "color": "#9aa08c", "strength": 0.55, "feather": 14 },
+      { "shape": "rect", "minX": -60, "maxX": 72, "minZ": -132, "maxZ": -58, "color": "#8fa76a", "strength": 0.35, "feather": 12 },
+      { "shape": "rect", "minX": 102, "maxX": 250, "minZ": -40, "maxZ": 196, "color": "#a59f7c", "strength": 0.55, "feather": 16 },
+      { "shape": "rect", "minX": -240, "maxX": 96, "minZ": 152, "maxZ": 250, "color": "#4f8f37", "strength": 0.45, "feather": 22 },
+      { "shape": "circle", "x": -163, "z": -128, "radius": 88, "color": "#4f9440", "strength": 0.4, "feather": 30 },
+      { "shape": "rect", "minX": -40, "maxX": 330, "minZ": -430, "maxZ": -262, "color": "#9aa08c", "strength": 0.5, "feather": 20 }
+    ]
+  },
+  "water": [{ "x": -163, "z": -128, "radius": 43, "level": -0.45 }, { "x": -84, "z": 206, "radius": 14, "level": -0.3 }],
+  "districts": [
+    { "id": "home", "name": "Your Home", "kind": "home", "icon": "home", "color": "#f6b24a", "rect": { "minX": -49, "maxX": 49, "minZ": -43, "maxZ": 60 } },
+    { "id": "maple", "name": "Maple Grove", "kind": "residential", "icon": "neighborhood", "color": "#8fcf7a", "rect": { "minX": -246, "maxX": -54, "minZ": -43, "maxZ": 150 } },
+    { "id": "sunny", "name": "Sunny Lane", "kind": "residential", "icon": "villa", "color": "#a9d98c", "rect": { "minX": -54, "maxX": 98, "minZ": 60, "maxZ": 150 } },
+    { "id": "market", "name": "Market Square", "kind": "town", "icon": "town", "color": "#f59a7a", "rect": { "minX": -62, "maxX": 76, "minZ": -134, "maxZ": -55 } },
+    { "id": "skyline", "name": "Skyline City", "kind": "city", "icon": "tower", "color": "#8aa6d8", "rect": { "minX": -26, "maxX": 246, "minZ": -246, "maxZ": -134 } },
+    { "id": "works", "name": "Riverside Works", "kind": "industrial", "icon": "factory", "color": "#c7ae82", "rect": { "minX": 100, "maxX": 246, "minZ": -43, "maxZ": 200 } },
+    { "id": "lake", "name": "Crystal Lake", "kind": "lake", "icon": "wave", "color": "#6fc3e8", "rect": { "minX": -246, "maxX": -64, "minZ": -246, "maxZ": -55 } },
+    { "id": "park", "name": "Green Hills Park", "kind": "nature", "icon": "tree", "color": "#5fb35a", "rect": { "minX": -246, "maxX": 98, "minZ": 150, "maxZ": 246 } },
+    { "id": "east", "name": "Sunrise Meadows", "kind": "nature", "icon": "leaf", "color": "#7cc46a", "rect": { "minX": 76, "maxX": 100, "minZ": -134, "maxZ": 60 } }
+  ],
+  "roads": [
+    { "from": [-35, -7], "to": [35, -7], "class": "avenue" },
+    { "from": [1, -7], "to": [1, -35], "class": "avenue" },
+    { "from": [-6, -15], "to": [9, -15], "class": "town" },
+    { "from": [-3, -22], "to": [35, -22], "class": "city" },
+    { "from": [12, -22], "to": [12, -35], "class": "city" },
+    { "from": [23, -22], "to": [23, -35], "class": "city" },
+    { "from": [1, -29], "to": [35, -29], "class": "city" },
+    { "from": [-6, -7], "to": [-6, -15], "class": "town" },
+    { "from": [9, -7], "to": [9, -15], "class": "town" },
+    { "from": [18, -7], "to": [18, 27], "class": "industrial" },
+    { "from": [18, 4], "to": [35, 4], "class": "industrial" },
+    { "from": [18, 15], "to": [35, 15], "class": "industrial" },
+    { "from": [27, -7], "to": [27, 27], "class": "industrial" },
+    { "from": [-9, -7], "to": [-9, 20], "class": "street" },
+    { "from": [-35, 3], "to": [-9, 3], "class": "street" },
+    { "from": [-35, 12], "to": [-9, 12], "class": "street" },
+    { "from": [-22, -7], "to": [-22, 20], "class": "street" },
+    { "from": [-35, 20], "to": [-9, 20], "class": "street" },
+    { "from": [-9, 10], "to": [18, 10], "class": "street" },
+    { "from": [12, -7], "to": [12, 10], "class": "lane" }
+  ],
+  "openPlots": [
+    { "minX": -34, "maxX": 0, "minZ": -96, "maxZ": -60 },
+    { "minX": 30, "maxX": 66, "minZ": -196, "maxZ": -160 },
+    { "minX": 104, "maxX": 140, "minZ": -244, "maxZ": -209 },
+    { "minX": 138, "maxX": 176, "minZ": 50, "maxZ": 88 },
+    { "minX": 196, "maxX": 240, "minZ": -40, "maxZ": 22 },
+    { "minX": -126, "maxX": -90, "minZ": 36, "maxZ": 72 },
+    { "minX": -220, "maxX": -176, "minZ": 96, "maxZ": 134 }
+  ],
+  "landmarks": [
+    { "id": "town-square", "name": "Town Square", "kind": "plaza", "rect": { "minX": 21, "maxX": 49, "minZ": -91, "maxZ": -63 } },
+    { "id": "city-center", "name": "City Center", "kind": "city-center", "rect": { "minX": 100, "maxX": 146, "minZ": -197, "maxZ": -161 } },
+    { "id": "central-park", "name": "Central Park", "kind": "park", "rect": { "minX": -140, "maxX": -30, "minZ": 160, "maxZ": 244 } },
+    { "id": "lake-view", "name": "Lake Viewpoint", "kind": "viewpoint", "rect": { "minX": -176, "maxX": -150, "minZ": -84, "maxZ": -70 } },
+    { "id": "building-site", "name": "Building Site", "kind": "construction", "rect": { "minX": 120, "maxX": 160, "minZ": -122, "maxZ": -86 } },
+    { "id": "wind-farm", "name": "Wind Farm", "kind": "wind-farm", "rect": { "minX": 176, "maxX": 244, "minZ": -128, "maxZ": -60 } },
+    { "id": "grand-crossing", "name": "Grand Crossing", "kind": "crossing", "rect": { "minX": 0, "maxX": 14, "minZ": -56, "maxZ": -42 } }
+  ],
+  "skyline": { "minX": -30, "maxX": 330, "minZ": -420, "maxZ": -270 }
+}

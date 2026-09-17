@@ -17,9 +17,56 @@ const SELECTED_EMISSIVE = 0x5a4300;
 const EDGE_THRESHOLD_DEGREES = 25;
 /** Outline strength on textured objects: a hint of drawing, not a wireframe. */
 const EDGE_OPACITY = 0.28;
+/** How long a freshly placed object takes to settle into place (seconds). */
+const SETTLE_SECONDS = 0.32;
 /** Opacity of an object faded because it hides an interior target. */
 const FADED_OPACITY = 0.22;
 const FADED_EDGE_OPACITY = 0.45;
+/** Soft ground glow under a selected 3D model (instead of a wireframe box). */
+const HALO_COLOR = 0xffc23d;
+const HALO_INVALID_COLOR = 0xff5a4a;
+const HALO_MARGIN = 0.8;
+
+/** A rounded, feathered ring painted once into a texture. */
+function createHaloTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const ring = (inset: number, width: number, alpha: number): void => {
+    ctx.lineWidth = width;
+    ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+    const r = 56;
+    const a = inset;
+    const b = size - inset;
+    ctx.beginPath();
+    ctx.roundRect(a, a, b - a, b - a, r);
+    ctx.stroke();
+  };
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  ctx.beginPath();
+  ctx.roundRect(30, 30, size - 60, size - 60, 50);
+  ctx.fill();
+  ctx.filter = 'blur(10px)';
+  ring(30, 22, 0.55);
+  ctx.filter = 'none';
+  ring(30, 7, 1);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+interface Settling {
+  instance: RenderedInstance;
+  elapsed: number;
+}
+
+/** A soft overshoot: the object lands, gives a tiny bounce, and rests. */
+function easeOutBack(t: number): number {
+  const c1 = 1.4;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
 
 interface RenderedInstance {
   mesh: THREE.Mesh;
@@ -77,7 +124,12 @@ export class ConstructionRenderer {
    */
   private fadedIds: ReadonlySet<string> = new Set();
   private selectedId: string | null = null;
+  /** Objects currently playing their placement settle (presentation only). */
+  private readonly settling = new Map<string, Settling>();
   private readonly fadedMaterials = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+  private haloTexture: THREE.CanvasTexture | null = null;
+  private halo: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | null = null;
+  private haloClock = 0;
   private readonly fadedEdgeMaterial = new THREE.LineBasicMaterial({
     color: EDGE_COLOR,
     transparent: true,
@@ -112,16 +164,21 @@ export class ConstructionRenderer {
    */
   sync(placedObjects: PlacedObject[], selectedInstanceId: string | null): void {
     const wantedIds = new Set<string>();
+    const created: string[] = [];
 
     for (const placed of placedObjects) {
       wantedIds.add(placed.id);
       const existing = this.instances.get(placed.id);
       if (!existing) {
         this.create(placed);
+        created.push(placed.id);
       } else if (existing.source !== placed) {
         this.update(existing, placed);
       }
     }
+    // One new object at a time is a placement worth celebrating; a whole
+    // world arriving at once (a restore) just appears.
+    if (created.length === 1) this.celebrate(created[0]);
 
     for (const id of [...this.instances.keys()]) {
       if (!wantedIds.has(id)) this.remove(id);
@@ -131,6 +188,56 @@ export class ConstructionRenderer {
     if (this.selectedId !== selectedInstanceId) this.invalidId = null;
     this.selectedId = selectedInstanceId;
     this.instances.forEach((instance) => this.applyMaterials(instance));
+    this.placeHalo();
+  }
+
+  /**
+   * Selected 3D models get a soft glowing footprint on the ground, which
+   * reads as "this one" without drawing a technical bounding box.
+   */
+  private placeHalo(): void {
+    const instance = this.selectedId ? this.instances.get(this.selectedId) : undefined;
+    const wanted = instance?.visual?.visible ? instance : undefined;
+    if (!wanted) {
+      if (this.halo) {
+        this.halo.removeFromParent();
+        this.halo.visible = false;
+      }
+      return;
+    }
+    const halo = this.ensureHalo();
+    const definition = this.registry.get(wanted.source.definitionId);
+    if (!definition) return;
+    const { width, depth } = definition.dimensions;
+    const margin = HALO_MARGIN + Math.max(width, depth) * 0.12;
+    halo.scale.set(width + margin * 2, 1, depth + margin * 2);
+    halo.material.color.setHex(wanted.source.id === this.invalidId ? HALO_INVALID_COLOR : HALO_COLOR);
+    if (halo.parent !== wanted.mesh) wanted.mesh.add(halo);
+    halo.visible = true;
+  }
+
+  private ensureHalo(): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
+    if (!this.halo) {
+      this.haloTexture = createHaloTexture();
+      const geometry = new THREE.PlaneGeometry(1, 1);
+      geometry.rotateX(-Math.PI / 2);
+      const material = new THREE.MeshBasicMaterial({
+        map: this.haloTexture,
+        color: HALO_COLOR,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -4,
+        polygonOffsetUnits: -4,
+      });
+      this.halo = new THREE.Mesh(geometry, material);
+      this.halo.name = 'selection-halo';
+      this.halo.position.y = 0.03;
+      this.halo.renderOrder = 2;
+      this.halo.raycast = () => {};
+    }
+    return this.halo;
   }
 
   /** The live three.js object for a placed instance, e.g. to attach a transform gizmo to. */
@@ -155,6 +262,7 @@ export class ConstructionRenderer {
     this.invalidId = next;
     const instance = this.instances.get(instanceId);
     if (instance) this.applyMaterials(instance);
+    this.placeHalo();
   }
 
   /**
@@ -176,6 +284,42 @@ export class ConstructionRenderer {
     return count;
   }
 
+  /**
+   * Advance placement settles. Presentation only: the authoritative
+   * transform is restored exactly when each settle ends.
+   */
+  tick(deltaSeconds: number): void {
+    if (this.halo?.visible) {
+      this.haloClock += deltaSeconds;
+      this.halo.material.opacity = 0.78 + 0.22 * Math.sin(this.haloClock * 3.2);
+    }
+    if (this.settling.size === 0) return;
+    for (const [id, settle] of this.settling) {
+      settle.elapsed += deltaSeconds;
+      const { instance } = settle;
+      const source = instance.source;
+      const t = Math.min(1, settle.elapsed / SETTLE_SECONDS);
+      if (t >= 1) {
+        this.settling.delete(id);
+        this.applyTransform(instance, source);
+        continue;
+      }
+      const grow = 0.78 + 0.22 * easeOutBack(t);
+      instance.mesh.scale.set(source.scale.x * grow, source.scale.y * grow, source.scale.z * grow);
+      instance.mesh.position.y = source.position.y + (1 - t) * (1 - t) * 0.6;
+    }
+  }
+
+  private celebrate(instanceId: string): void {
+    const instance = this.instances.get(instanceId);
+    if (!instance) return;
+    this.settling.set(instanceId, { instance, elapsed: 0 });
+    // Sound-ready hook: a future audio layer can listen without touching construction code.
+    window.dispatchEvent(
+      new CustomEvent('eavara:placed', { detail: { instanceId, definitionId: instance.source.definitionId } }),
+    );
+  }
+
   /** Remove every mesh. Shared geometries/materials are left to `resources`. */
   clear(): void {
     for (const id of [...this.instances.keys()]) this.remove(id);
@@ -190,6 +334,10 @@ export class ConstructionRenderer {
     this.fadedMaterials.forEach((m) => m.dispose());
     this.fadedMaterials.clear();
     this.proxyMaterial.dispose();
+    this.halo?.geometry.dispose();
+    this.halo?.material.dispose();
+    this.haloTexture?.dispose();
+    this.halo = null;
   }
 
   // ------------------------------------------------------------------ walls
@@ -298,6 +446,7 @@ export class ConstructionRenderer {
       instance.mesh.add(object);
       instance.visual = object;
       this.applyMaterials(instance);
+      if (instance.source.id === this.selectedId) this.placeHalo();
     });
   }
 
@@ -342,6 +491,11 @@ export class ConstructionRenderer {
   private remove(id: string): void {
     const instance = this.instances.get(id);
     if (!instance) return;
+    this.settling.delete(id);
+    if (this.halo?.parent === instance.mesh) {
+      this.halo.removeFromParent();
+      this.halo.visible = false;
+    }
     this.detachVisual(instance);
     instance.mesh.remove(instance.edges);
     this.root.remove(instance.mesh);
@@ -366,11 +520,10 @@ export class ConstructionRenderer {
 
     if (instance.visual && instance.visual.visible) {
       // Asset-drawn objects: the gameplay proxy stays invisible; selection
-      // shows the gameplay outline in the selection colour; interior
-      // readability fades the model's own materials.
+      // shows a ground halo (placeHalo); interior readability fades the
+      // model's own materials.
       instance.mesh.material = this.proxyMaterial;
-      instance.edges.visible = id === this.selectedId;
-      instance.edges.material = id === this.invalidId ? this.invalidEdgeMaterial : this.selectedEdgeMaterial;
+      instance.edges.visible = false;
       const faded = this.fadedIds.has(id) && id !== this.selectedId;
       instance.visual.traverse((node) => {
         const mesh = node as THREE.Mesh;

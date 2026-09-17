@@ -3,6 +3,7 @@ import type { GameActions } from '@/state/actions';
 import type { ObjectRegistry } from '@/construction/ObjectRegistry';
 import type { ChallengeRegistry } from '@/challenges/ChallengeRegistry';
 import type { TemplateRegistry } from '@/creative/Template';
+import type { StudioServices } from './studio/StudioServices';
 
 export interface ScreenContext {
   actions: GameActions;
@@ -12,6 +13,8 @@ export interface ScreenContext {
   challenges: ChallengeRegistry;
   /** Read-only access to My World's creative templates for data-driven UI. */
   templates: TemplateRegistry;
+  /** World Studio's presentation services (thumbnails, projection, history). */
+  studio: StudioServices;
 }
 
 /**
@@ -56,6 +59,12 @@ export abstract class Screen {
 
   /** Sync DOM with the latest state. */
   abstract update(state: GameState): void;
+
+  /**
+   * Called every animation frame while mounted, for the rare UI that must
+   * follow the 3D view (a bubble above a selected object). Keep it cheap.
+   */
+  frame(): void {}
 
   /** Override to remove event listeners created in `build`. */
   protected onUnmount(): void {}

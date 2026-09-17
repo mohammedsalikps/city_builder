@@ -2,13 +2,15 @@ import * as THREE from 'three';
 import { CameraController } from './CameraController';
 import { MaterialLibrary } from '@/visual/materials/MaterialLibrary';
 import { Environment, type EnvironmentConfig } from '@/visual/environment/Environment';
+import { LocalGrid } from '@/visual/world/LocalGrid';
 
 export interface WorldOptions {
   canvas: HTMLCanvasElement;
-  /** Side length of the buildable ground area in metres. */
+  /**
+   * Side length of the invisible placement plane in metres. It only has to
+   * cover every place anyone can build; the rules decide where that is.
+   */
   groundSize?: number;
-  /** Spacing of the helper grid in metres. */
-  gridStep?: number;
   /** Sky, sun, terrain, water and clouds around the site (data-driven). */
   environment: EnvironmentConfig;
 }
@@ -43,18 +45,18 @@ export class World {
   readonly homeRoot: THREE.Group;
   /** Invisible placement plane at y = 0. */
   readonly ground: THREE.Mesh;
-  readonly grid: THREE.GridHelper;
+  /** Soft building guide around the pointer (My World placement only). */
+  readonly grid: LocalGrid;
 
   readonly groundSize: number;
-  readonly gridStep: number;
 
   private readonly canvas: HTMLCanvasElement;
   private readonly resizeObserver: ResizeObserver;
+  private renderScale = 1;
 
   constructor(options: WorldOptions) {
     this.canvas = options.canvas;
-    this.groundSize = options.groundSize ?? 40;
-    this.gridStep = options.gridStep ?? 1;
+    this.groundSize = options.groundSize ?? 600;
 
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -94,13 +96,8 @@ export class World {
     this.ground = this.createGround();
     this.scene.add(this.ground);
 
-    this.grid = new THREE.GridHelper(this.groundSize, this.groundSize / this.gridStep, 0xffffff, 0xffffff);
-    const gridMaterial = this.grid.material as THREE.Material;
-    gridMaterial.transparent = true;
-    gridMaterial.opacity = 0.1;
-    gridMaterial.depthWrite = false;
-    this.grid.position.y = 0.004;
-    this.scene.add(this.grid);
+    this.grid = new LocalGrid();
+    this.scene.add(this.grid.mesh);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.canvas.parentElement ?? document.body);
@@ -110,15 +107,33 @@ export class World {
   /** Advance per-frame systems: camera easing, sun/shadow follow, animated surfaces. */
   update(deltaSeconds: number): void {
     this.cameraController.update(deltaSeconds);
-    this.environment.update(deltaSeconds, this.cameraController.target);
+    const target = this.cameraController.target;
+    this.environment.update(deltaSeconds, target, this.camera.position.distanceTo(target));
+    this.grid.update(deltaSeconds);
   }
 
   render(): void {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /** Show the local building guide (it fades in and out). */
+  /**
+   * Render at a fraction of the display resolution (1 = full). Used to keep
+   * large views smooth on modest GPUs; the UI is unaffected.
+   */
+  setRenderScale(scale: number): void {
+    if (Math.abs(scale - this.renderScale) < 1e-3) return;
+    this.renderScale = scale;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * scale);
+    this.resize();
+  }
+
+  get currentRenderScale(): number {
+    return this.renderScale;
+  }
+
   setGridVisible(visible: boolean): void {
-    this.grid.visible = visible;
+    this.grid.setWanted(visible);
   }
 
   addPlacedObject(object: THREE.Object3D): void {
@@ -132,6 +147,7 @@ export class World {
   dispose(): void {
     this.resizeObserver.disconnect();
     this.cameraController.dispose();
+    this.grid.dispose();
     this.materials.dispose();
     this.renderer.dispose();
   }

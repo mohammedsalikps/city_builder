@@ -1,10 +1,12 @@
 import { createPlayer, type PlayerProfile } from '@/player/Player';
 import type { PlacedObject, Vec3 } from '@/construction/PlacedObject';
+import { DEFAULT_WORLD_NAME, type MyWorldIdentity } from './GameState';
 
-/** What gets persisted for My World: who built it, and what they built. */
+/** What gets persisted for My World: who built it, what they called it, and what they built. */
 export interface MyWorldSave {
   player: PlayerProfile;
   placedObjects: PlacedObject[];
+  identity: MyWorldIdentity;
 }
 
 /**
@@ -33,12 +35,17 @@ interface WorldSaveObjectV1 {
   supportId: string | null;
   hostId: string | null;
   createdAt: string;
+  /** Added in Step 25; optional (older saves have no creation groups). */
+  group?: { id: string; creation: string };
 }
 
 interface WorldSaveFileV1 {
   version: 1;
   player: { id: string; name: string; createdAt: string };
   placedObjects: WorldSaveObjectV1[];
+  /** Added in Step 24; optional so earlier saves still load (defaults apply). */
+  worldName?: string;
+  worldStory?: string | null;
 }
 
 export const MY_WORLD_SAVE_VERSION = 1;
@@ -79,6 +86,8 @@ export class LocalMyWorldStorage implements MyWorldStorage {
       version: MY_WORLD_SAVE_VERSION,
       player: { id: save.player.id, name: save.player.name, createdAt: save.player.createdAt },
       placedObjects: save.placedObjects.map(toSaveObject),
+      worldName: save.identity.name,
+      worldStory: save.identity.story,
     };
     try {
       window.localStorage.setItem(this.key, JSON.stringify(file));
@@ -107,6 +116,7 @@ function toSaveObject(p: PlacedObject): WorldSaveObjectV1 {
     supportId: p.supportId,
     hostId: p.hostId,
     createdAt: p.createdAt,
+    ...(p.group ? { group: { ...p.group } } : {}),
   };
 }
 
@@ -143,7 +153,15 @@ function parsePlacedObject(data: unknown): PlacedObject | null {
     supportId: (o.supportId as string | null) ?? null,
     hostId: (o.hostId as string | null) ?? null,
     createdAt: o.createdAt,
+    ...(parseGroup(o.group) ?? {}),
   };
+}
+
+function parseGroup(raw: unknown): { group: PlacedObject['group'] } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const g = raw as Record<string, unknown>;
+  if (typeof g.id !== 'string' || g.id.length === 0 || typeof g.creation !== 'string') return null;
+  return { group: { id: g.id, creation: g.creation } };
 }
 
 /** Strict validation of a parsed save file. Returns null on any problem. */
@@ -171,5 +189,10 @@ export function parseWorldSave(data: unknown): MyWorldSave | null {
     placedObjects.push(parsedObject);
   }
 
-  return { player, placedObjects };
+  const identity: MyWorldIdentity = {
+    name: typeof file.worldName === 'string' && file.worldName.trim().length > 0 ? file.worldName.slice(0, 32) : DEFAULT_WORLD_NAME,
+    story: typeof file.worldStory === 'string' ? file.worldStory : null,
+  };
+
+  return { player, placedObjects, identity };
 }

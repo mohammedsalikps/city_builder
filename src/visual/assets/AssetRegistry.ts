@@ -1,4 +1,5 @@
 import type { ConstructionObjectDefinition } from '@/construction/ConstructionObjectDefinition';
+import { packScaleProblems } from './scalePolicy';
 
 export const ASSET_CATEGORIES = [
   'architecture',
@@ -11,6 +12,30 @@ export const ASSET_CATEGORIES = [
   'environment',
 ] as const;
 export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
+
+/**
+ * What a model is in the world, independent of which pack it came from.
+ * World composition picks assets by kind ("any residential house"), so a
+ * new pack only needs classifying to show up in the generated world.
+ */
+export const ASSET_KINDS = [
+  'residential',
+  'commercial',
+  'industrial',
+  'road',
+  'sidewalk',
+  'vehicle',
+  'tree',
+  'bush',
+  'rock',
+  'water',
+  'street-furniture',
+  'construction',
+  'furniture',
+  'decoration',
+  'utility',
+] as const;
+export type AssetKind = (typeof ASSET_KINDS)[number];
 
 export interface AssetVariant {
   id: string;
@@ -28,6 +53,16 @@ export interface AssetDefinition {
   /** Relative to public/assets/3d/. .glb or .gltf. */
   path: string;
   category: AssetCategory;
+  /** World classification (see ASSET_KINDS). */
+  kind: AssetKind;
+  /** Finer selection hints, e.g. "tower", "distant", "pine", "container". */
+  tags?: string[];
+  /**
+   * Alternative colour atlases (file names in the pack's Textures folder)
+   * the same model can be drawn with: a blue-roofed or brick version of a
+   * house for free. Only for models that sample one palette texture.
+   */
+  palettes?: string[];
   /** Uniform scale correction applied to the file. Default 1. */
   scale?: number;
   /** Yaw correction in degrees so the model's front faces +Z. Default 0. */
@@ -61,8 +96,12 @@ export interface AssetDefinition {
    * distant models do not bleed neighbouring swatches.
    */
   textureFilter?: 'palette' | 'default';
-  /** PBR response applied to the file's materials (materials named "glass" are kept). */
-  surface?: { roughness?: number; metalness?: number };
+  /**
+   * PBR response applied to the file's materials (materials named "glass"
+   * are kept), and optional replacement base colours by material name (for
+   * packs whose colours read washed-out under the game's lighting).
+   */
+  surface?: { roughness?: number; metalness?: number; colors?: Record<string, string> };
 }
 
 function isNumber(value: unknown): value is number {
@@ -73,6 +112,9 @@ function validate(d: AssetDefinition): string | null {
   if (typeof d.id !== 'string' || !/^[a-z0-9_]+$/.test(d.id)) return 'id must be snake_case';
   if (typeof d.path !== 'string' || !/\.(glb|gltf)$/i.test(d.path)) return 'path must end in .glb or .gltf';
   if (!ASSET_CATEGORIES.includes(d.category)) return `unknown category "${String(d.category)}"`;
+  if (!ASSET_KINDS.includes(d.kind)) return `unknown kind "${String(d.kind)}"`;
+  if (d.palettes !== undefined && !(Array.isArray(d.palettes) && d.palettes.every((p) => typeof p === 'string' && /\.png$/.test(p)))) return 'palettes must be .png file names';
+  if (d.tags !== undefined && !(Array.isArray(d.tags) && d.tags.every((t) => typeof t === 'string'))) return 'tags must be strings';
   if (d.scale !== undefined && !(isNumber(d.scale) && d.scale > 0)) return 'scale must be positive';
   if (d.rotationY !== undefined && !isNumber(d.rotationY)) return 'rotationY must be a number (degrees)';
   if (d.offset !== undefined && !(isNumber(d.offset.x) && isNumber(d.offset.y) && isNumber(d.offset.z))) return 'offset must be {x,y,z}';
@@ -109,6 +151,8 @@ export class AssetRegistry {
       if (this.assets.has(definition.id)) throw new Error(`Duplicate asset id "${definition.id}"`);
       this.assets.set(definition.id, definition);
     }
+    const scaleProblems = packScaleProblems(definitions);
+    if (scaleProblems.length > 0) throw new Error(`Assets break the visual scale policy: ${scaleProblems.join('; ')}`);
   }
 
   get(id: string): AssetDefinition | undefined {
@@ -125,6 +169,16 @@ export class AssetRegistry {
 
   get size(): number {
     return this.assets.size;
+  }
+
+  /** Every asset of a kind, optionally narrowed by a tag (or excluding one with "!tag"). */
+  ofKind(kind: AssetKind, tag?: string): AssetDefinition[] {
+    return this.list().filter((a) => {
+      if (a.kind !== kind) return false;
+      if (!tag) return true;
+      const tags = a.tags ?? [];
+      return tag.startsWith('!') ? !tags.includes(tag.slice(1)) : tags.includes(tag);
+    });
   }
 
   /** Every catalogue object that asks for a visual asset must name a registered one. */

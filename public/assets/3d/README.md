@@ -7,7 +7,7 @@ collision, placement and challenge matching always come from
 
 ## What is in this folder
 
-- `kenney/` — real art from four Kenney packs (all **CC0**). Only the models
+- `kenney/` — real art from nine Kenney packs (all **CC0**). Only the models
   the game uses are copied; each pack keeps its own palette texture and its
   original `License.txt`. Do not edit or remove the licence files.
   - `building-kit/` — Kenney Building Kit: wall, floor, door, stairs, column.
@@ -15,8 +15,23 @@ collision, placement and challenge matching always come from
     planter, garden paths, driveway.
   - `commercial/` — Kenney City Kit (Commercial) 2.1: shops, offices,
     skyscraper and low-detail skyline buildings.
-  - `roads/` — Kenney City Kit (Roads): road tiles, pavement tile, lamps,
-    signs, traffic light, cone, dumpster.
+  - `roads/` — Kenney City Kit (Roads): road tiles, bends, junctions, lamps,
+    signs, traffic light, electricity poles, construction barriers, dumpster.
+  - `industrial/` — Kenney City Kit (Industrial) 2.0: warehouses and factories,
+    chimneys, tanks, shipping containers, solar panels, water tower, wind turbine.
+  - `factory/` — Kenney Factory Kit 3.0: outdoor yard pieces only (crates, silo
+    hoppers, gantry crane, machines, large pipe, traffic post).
+  - `cars/`, `nature/`, `furniture/` — Kenney Car, Nature and Furniture kits:
+    cars and trucks, trees, bushes, flowers, rocks, park props, bench.
+
+  Every entry in `assets.json` also has a `kind` (residential, commercial,
+  industrial, road, sidewalk, vehicle, tree, bush, rock, water,
+  street-furniture, construction, furniture, decoration, utility) and optional
+  `tags`, and city-kit models may list `palettes`: the pack's alternative
+  colour atlases (`Textures/variation-*.png`, copied beside `colormap.png`)
+  the world can draw them with. Sizes follow the visual scale policy in
+  `src/visual/assets/scalePolicy.ts` (checked at boot). My World's valley (`src/visual/world/WorldComposer.ts`) picks its
+  scenery by kind, so a newly classified model can appear there without code.
 
   The GLBs reference `Textures/colormap.png` next to them, so keep each pack's
   files and its `Textures/` folder together. Building-kit models are in

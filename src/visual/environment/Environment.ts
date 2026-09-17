@@ -13,9 +13,27 @@ export interface EnvironmentConfig {
   fog: { color: string; near: number; far: number };
 }
 
-/** Half-size of the sun's shadow frustum around the camera target, metres. */
-const SHADOW_EXTENT = 42;
+/** Half-size of the sun's shadow frustum around the camera target (metres), by view distance. */
+const SHADOW_EXTENTS: Array<{ upTo: number; extent: number }> = [
+  { upTo: 45, extent: 42 },
+  { upTo: 140, extent: 70 },
+  { upTo: Infinity, extent: 110 },
+];
 const SHADOW_MAP_SIZE = 2048;
+/**
+ * Lighting "looks". The site look is the construction site's (menus,
+ * challenges) and is never changed. The valley look is My World's: a
+ * brighter, warmer day with fuller sky fill so big views keep readable
+ * shadows, stronger sky reflections and a blue haze that gives distance.
+ */
+export interface EnvironmentLook {
+  exposure: number;
+  sun: { color: string; intensity: number };
+  hemisphere: { sky: string; ground: string; intensity: number };
+  environmentIntensity: number;
+  fog: { color: string; near: number; far: number };
+}
+
 /** Brightness of the sky dome relative to the scene exposure. */
 const SKY_EXPOSURE = 0.42;
 
@@ -33,7 +51,15 @@ export class Environment {
   readonly sky: Sky;
   private readonly sunDirection = new THREE.Vector3();
   private readonly focus = new THREE.Vector3();
-  private readonly texel = (SHADOW_EXTENT * 2) / SHADOW_MAP_SIZE;
+  private texel = (SHADOW_EXTENTS[0].extent * 2) / SHADOW_MAP_SIZE;
+  private shadowExtent = 0;
+  private readonly scene: THREE.Scene;
+  private readonly clouds: THREE.Mesh;
+  readonly siteLook: EnvironmentLook;
+  private look: EnvironmentLook;
+  private readonly fogConfig: { near: number; far: number };
+  /** The site's own terrain and water (hidden while My World's valley is shown). */
+  private readonly showcase: THREE.Object3D[] = [];
 
   constructor(
     scene: THREE.Scene,
@@ -52,6 +78,8 @@ export class Environment {
     this.root.add(this.sky);
     this.bakeEnvironment(scene, renderer);
 
+    this.scene = scene;
+    this.fogConfig = { near: config.fog.near, far: config.fog.far };
     scene.fog = new THREE.Fog(new THREE.Color(config.fog.color), config.fog.near, config.fog.far);
     scene.background = null;
 
@@ -62,36 +90,111 @@ export class Environment {
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
     const cam = this.sun.shadow.camera;
-    cam.left = -SHADOW_EXTENT;
-    cam.right = SHADOW_EXTENT;
-    cam.top = SHADOW_EXTENT;
-    cam.bottom = -SHADOW_EXTENT;
     cam.near = 1;
-    cam.far = 400;
-    this.sun.shadow.bias = -0.0004;
-    this.sun.shadow.normalBias = 0.03;
+    cam.far = 800;
+    this.setShadowExtent(SHADOW_EXTENTS[0].extent);
     this.root.add(this.sun);
     this.root.add(this.sun.target);
+    this.siteLook = {
+      exposure: 0.9,
+      sun: { color: '#fff0dc', intensity: 3.4 },
+      hemisphere: { sky: '#cfe3ff', ground: '#5f6b45', intensity: 0.22 },
+      environmentIntensity: 0.3,
+      fog: { color: config.fog.color, near: config.fog.near, far: config.fog.far },
+    };
+    this.look = this.siteLook;
 
     this.terrain = new Terrain(config.terrain, materials);
     this.root.add(this.terrain.mesh);
+    this.showcase.push(this.terrain.mesh);
 
-    for (const lake of config.water) this.root.add(this.createWater(lake));
-    this.root.add(this.createClouds(config.clouds));
+    for (const lake of config.water) {
+      const water = this.createWater(lake);
+      this.showcase.push(water);
+      this.root.add(water);
+    }
+    this.clouds = this.createClouds(config.clouds);
+    this.root.add(this.clouds);
 
     this.update(0, new THREE.Vector3());
   }
 
-  /** Keep the sun's shadow box on the camera target and animate water. */
-  update(deltaSeconds: number, target: THREE.Vector3): void {
+  /**
+   * Push the haze back for high, wide views (the whole valley from above)
+   * so distance still reads as depth rather than as fog. `null` restores
+   * the configured haze.
+   */
+  setHazeForView(viewDistance: number | null): void {
+    const fog = this.scene.fog as THREE.Fog;
+    const extra = viewDistance === null ? 0 : Math.max(0, viewDistance - 60);
+    // Near keeps pace with the view (the city stays crisp); far grows more
+    // slowly, so the mountains always sit in soft blue air.
+    fog.near = this.fogConfig.near + extra * 0.9;
+    fog.far = this.fogConfig.far + extra * 1.15;
+  }
+
+  /** Apply a lighting look (see EnvironmentLook). */
+  setLook(look: EnvironmentLook): void {
+    this.look = look;
+    this.sun.color.set(look.sun.color);
+    this.sun.intensity = look.sun.intensity;
+    this.hemisphere.color.set(look.hemisphere.sky);
+    this.hemisphere.groundColor.set(look.hemisphere.ground);
+    this.hemisphere.intensity = look.hemisphere.intensity;
+    this.scene.environmentIntensity = look.environmentIntensity;
+    const fog = this.scene.fog as THREE.Fog;
+    fog.color.set(look.fog.color);
+    this.fogConfig.near = look.fog.near;
+    this.fogConfig.far = look.fog.far;
+    fog.near = look.fog.near;
+    fog.far = look.fog.far;
+  }
+
+  /** The exposure the current look wants (menus may override it). */
+  get exposure(): number {
+    return this.look.exposure;
+  }
+
+  /** Raise the cloud layer (metres) so high overviews look over it, not through it. */
+  setCloudLift(lift: number): void {
+    this.clouds.position.y = lift;
+  }
+
+  /** Show or hide the construction site's own terrain and water. */
+  setShowcaseVisible(visible: boolean): void {
+    for (const object of this.showcase) object.visible = visible;
+  }
+
+  /**
+   * Keep the sun's shadow box on the camera target (wider for wider views)
+   * and animate water.
+   */
+  update(deltaSeconds: number, target: THREE.Vector3, viewDistance = 0): void {
+    const extent = SHADOW_EXTENTS.find((e) => viewDistance < e.upTo)!.extent;
+    if (extent !== this.shadowExtent) this.setShadowExtent(extent);
     this.focus.set(
       Math.round(target.x / this.texel) * this.texel,
       0,
       Math.round(target.z / this.texel) * this.texel,
     );
-    this.sun.position.copy(this.sunDirection).multiplyScalar(160).add(this.focus);
+    this.sun.position.copy(this.sunDirection).multiplyScalar(320).add(this.focus);
     this.sun.target.position.copy(this.focus);
     this.materials.update(deltaSeconds);
+  }
+
+  private setShadowExtent(extent: number): void {
+    this.shadowExtent = extent;
+    this.texel = (extent * 2) / SHADOW_MAP_SIZE;
+    const cam = this.sun.shadow.camera;
+    cam.left = -extent;
+    cam.right = extent;
+    cam.top = extent;
+    cam.bottom = -extent;
+    cam.updateProjectionMatrix();
+    // Wider boxes need a little more bias to stay acne-free.
+    const widen = (extent / SHADOW_EXTENTS[0].extent) ** 0.5;
+    this.sun.shadow.bias = -0.0004 * widen;
+    this.sun.shadow.normalBias = 0.03 * widen;
   }
 
   private createSky(): Sky {

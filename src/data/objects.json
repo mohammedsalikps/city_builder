@@ -2152,5 +2152,594 @@
       "asset": "kenney_nat_rock_large",
       "fit": "contain"
     }
+  },
+  {
+    "id": "building_warehouse",
+    "name": "Warehouse",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 14.59,
+      "height": 10.29,
+      "depth": 8.69
+    },
+    "material": "concrete",
+    "color": "#b9b3a6",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "industrial",
+        "warehouse",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_ind_building_a",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_factory",
+    "name": "Factory",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 14.59,
+      "height": 13.47,
+      "depth": 13.09
+    },
+    "material": "concrete",
+    "color": "#a9a39a",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "industrial",
+        "factory",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_ind_building_l",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_workshop",
+    "name": "Workshop",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 9.12,
+      "height": 5.41,
+      "depth": 6.4
+    },
+    "material": "concrete",
+    "color": "#c2b8a3",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "industrial",
+        "workshop",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_ind_building_k",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_office",
+    "name": "Office",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 9.59,
+      "height": 15.89,
+      "depth": 9.81
+    },
+    "material": "concrete",
+    "color": "#b8c3cf",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "commercial",
+        "office",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_com_building_l",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_skyscraper",
+    "name": "Skyscraper",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 8.96,
+      "height": 38.29,
+      "depth": 9.72
+    },
+    "material": "concrete",
+    "color": "#a3b3c4",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "tower",
+        "skyscraper",
+        "commercial",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_com_skyscraper_d",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "building_market",
+    "name": "Market Hall",
+    "category": "buildings",
+    "type": "building",
+    "dimensions": {
+      "width": 11.48,
+      "height": 6.25,
+      "depth": 7.06
+    },
+    "material": "concrete",
+    "color": "#d9cdb8",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "shop",
+        "market",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_com_building_e",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "utility_water_tower",
+    "name": "Water Tower",
+    "category": "utilities",
+    "type": "water-tower",
+    "dimensions": {
+      "width": 5.97,
+      "height": 14.99,
+      "depth": 5.82
+    },
+    "material": "steel",
+    "color": "#9aa6b2",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "industrial",
+        "utility",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_ind_water_tower",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "utility_container",
+    "name": "Container",
+    "category": "utilities",
+    "type": "container",
+    "dimensions": {
+      "width": 2.61,
+      "height": 2.44,
+      "depth": 5.76
+    },
+    "material": "steel",
+    "color": "#d0643c",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "industrial",
+        "container",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_ind_shipping_container_a",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "utility_tank",
+    "name": "Storage Tank",
+    "category": "utilities",
+    "type": "tank",
+    "dimensions": {
+      "width": 5.94,
+      "height": 2.91,
+      "depth": 3.61
+    },
+    "material": "steel",
+    "color": "#c9ced3",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "industrial",
+        "tank",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_ind_detail_tank",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "utility_wind_turbine",
+    "name": "Wind Turbine",
+    "category": "utilities",
+    "type": "turbine",
+    "dimensions": {
+      "width": 4.23,
+      "height": 16.2,
+      "depth": 7.89
+    },
+    "material": "steel",
+    "color": "#eef1f4",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "energy",
+        "windmill",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_ind_windmill",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "decor_bench",
+    "name": "Bench",
+    "category": "decoration",
+    "type": "bench",
+    "dimensions": {
+      "width": 1.2,
+      "height": 1.41,
+      "depth": 0.6
+    },
+    "material": "timber",
+    "color": "#9c6b43",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "bench",
+        "park",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_furn_bench",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_truck",
+    "name": "Truck",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.5,
+      "height": 1.3,
+      "depth": 2.95
+    },
+    "material": "paint",
+    "color": "#d35400",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "truck",
+        "industrial",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_truck",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_delivery",
+    "name": "Delivery Van",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.5,
+      "height": 1.65,
+      "depth": 3.25
+    },
+    "material": "paint",
+    "color": "#ecf0f1",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "delivery",
+        "van",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_delivery",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "vehicle_firetruck",
+    "name": "Fire Truck",
+    "category": "vehicles",
+    "type": "car",
+    "dimensions": {
+      "width": 1.5,
+      "height": 1.7,
+      "depth": 3.4
+    },
+    "material": "paint",
+    "color": "#c0392b",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 20
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 500,
+      "tags": [
+        "firetruck",
+        "emergency",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_car_firetruck",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "roof_gable_wide",
+    "name": "Big Roof",
+    "category": "structures",
+    "type": "roof",
+    "role": "roof",
+    "shape": "roof-gable",
+    "dimensions": {
+      "width": 6.6,
+      "height": 2.0,
+      "depth": 6.6
+    },
+    "material": "tiles",
+    "color": "#a3412f",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 40
+    },
+    "reward": {
+      "xpOnFirstUse": 25
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 1500,
+      "tags": [
+        "roof",
+        "house",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": false,
+        "types": [
+          "wall",
+          "floor",
+          "beam",
+          "pillar"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Roofs need walls or a floor underneath"
+      }
+    }
+  },
+  {
+    "id": "roof_gable_long",
+    "name": "Long Roof",
+    "category": "structures",
+    "type": "roof",
+    "role": "roof",
+    "shape": "roof-gable",
+    "dimensions": {
+      "width": 8.6,
+      "height": 2.0,
+      "depth": 6.6
+    },
+    "material": "tiles",
+    "color": "#a3412f",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 40
+    },
+    "reward": {
+      "xpOnFirstUse": 25
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 1500,
+      "tags": [
+        "roof",
+        "house",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": 0.1,
+      "support": {
+        "ground": false,
+        "types": [
+          "wall",
+          "floor",
+          "beam",
+          "pillar"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Roofs need walls or a floor underneath"
+      }
+    }
   }
 ]

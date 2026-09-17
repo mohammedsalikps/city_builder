@@ -6,7 +6,10 @@ import { transformCapabilitiesOf, hasAnyCapability, type TransformMode } from '@
 
 /**
  * In-game heads-up display: session facts on top, construction status and
- * context actions at the bottom. Objectives/rewards panels attach later.
+ * context actions at the bottom. Every context button pairs a plain icon
+ * with a short, child-facing label (Move / Turn / Size / Copy / Remove) -
+ * never a raw keyboard hint or an engine term. Objectives/rewards panels
+ * attach later.
  */
 export class HudScreen extends Screen {
   readonly id = 'hud';
@@ -32,12 +35,20 @@ export class HudScreen extends Screen {
   private scaleStepper: HTMLElement | null = null;
   private scaleDownButton: HTMLButtonElement | null = null;
   private scaleUpButton: HTMLButtonElement | null = null;
+  /** Latest state, so the fixed button closures below can branch on it. */
+  private latestState: GameState | null = null;
 
   private readonly onMenu = () => this.context.actions.returnToMenu();
   private readonly onPause = () => this.context.actions.pause();
   private readonly onResume = () => this.context.actions.resume();
-  private readonly onRotate = () => this.context.actions.rotatePlacement(1);
-  private readonly onCancel = () => this.context.actions.cancelPlacement();
+  private readonly onRotate = () => {
+    if (this.latestState?.templatePlacement) this.context.actions.rotateTemplatePlacement(1);
+    else this.context.actions.rotatePlacement(1);
+  };
+  private readonly onCancel = () => {
+    if (this.latestState?.templatePlacement) this.context.actions.cancelTemplatePlacement();
+    else this.context.actions.cancelPlacement();
+  };
   private readonly onDelete = () => this.context.actions.removeSelectedPlacedObject();
   private readonly onDuplicate = () => this.context.actions.duplicateSelectedPlacedObject();
   private readonly onSetMode = (mode: TransformMode) => () => this.context.actions.setTransformMode(mode);
@@ -52,7 +63,7 @@ export class HudScreen extends Screen {
     this.worldLabel = el('span', 'hud__stat');
     this.levelLabel = el('span', 'hud__stat');
     this.placedLabel = el('span', 'hud__stat');
-    this.savedLabel = el('span', 'hud__saved', 'Saved');
+    this.savedLabel = el('span', 'hud__saved', '✓ Saved');
     this.savedLabel.hidden = true;
     topBar.append(this.playerLabel, this.worldLabel, this.levelLabel, this.placedLabel, this.savedLabel);
     topBar.appendChild(el('span', 'hud__spacer'));
@@ -65,21 +76,21 @@ export class HudScreen extends Screen {
     this.hintLabel = el('span', 'hud__hint');
     bottomBar.append(this.statusLabel, this.hintLabel);
     bottomBar.appendChild(el('span', 'hud__spacer'));
-    this.rotateButton = this.button('Rotate (R)', this.onRotate);
-    this.cancelButton = this.button('Cancel (Esc)', this.onCancel);
+    this.rotateButton = this.iconButton('↻', 'Rotate', this.onRotate);
+    this.cancelButton = this.iconButton('✕', 'Cancel', this.onCancel);
 
     this.transformGroup = el('span', 'hud__transform');
-    this.moveModeButton = this.button('Move (W)', this.onSetMode('move'));
-    this.rotateModeButton = this.button('Rotate (E)', this.onSetMode('rotate'));
-    this.scaleModeButton = this.button('Scale (S)', this.onSetMode('scale'));
+    this.moveModeButton = this.iconButton('↔', 'Move', this.onSetMode('move'));
+    this.rotateModeButton = this.iconButton('↻', 'Turn', this.onSetMode('rotate'));
+    this.scaleModeButton = this.iconButton('⤢', 'Size', this.onSetMode('scale'));
     this.scaleStepper = el('span', 'hud__scale-stepper');
-    this.scaleDownButton = this.button('−', this.onScaleDown);
-    this.scaleUpButton = this.button('+', this.onScaleUp);
+    this.scaleDownButton = this.button('−', this.onScaleDown, 'hud__scale-btn');
+    this.scaleUpButton = this.button('+', this.onScaleUp, 'hud__scale-btn');
     this.scaleStepper.append(this.scaleDownButton, this.scaleUpButton);
     this.transformGroup.append(this.moveModeButton, this.rotateModeButton, this.scaleModeButton, this.scaleStepper);
 
-    this.duplicateButton = this.button('Duplicate', this.onDuplicate);
-    this.deleteButton = this.button('Delete (Del)', this.onDelete, 'button--danger');
+    this.duplicateButton = this.iconButton('⧉', 'Copy', this.onDuplicate);
+    this.deleteButton = this.iconButton('🗑', 'Remove', this.onDelete, 'hud-btn--danger');
     bottomBar.append(this.rotateButton, this.cancelButton, this.transformGroup, this.duplicateButton, this.deleteButton);
     root.appendChild(bottomBar);
 
@@ -95,6 +106,7 @@ export class HudScreen extends Screen {
   }
 
   update(state: GameState): void {
+    this.latestState = state;
     if (this.playerLabel) this.playerLabel.textContent = `Player: ${state.player?.name ?? '-'}`;
     if (this.worldLabel) this.worldLabel.textContent = `World: ${state.world?.name ?? '-'}`;
     if (this.levelLabel) this.levelLabel.textContent = `Level: ${state.level?.index ?? '-'}`;
@@ -103,22 +115,27 @@ export class HudScreen extends Screen {
     this.updateSavedIndicator(state);
 
     const placing = isPlacementMode(state);
+    const templatePlacing = state.templatePlacement !== null;
     const selected = state.selectedInstanceId
       ? state.placedObjects.find((p) => p.id === state.selectedInstanceId) ?? null
       : null;
 
     let status = 'Nothing selected';
-    let hint = 'Pick an object in the toolbar to build, or click a placed object to select it. Drag to orbit, right-drag to pan, wheel to zoom, keys 1-4 for views.';
-    if (placing && state.selectedObjectId) {
+    let hint = 'Pick a piece below to build, or tap something you built to change it. Drag to look around, wheel to zoom.';
+    if (templatePlacing) {
+      const template = this.context.templates.get(state.templatePlacement!.templateId);
+      status = template ? `Building: ${template.icon} ${template.name}` : 'Building...';
+      hint = 'Point at the ground, then tap to place it. Rotate turns it, Cancel puts it away.';
+    } else if (placing && state.selectedObjectId) {
       const definition = this.context.registry.get(state.selectedObjectId);
       status = `Placing: ${definition?.name ?? state.selectedObjectId}`;
       hint = state.placementStatus
-        ? `${describePlacementStatus(state.placementStatus)} Click to place, R to rotate.`
-        : 'Point at the ground or an existing object. R to rotate, Esc to cancel.';
+        ? `${describePlacementStatus(state.placementStatus)} Tap to place.`
+        : 'Point at the ground or something you built. Rotate turns it, Cancel puts it away.';
     } else if (selected) {
       const definition = this.context.registry.get(selected.definitionId);
       status = `Selected: ${definition?.name ?? selected.definitionId}`;
-      hint = `#${selected.id.slice(-6)} at (${selected.position.x}, ${selected.position.z}). Press Delete to remove.`;
+      hint = 'Move, Turn or Copy it, or tap Remove to take it away.';
     }
     if (this.statusLabel) this.statusLabel.textContent = status;
     if (this.hintLabel) {
@@ -126,8 +143,9 @@ export class HudScreen extends Screen {
     }
     if (this.hintLabel) this.hintLabel.textContent = hint;
 
-    if (this.rotateButton) this.rotateButton.hidden = !placing;
-    if (this.cancelButton) this.cancelButton.hidden = !placing;
+    const inPlacementFlow = placing || templatePlacing;
+    if (this.rotateButton) this.rotateButton.hidden = !inPlacementFlow;
+    if (this.cancelButton) this.cancelButton.hidden = !inPlacementFlow;
     if (this.deleteButton) this.deleteButton.hidden = selected === null;
     if (this.duplicateButton) {
       const selectedDefinition = selected ? this.context.registry.get(selected.definitionId) : undefined;
@@ -158,7 +176,7 @@ export class HudScreen extends Screen {
     this.lastPlacedObjects = state.placedObjects;
   }
 
-  /** Move / Rotate / Scale indicator: only the modes this selection actually supports. */
+  /** Move / Turn / Size indicator: only the modes this selection actually supports. */
   private updateTransformControls(state: GameState, selected: GameState['placedObjects'][number] | null): void {
     const definition = selected ? this.context.registry.get(selected.definitionId) : undefined;
     if (!selected || !definition) {
@@ -171,15 +189,15 @@ export class HudScreen extends Screen {
 
     if (this.moveModeButton) {
       this.moveModeButton.hidden = !caps.movable;
-      this.moveModeButton.classList.toggle('button--active', state.transformMode === 'move');
+      this.moveModeButton.classList.toggle('hud-btn--active', state.transformMode === 'move');
     }
     if (this.rotateModeButton) {
       this.rotateModeButton.hidden = !caps.rotatableY;
-      this.rotateModeButton.classList.toggle('button--active', state.transformMode === 'rotate');
+      this.rotateModeButton.classList.toggle('hud-btn--active', state.transformMode === 'rotate');
     }
     if (this.scaleModeButton) {
       this.scaleModeButton.hidden = !caps.scalable;
-      this.scaleModeButton.classList.toggle('button--active', state.transformMode === 'scale');
+      this.scaleModeButton.classList.toggle('hud-btn--active', state.transformMode === 'scale');
     }
     const showStepper = caps.scalable && state.transformMode === 'scale';
     if (this.scaleStepper) this.scaleStepper.hidden = !showStepper;
@@ -191,6 +209,7 @@ export class HudScreen extends Screen {
     if (this.savedTimeout !== null) clearTimeout(this.savedTimeout);
     this.savedTimeout = null;
     this.lastPlacedObjects = null;
+    this.latestState = null;
     this.playerLabel = null;
     this.worldLabel = null;
     this.levelLabel = null;
@@ -215,6 +234,16 @@ export class HudScreen extends Screen {
   private button(label: string, onClick: () => void, extraClass = ''): HTMLButtonElement {
     const button = el('button', `button button--small ${extraClass}`.trim(), label);
     button.type = 'button';
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  /** A context button: a plain icon over a short, child-facing label - never a technical term or raw shortcut. */
+  private iconButton(icon: string, label: string, onClick: () => void, extraClass = ''): HTMLButtonElement {
+    const button = el('button', `hud-btn ${extraClass}`.trim());
+    button.type = 'button';
+    button.appendChild(el('span', 'hud-btn__icon', icon));
+    button.appendChild(el('span', 'hud-btn__label', label));
     button.addEventListener('click', onClick);
     return button;
   }

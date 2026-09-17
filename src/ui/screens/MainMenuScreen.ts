@@ -124,22 +124,24 @@ export class MainMenuScreen extends Screen {
 
     const challengeCard = el('button', 'mode-card mode-card--challenge');
     challengeCard.type = 'button';
+    challengeCard.appendChild(el('span', 'mode-card__eyebrow', 'Learn'));
     challengeCard.appendChild(icon(BLUEPRINT_ICON, 'mode-card__icon'));
     challengeCard.appendChild(el('span', 'mode-card__title', 'Challenge Mode'));
-    challengeCard.appendChild(el('span', 'mode-card__desc', 'Learn construction step by step.'));
+    challengeCard.appendChild(el('span', 'mode-card__desc', 'Learn to build, one level at a time.'));
     this.campaignSummary = el('span', 'mode-card__meta');
     challengeCard.appendChild(this.campaignSummary);
-    challengeCard.appendChild(el('span', 'mode-card__cta', 'Play Levels'));
+    challengeCard.appendChild(el('span', 'mode-card__cta', 'Learn to Build'));
     challengeCard.addEventListener('click', this.onChallengeMode);
     modes.appendChild(challengeCard);
 
     const sandboxCard = el('button', 'mode-card mode-card--sandbox');
     sandboxCard.type = 'button';
+    sandboxCard.appendChild(el('span', 'mode-card__eyebrow', 'Create'));
     sandboxCard.appendChild(icon(SANDBOX_ICON, 'mode-card__icon'));
     sandboxCard.appendChild(el('span', 'mode-card__title', 'My World'));
-    sandboxCard.appendChild(el('span', 'mode-card__desc', 'Build freely. Create your own world.'));
-    sandboxCard.appendChild(el('span', 'mode-card__meta', 'Free building · no limits'));
-    sandboxCard.appendChild(el('span', 'mode-card__cta', 'Open Sandbox'));
+    sandboxCard.appendChild(el('span', 'mode-card__desc', 'Create your own world - houses, streets, parks.'));
+    sandboxCard.appendChild(el('span', 'mode-card__meta', 'Create · no limits'));
+    sandboxCard.appendChild(el('span', 'mode-card__cta', 'Open My World'));
     sandboxCard.addEventListener('click', this.onStartSandbox);
     modes.appendChild(sandboxCard);
 

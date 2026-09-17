@@ -19,6 +19,7 @@ import type { MyWorldStorage } from '@/state/MyWorldStorage';
 export class MyWorldPersistenceService {
   private unsubscribe: (() => void) | null = null;
   private lastSavedPlacedObjects: GameState['placedObjects'] | null = null;
+  private lastSavedIdentity: GameState['myWorld'] | null = null;
 
   constructor(
     private readonly store: GameStore,
@@ -50,15 +51,17 @@ export class MyWorldPersistenceService {
         // a stale save crash rendering/placement later.
         const restored = saved.placedObjects.filter((p) => this.registry.has(p.definitionId));
         this.lastSavedPlacedObjects = restored;
+        this.lastSavedIdentity = state.myWorld;
         this.actions.restoreMyWorld(restored);
         return; // the resulting state change re-enters this handler below
       }
     }
 
     if (!this.isFreeBuild(state)) return;
-    if (state.placedObjects === this.lastSavedPlacedObjects) return;
+    if (state.placedObjects === this.lastSavedPlacedObjects && state.myWorld === this.lastSavedIdentity) return;
     this.lastSavedPlacedObjects = state.placedObjects;
+    this.lastSavedIdentity = state.myWorld;
     if (!state.player) return;
-    this.storage.save({ player: state.player, placedObjects: state.placedObjects });
+    this.storage.save({ player: state.player, placedObjects: state.placedObjects, identity: state.myWorld });
   }
 }

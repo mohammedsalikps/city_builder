@@ -1,32 +1,108 @@
 [
   {
-    "id": "template_villa_street",
-    "name": "Villa Street",
-    "description": "A few homes along a small road, ready to move in and change.",
+    "id": "intent_house",
+    "name": "House",
+    "description": "A cosy single-storey home: a front door, windows all round and a big roof.",
+    "icon": "🏠",
     "objects": [
-      { "definitionId": "road_segment", "position": { "x": -6, "y": 0, "z": 0 } },
-      { "definitionId": "road_segment", "position": { "x": -2, "y": 0, "z": 0 } },
-      { "definitionId": "road_segment", "position": { "x": 2, "y": 0, "z": 0 } },
-      { "definitionId": "road_segment", "position": { "x": 6, "y": 0, "z": 0 } },
-      { "definitionId": "sidewalk_segment", "position": { "x": -6, "y": 0, "z": 2.8 } },
-      { "definitionId": "sidewalk_segment", "position": { "x": -2, "y": 0, "z": 2.8 } },
-      { "definitionId": "sidewalk_segment", "position": { "x": 2, "y": 0, "z": 2.8 } },
-      { "definitionId": "sidewalk_segment", "position": { "x": 6, "y": 0, "z": 2.8 } },
-      { "definitionId": "road_driveway", "position": { "x": -11, "y": 0, "z": 6.5 } },
-      { "definitionId": "building_house_small", "position": { "x": -11, "y": 0, "z": 13 } },
-      { "definitionId": "building_villa", "position": { "x": -1, "y": 0, "z": 13 } },
-      { "definitionId": "building_villa_modern", "position": { "x": 10, "y": 0, "z": 13 } },
-      { "definitionId": "tree_pine", "position": { "x": -1, "y": 0, "z": 17.5 } },
-      { "definitionId": "tree_pine", "position": { "x": 9, "y": 0, "z": 19 } },
-      { "definitionId": "tree_pine", "position": { "x": -14, "y": 0, "z": 8 } },
-      { "definitionId": "vehicle_sedan", "position": { "x": 15, "y": 0, "z": 5 } },
-      { "definitionId": "vehicle_taxi", "position": { "x": -16, "y": 0, "z": 2 } }
+      { "definitionId": "floor_slab", "position": { "x": -2.0, "y": 0.0, "z": -2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": -2.0, "y": 0.0, "z": 0.0 } },
+      { "definitionId": "floor_slab", "position": { "x": -2.0, "y": 0.0, "z": 2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 0.0, "y": 0.0, "z": -2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 0.0, "y": 0.0, "z": 0.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 0.0, "y": 0.0, "z": 2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 2.0, "y": 0.0, "z": -2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 2.0, "y": 0.0, "z": 0.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 2.0, "y": 0.0, "z": 2.0 } },
+      { "definitionId": "wall_plain", "position": { "x": -2, "y": 0.0, "z": -3 }, "localId": "n0" },
+      { "definitionId": "wall_plain", "position": { "x": -2, "y": 0.0, "z": 3 }, "localId": "s0" },
+      { "definitionId": "wall_plain", "position": { "x": 0, "y": 0.0, "z": -3 }, "localId": "n1" },
+      { "definitionId": "wall_plain", "position": { "x": 0, "y": 0.0, "z": 3 }, "localId": "s1" },
+      { "definitionId": "wall_plain", "position": { "x": 2, "y": 0.0, "z": -3 }, "localId": "n2" },
+      { "definitionId": "wall_plain", "position": { "x": 2, "y": 0.0, "z": 3 }, "localId": "s2" },
+      { "definitionId": "wall_plain", "position": { "x": 3.1, "y": 0.0, "z": -2 }, "rotationY": 1.5707963267948966, "localId": "e0" },
+      { "definitionId": "wall_plain", "position": { "x": -3.1, "y": 0.0, "z": -2 }, "rotationY": 1.5707963267948966, "localId": "w0" },
+      { "definitionId": "wall_plain", "position": { "x": 3.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "localId": "e1" },
+      { "definitionId": "wall_plain", "position": { "x": -3.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "localId": "w1" },
+      { "definitionId": "wall_plain", "position": { "x": 3.1, "y": 0.0, "z": 2 }, "rotationY": 1.5707963267948966, "localId": "e2" },
+      { "definitionId": "wall_plain", "position": { "x": -3.1, "y": 0.0, "z": 2 }, "rotationY": 1.5707963267948966, "localId": "w2" },
+      { "definitionId": "door_single", "position": { "x": 0, "y": 0.0, "z": 3 }, "hostRef": "s1", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": -2, "y": 0.0, "z": 3 }, "hostRef": "s0", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": -2, "y": 0.0, "z": -3 }, "hostRef": "n0", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": 2, "y": 0.0, "z": 3 }, "hostRef": "s2", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": 2, "y": 0.0, "z": -3 }, "hostRef": "n2", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": 3.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "hostRef": "e1", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": -3.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "hostRef": "w1", "surface": "side" },
+      { "definitionId": "roof_gable_wide", "position": { "x": 0, "y": 2.7, "z": 0 }, "supportRef": "n1", "surface": "top" },
+      { "definitionId": "tree_pine", "position": { "x": -5.5, "y": 0.0, "z": 3.5 } },
+      { "definitionId": "bush_round", "position": { "x": 2.5, "y": 0.0, "z": 4.3 } }
+    ]
+  },
+  {
+    "id": "intent_villa",
+    "name": "Villa",
+    "description": "A long garden villa with windows all round, a driveway and a tree.",
+    "icon": "🏡",
+    "objects": [
+      { "definitionId": "floor_slab", "position": { "x": -3.0, "y": 0.0, "z": -2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": -3.0, "y": 0.0, "z": 0.0 } },
+      { "definitionId": "floor_slab", "position": { "x": -3.0, "y": 0.0, "z": 2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": -1.0, "y": 0.0, "z": -2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": -1.0, "y": 0.0, "z": 0.0 } },
+      { "definitionId": "floor_slab", "position": { "x": -1.0, "y": 0.0, "z": 2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 1.0, "y": 0.0, "z": -2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 1.0, "y": 0.0, "z": 0.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 1.0, "y": 0.0, "z": 2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 3.0, "y": 0.0, "z": -2.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 3.0, "y": 0.0, "z": 0.0 } },
+      { "definitionId": "floor_slab", "position": { "x": 3.0, "y": 0.0, "z": 2.0 } },
+      { "definitionId": "wall_plain", "position": { "x": -3, "y": 0.0, "z": -3 }, "localId": "n0" },
+      { "definitionId": "wall_plain", "position": { "x": -3, "y": 0.0, "z": 3 }, "localId": "s0" },
+      { "definitionId": "wall_plain", "position": { "x": -1, "y": 0.0, "z": -3 }, "localId": "n1" },
+      { "definitionId": "wall_plain", "position": { "x": -1, "y": 0.0, "z": 3 }, "localId": "s1" },
+      { "definitionId": "wall_plain", "position": { "x": 1, "y": 0.0, "z": -3 }, "localId": "n2" },
+      { "definitionId": "wall_plain", "position": { "x": 1, "y": 0.0, "z": 3 }, "localId": "s2" },
+      { "definitionId": "wall_plain", "position": { "x": 3, "y": 0.0, "z": -3 }, "localId": "n3" },
+      { "definitionId": "wall_plain", "position": { "x": 3, "y": 0.0, "z": 3 }, "localId": "s3" },
+      { "definitionId": "wall_plain", "position": { "x": 4.1, "y": 0.0, "z": -2 }, "rotationY": 1.5707963267948966, "localId": "e0" },
+      { "definitionId": "wall_plain", "position": { "x": -4.1, "y": 0.0, "z": -2 }, "rotationY": 1.5707963267948966, "localId": "w0" },
+      { "definitionId": "wall_plain", "position": { "x": 4.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "localId": "e1" },
+      { "definitionId": "wall_plain", "position": { "x": -4.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "localId": "w1" },
+      { "definitionId": "wall_plain", "position": { "x": 4.1, "y": 0.0, "z": 2 }, "rotationY": 1.5707963267948966, "localId": "e2" },
+      { "definitionId": "wall_plain", "position": { "x": -4.1, "y": 0.0, "z": 2 }, "rotationY": 1.5707963267948966, "localId": "w2" },
+      { "definitionId": "door_single", "position": { "x": 1, "y": 0.0, "z": 3 }, "hostRef": "s2", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": -3, "y": 0.0, "z": 3 }, "hostRef": "s0", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": -3, "y": 0.0, "z": -3 }, "hostRef": "n0", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": -1, "y": 0.0, "z": 3 }, "hostRef": "s1", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": 1, "y": 0.0, "z": -3 }, "hostRef": "n2", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": 3, "y": 0.0, "z": 3 }, "hostRef": "s3", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": 4.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "hostRef": "e1", "surface": "side" },
+      { "definitionId": "window_square", "position": { "x": -4.1, "y": 0.0, "z": 0 }, "rotationY": 1.5707963267948966, "hostRef": "w1", "surface": "side" },
+      { "definitionId": "roof_gable_long", "position": { "x": 0, "y": 2.7, "z": 0 }, "supportRef": "n2", "surface": "top" },
+      { "definitionId": "road_driveway", "position": { "x": 7, "y": 0.0, "z": 5 } },
+      { "definitionId": "tree_pine", "position": { "x": -6.5, "y": 0.0, "z": 5 } },
+      { "definitionId": "bush_round", "position": { "x": 3, "y": 0.0, "z": 4.3 } }
+    ]
+  },
+  {
+    "id": "intent_street",
+    "name": "Street",
+    "description": "A short stretch of road with sidewalks, ready to build along.",
+    "icon": "🛣️",
+    "objects": [
+      { "definitionId": "road_segment", "position": { "x": -4, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 0, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 4, "y": 0, "z": 0 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -4, "y": 0, "z": 2.8 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 0, "y": 0, "z": 2.8 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 4, "y": 0, "z": 2.8 } }
     ]
   },
   {
     "id": "template_neighborhood",
     "name": "Neighborhood",
     "description": "Houses on both sides of a street, with gardens, streetlights and cars.",
+    "icon": "🏘️",
     "objects": [
       { "definitionId": "road_segment", "position": { "x": -8, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": -4, "y": 0, "z": 0 } },
@@ -58,6 +134,7 @@
     "id": "template_town_center",
     "name": "Town Center",
     "description": "A crossroads surrounded by shops, an apartment tower and a small park.",
+    "icon": "🏙️",
     "objects": [
       { "definitionId": "road_intersection", "position": { "x": 0, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": 6, "y": 0, "z": 0 } },
@@ -83,6 +160,7 @@
     "id": "template_park_area",
     "name": "Park Area",
     "description": "A green space with a path, trees, bushes and rocks to explore.",
+    "icon": "🌳",
     "objects": [
       { "definitionId": "sidewalk_segment", "position": { "x": -6, "y": 0, "z": 0 } },
       { "definitionId": "sidewalk_segment", "position": { "x": -2, "y": 0, "z": 0 } },
@@ -110,6 +188,7 @@
     "id": "template_commercial_street",
     "name": "Commercial Street",
     "description": "Shops along a road, with streetlights and cars parked nearby.",
+    "icon": "🛍️",
     "objects": [
       { "definitionId": "road_segment", "position": { "x": -6, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": -2, "y": 0, "z": 0 } },
@@ -127,6 +206,187 @@
       { "definitionId": "vehicle_van", "position": { "x": -9, "y": 0, "z": -6 } },
       { "definitionId": "vehicle_hatchback", "position": { "x": 3, "y": 0, "z": -6 } },
       { "definitionId": "vehicle_taxi", "position": { "x": 14, "y": 0, "z": -6 } }
+    ]
+  },
+  {
+    "id": "template_villa_street",
+    "name": "Villa Street",
+    "description": "A few homes along a small road, ready to move in and change.",
+    "icon": "🏡",
+    "objects": [
+      { "definitionId": "road_segment", "position": { "x": -6, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": -2, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 2, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 6, "y": 0, "z": 0 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -6, "y": 0, "z": 2.8 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -2, "y": 0, "z": 2.8 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 2, "y": 0, "z": 2.8 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 6, "y": 0, "z": 2.8 } },
+      { "definitionId": "road_driveway", "position": { "x": -11, "y": 0, "z": 6.5 } },
+      { "definitionId": "building_house_small", "position": { "x": -11, "y": 0, "z": 13 } },
+      { "definitionId": "building_villa", "position": { "x": -1, "y": 0, "z": 13 } },
+      { "definitionId": "building_villa_modern", "position": { "x": 10, "y": 0, "z": 13 } },
+      { "definitionId": "tree_pine", "position": { "x": -1, "y": 0, "z": 17.5 } },
+      { "definitionId": "tree_pine", "position": { "x": 9, "y": 0, "z": 19 } },
+      { "definitionId": "tree_pine", "position": { "x": -14, "y": 0, "z": 8 } },
+      { "definitionId": "vehicle_sedan", "position": { "x": 15, "y": 0, "z": 5 } },
+      { "definitionId": "vehicle_taxi", "position": { "x": -16, "y": 0, "z": 2 } }
+    ]
+  },
+  {
+    "id": "house_family",
+    "name": "Family House",
+    "description": "A two-storey home with a little garden.",
+    "icon": "🏠",
+    "objects": [
+      { "definitionId": "building_house_small", "position": { "x": 0, "y": 0, "z": 0 } },
+      { "definitionId": "bush_round", "position": { "x": -3.5, "y": 0, "z": 5 } },
+      { "definitionId": "bush_round", "position": { "x": -2.4, "y": 0, "z": 5 } },
+      { "definitionId": "flower_pink", "position": { "x": 2.5, "y": 0, "z": 4.6 } },
+      { "definitionId": "flower_pink", "position": { "x": 3.1, "y": 0, "z": 4.6 } },
+      { "definitionId": "tree_pine", "position": { "x": 6, "y": 0, "z": 2 } }
+    ]
+  },
+  {
+    "id": "house_big",
+    "name": "Big House",
+    "description": "A wide home with room for everyone.",
+    "icon": "🏠",
+    "objects": [
+      { "definitionId": "building_apartment", "position": { "x": 0, "y": 0, "z": 0 } },
+      { "definitionId": "tree_pine", "position": { "x": 8, "y": 0, "z": 0 } },
+      { "definitionId": "bush_round", "position": { "x": -2, "y": 0, "z": 5 } },
+      { "definitionId": "bush_round", "position": { "x": 2, "y": 0, "z": 5 } }
+    ]
+  },
+  {
+    "id": "house_modern",
+    "name": "Modern House",
+    "description": "A flat-roofed home with big windows.",
+    "icon": "🏠",
+    "objects": [
+      { "definitionId": "building_villa_modern", "position": { "x": 0, "y": 0, "z": 0 } },
+      { "definitionId": "decor_planter", "position": { "x": 0, "y": 0, "z": 6.8 } },
+      { "definitionId": "tree_pine", "position": { "x": 7, "y": 0, "z": -2 } }
+    ]
+  },
+  {
+    "id": "villa_classic",
+    "name": "Classic Villa",
+    "description": "A villa with a driveway, a car and flowers.",
+    "icon": "🏡",
+    "objects": [
+      { "definitionId": "building_villa", "position": { "x": 0, "y": 0, "z": 0 } },
+      { "definitionId": "road_driveway", "position": { "x": 6.5, "y": 0, "z": 2 }, "localId": "drive" },
+      { "definitionId": "vehicle_sedan", "position": { "x": 6.5, "y": 0.05, "z": 2 }, "supportRef": "drive", "surface": "top" },
+      { "definitionId": "bush_round", "position": { "x": -2, "y": 0, "z": 4.5 } },
+      { "definitionId": "bush_round", "position": { "x": -0.8, "y": 0, "z": 4.5 } },
+      { "definitionId": "flower_pink", "position": { "x": 2, "y": 0, "z": 4.4 } },
+      { "definitionId": "flower_pink", "position": { "x": 2.6, "y": 0, "z": 4.4 } },
+      { "definitionId": "tree_pine", "position": { "x": -6.5, "y": 0, "z": 0 } }
+    ]
+  },
+  {
+    "id": "villa_grand",
+    "name": "Grand Villa",
+    "description": "A big modern villa with a fence, a garden and an SUV.",
+    "icon": "🏡",
+    "objects": [
+      { "definitionId": "building_villa_modern", "position": { "x": 0, "y": 0, "z": 0 } },
+      { "definitionId": "road_driveway", "position": { "x": 7.5, "y": 0, "z": 1 }, "localId": "drive" },
+      { "definitionId": "vehicle_suv", "position": { "x": 7.5, "y": 0.05, "z": 1 }, "supportRef": "drive", "surface": "top" },
+      { "definitionId": "fence_wood", "position": { "x": -2, "y": 0, "z": 6.2 } },
+      { "definitionId": "fence_wood", "position": { "x": 0, "y": 0, "z": 6.2 } },
+      { "definitionId": "fence_wood", "position": { "x": 2, "y": 0, "z": 6.2 } },
+      { "definitionId": "bush_round", "position": { "x": -6.5, "y": 0, "z": 3 } },
+      { "definitionId": "bush_round", "position": { "x": -6.5, "y": 0, "z": 1.8 } },
+      { "definitionId": "tree_pine", "position": { "x": -7, "y": 0, "z": -2.5 } }
+    ]
+  },
+  {
+    "id": "park_small",
+    "name": "Little Park",
+    "description": "A cosy green corner with a path.",
+    "icon": "🌳",
+    "objects": [
+      { "definitionId": "sidewalk_segment", "position": { "x": 0, "y": 0, "z": 0 } },
+      { "definitionId": "tree_pine", "position": { "x": -3, "y": 0, "z": 2.5 } },
+      { "definitionId": "tree_pine", "position": { "x": 3, "y": 0, "z": -2.5 } },
+      { "definitionId": "bush_round", "position": { "x": -1.5, "y": 0, "z": -1.8 } },
+      { "definitionId": "bush_round", "position": { "x": 1.5, "y": 0, "z": 1.8 } },
+      { "definitionId": "decor_rock_small", "position": { "x": 3, "y": 0, "z": 1.6 } },
+      { "definitionId": "decor_rock_large", "position": { "x": -3, "y": 0, "z": -2 } },
+      { "definitionId": "flower_pink", "position": { "x": 0.5, "y": 0, "z": 1.6 } },
+      { "definitionId": "flower_pink", "position": { "x": -0.5, "y": 0, "z": -1.6 } },
+      { "definitionId": "decor_planter", "position": { "x": 0, "y": 0, "z": -3.6 } }
+    ]
+  },
+  {
+    "id": "template_factory_yard",
+    "name": "Factory Yard",
+    "description": "A warehouse and a workshop with containers, a tank, a truck and a water tower.",
+    "icon": "🏭",
+    "objects": [
+      { "definitionId": "building_warehouse", "position": { "x": -8, "y": 0, "z": 2 } },
+      { "definitionId": "building_workshop", "position": { "x": 8, "y": 0, "z": 3 } },
+      { "definitionId": "utility_container", "position": { "x": 1, "y": 0, "z": -6 } },
+      { "definitionId": "utility_container", "position": { "x": 4, "y": 0, "z": -6 } },
+      { "definitionId": "utility_tank", "position": { "x": -6, "y": 0, "z": -7 } },
+      { "definitionId": "vehicle_truck", "position": { "x": -12, "y": 0, "z": -6 } },
+      { "definitionId": "utility_water_tower", "position": { "x": 10, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": -14, "y": 0, "z": -13 } },
+      { "definitionId": "road_segment", "position": { "x": -10, "y": 0, "z": -13 } },
+      { "definitionId": "road_segment", "position": { "x": -6, "y": 0, "z": -13 } },
+      { "definitionId": "road_segment", "position": { "x": -2, "y": 0, "z": -13 } },
+      { "definitionId": "road_segment", "position": { "x": 2, "y": 0, "z": -13 } },
+      { "definitionId": "road_segment", "position": { "x": 6, "y": 0, "z": -13 } },
+      { "definitionId": "road_segment", "position": { "x": 10, "y": 0, "z": -13 } },
+      { "definitionId": "road_segment", "position": { "x": 14, "y": 0, "z": -13 } },
+      { "definitionId": "tree_pine", "position": { "x": -16.5, "y": 0, "z": 6 } },
+      { "definitionId": "tree_pine", "position": { "x": 15.5, "y": 0, "z": 7 } }
+    ]
+  },
+  {
+    "id": "template_city_block",
+    "name": "City Block",
+    "description": "A skyscraper, an office, a tower and a shop along a busy street.",
+    "icon": "🏙️",
+    "objects": [
+      { "definitionId": "building_skyscraper", "position": { "x": -6, "y": 0, "z": 2 } },
+      { "definitionId": "building_office", "position": { "x": 6, "y": 0, "z": 2 } },
+      { "definitionId": "building_tower", "position": { "x": -6, "y": 0, "z": 14 } },
+      { "definitionId": "building_shop", "position": { "x": 6, "y": 0, "z": 14 } },
+      { "definitionId": "road_segment", "position": { "x": -14, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": -10, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": -6, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": -2, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": 2, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": 6, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": 10, "y": 0, "z": -6 } },
+      { "definitionId": "road_segment", "position": { "x": 14, "y": 0, "z": -6 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -14, "y": 0, "z": -3.2 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -10, "y": 0, "z": -3.2 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -6, "y": 0, "z": -3.2 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -2, "y": 0, "z": -3.2 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 2, "y": 0, "z": -3.2 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 6, "y": 0, "z": -3.2 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 10, "y": 0, "z": -3.2 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 14, "y": 0, "z": -3.2 } },
+      { "definitionId": "tree_pine", "position": { "x": 0, "y": 0, "z": 8 } },
+      { "definitionId": "decor_bench", "position": { "x": 0, "y": 0, "z": 13 }, "rotationY": 1.5708 }
+    ]
+  },
+  {
+    "id": "template_wind_farm",
+    "name": "Wind Farm",
+    "description": "Three wind turbines on open ground.",
+    "icon": "🌬️",
+    "objects": [
+      { "definitionId": "utility_wind_turbine", "position": { "x": -10, "y": 0, "z": 0 } },
+      { "definitionId": "utility_wind_turbine", "position": { "x": 0, "y": 0, "z": 4 } },
+      { "definitionId": "utility_wind_turbine", "position": { "x": 10, "y": 0, "z": 0 } },
+      { "definitionId": "decor_rock_large", "position": { "x": -4, "y": 0, "z": -3 } },
+      { "definitionId": "bush_round", "position": { "x": 5, "y": 0, "z": -2 } }
     ]
   }
 ]

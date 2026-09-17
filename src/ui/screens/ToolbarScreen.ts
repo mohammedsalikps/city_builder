@@ -6,17 +6,11 @@ import {
   type ConstructionObjectDefinition,
   type ObjectCategory,
 } from '@/construction/ConstructionObjectDefinition';
-import type { TemplateDefinition } from '@/creative/Template';
 
 interface ToolbarItem {
   definition: ConstructionObjectDefinition;
   button: HTMLButtonElement;
   status: HTMLElement;
-}
-
-interface TemplateItem {
-  template: TemplateDefinition;
-  button: HTMLButtonElement;
 }
 
 /** One small glyph per category, so the compact bar reads at a glance. */
@@ -32,55 +26,25 @@ const CATEGORY_ICONS: Record<ObjectCategory, string> = {
   utilities: '🔧',
 };
 
-type PaletteGroup = 'build' | 'world' | 'create';
-
-const GROUPS: Array<{ id: PaletteGroup; label: string; icon: string }> = [
-  { id: 'build', label: 'Build', icon: '🛠️' },
-  { id: 'world', label: 'World', icon: '🌍' },
-  { id: 'create', label: 'Create', icon: '✨' },
-];
-
 /**
- * Two conceptual halves of the catalogue (see Step 22): BUILD is the
- * construction system - structures you assemble yourself (walls, floors,
- * openings...) and ready-made buildings for quickly filling out a town.
- * WORLD is everything that furnishes the city around what's built: roads,
- * nature, vehicles, decoration. CREATE isn't a category at all - it lists
- * whole starting arrangements (see Template.ts), not individual pieces.
- */
-const GROUP_CATEGORIES: Record<'build' | 'world', ObjectCategory[]> = {
-  build: ['structures', 'openings', 'buildings'],
-  world: ['roads', 'nature', 'vehicles', 'decoration', 'utilities'],
-};
-
-/**
- * Compact build palette: a small floating bar of group tabs (Build / World /
- * Create) at the bottom of the screen. Build and World each open one
- * category-chip row and then a horizontal-scroll strip of pieces, exactly as
- * in Step 21; Create opens a strip of template cards instead - whole
- * starting arrangements, not individual objects (see Template.ts). The 3D
- * world stays the visual priority - nothing here permanently covers more
- * than a thin bottom band.
+ * Challenge Mode's piece palette: a compact floating bar of category chips
+ * at the bottom of the screen. Tapping a category slides open one
+ * horizontal strip of its pieces; tapping it again closes it. My World no
+ * longer uses this screen - it has World Studio (see StudioScreen).
  *
- * Everything is generated from the object/template registries, never
- * hard-coded. Locked definitions (Challenge Mode only - see
- * `isObjectUnlocked`) show disabled so the player can see what exists
- * without being able to select it; My World never locks anything.
+ * Every category that has pieces gets a chip (a level's furniture, roads or
+ * vehicles must always be reachable). Locked definitions show disabled so
+ * the player can see what exists without being able to select it.
  */
 export class ToolbarScreen extends Screen {
   readonly id = 'toolbar';
 
   private items: ToolbarItem[] = [];
-  private templateItems: TemplateItem[] = [];
   private tabs: Array<{ category: ObjectCategory; button: HTMLButtonElement }> = [];
-  private groupButtons: Array<{ id: PaletteGroup; button: HTMLButtonElement }> = [];
-  private tabsRow: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
   private searchToggle: HTMLButtonElement | null = null;
   private strip: HTMLElement | null = null;
-  private templateStrip: HTMLElement | null = null;
   private emptyLabel: HTMLElement | null = null;
-  private group: PaletteGroup | null = null;
   private category: ObjectCategory | null = null;
   private searching = false;
   private query = '';
@@ -92,28 +56,13 @@ export class ToolbarScreen extends Screen {
     this.strip = el('div', 'palette__strip');
     palette.appendChild(this.strip);
 
-    this.templateStrip = el('div', 'palette__strip palette__strip--templates');
-    palette.appendChild(this.templateStrip);
-
     const bar = el('div', 'palette__bar');
-
-    const groupsRow = el('div', 'palette__groups');
-    for (const group of GROUPS) {
-      const button = el('button', 'group-chip');
-      button.type = 'button';
-      button.appendChild(el('span', 'group-chip__icon', group.icon));
-      button.appendChild(el('span', 'group-chip__label', group.label));
-      button.addEventListener('click', () => this.selectGroup(group.id));
-      this.groupButtons.push({ id: group.id, button });
-      groupsRow.appendChild(button);
-    }
     this.searchToggle = el('button', 'palette__search-toggle', '🔍');
     this.searchToggle.type = 'button';
     this.searchToggle.setAttribute('aria-label', 'Search construction pieces');
     this.searchToggle.addEventListener('click', () => {
       this.searching = !this.searching;
       if (this.searching) {
-        this.group = null;
         this.category = null;
       } else {
         this.query = '';
@@ -122,11 +71,8 @@ export class ToolbarScreen extends Screen {
       this.applyFilter();
       if (this.searching) this.searchInput?.focus();
     });
-    groupsRow.appendChild(this.searchToggle);
-    bar.appendChild(groupsRow);
-
-    this.tabsRow = this.buildTabs();
-    bar.appendChild(this.tabsRow);
+    bar.appendChild(this.searchToggle);
+    bar.appendChild(this.buildTabs());
     palette.appendChild(bar);
 
     this.searchInput = el('input', 'palette__search');
@@ -137,9 +83,10 @@ export class ToolbarScreen extends Screen {
       this.query = this.searchInput?.value.trim().toLowerCase() ?? '';
       this.applyFilter();
     });
+    this.searchInput.addEventListener('keydown', (event) => event.stopPropagation());
     palette.appendChild(this.searchInput);
 
-    for (const definition of this.context.registry.list()) {
+    for (const definition of challengeCatalogue(this.context.registry.list())) {
       const item = this.buildItem(definition);
       this.items.push(item);
       this.strip.appendChild(item.button);
@@ -148,28 +95,15 @@ export class ToolbarScreen extends Screen {
     this.emptyLabel.hidden = true;
     this.strip.appendChild(this.emptyLabel);
 
-    for (const template of this.context.templates.list()) {
-      const item = this.buildTemplateItem(template);
-      this.templateItems.push(item);
-      this.templateStrip.appendChild(item.button);
-    }
-
     root.appendChild(palette);
     this.applyFilter();
     return root;
   }
 
-  private selectGroup(group: PaletteGroup): void {
-    this.searching = false;
-    this.group = this.group === group ? null : group;
-    this.category = null;
-    this.applyFilter();
-  }
-
-  /** One chip per category in the active group (Build or World). */
+  /** One chip per category that has at least one definition. */
   private buildTabs(): HTMLElement {
     const row = el('div', 'palette__tabs');
-    const present = new Set(this.context.registry.list().map((d) => d.category));
+    const present = new Set(challengeCatalogue(this.context.registry.list()).map((d) => d.category));
     for (const category of OBJECT_CATEGORIES.filter((c) => present.has(c))) {
       const chip = el('button', 'chip');
       chip.type = 'button';
@@ -213,53 +147,26 @@ export class ToolbarScreen extends Screen {
     return { definition, button, status };
   }
 
-  private buildTemplateItem(template: TemplateDefinition): TemplateItem {
-    const button = el('button', 'template-card');
-    button.type = 'button';
-    button.appendChild(el('span', 'template-card__name', template.name));
-    button.appendChild(el('span', 'template-card__desc', template.description));
-
-    button.addEventListener('click', () => {
-      this.context.actions.instantiateTemplate(template);
-    });
-
-    return { template, button };
-  }
-
-  /** Show the strip only while browsing a category, a template group, or searching; filter pieces. */
+  /** Show the strip only while browsing a category or searching; filter its pieces. */
   private applyFilter(): void {
-    const browsingObjects = this.searching || (this.group !== 'create' && this.category !== null);
-    const browsingTemplates = this.group === 'create';
-
-    if (this.strip) this.strip.hidden = !browsingObjects;
-    if (this.templateStrip) this.templateStrip.hidden = !browsingTemplates;
-    if (this.tabsRow) this.tabsRow.hidden = this.searching || this.group === null || this.group === 'create';
+    const open = this.searching || this.category !== null;
+    if (this.strip) this.strip.hidden = !open;
     if (this.searchInput) this.searchInput.hidden = !this.searching;
-    if (this.searchToggle) {
-      this.searchToggle.classList.toggle('palette__search-toggle--active', this.searching);
-      this.searchToggle.hidden = this.group === 'create';
-    }
+    if (this.searchToggle) this.searchToggle.classList.toggle('palette__search-toggle--active', this.searching);
 
-    for (const g of this.groupButtons) {
-      g.button.classList.toggle('group-chip--active', g.id === this.group && !this.searching);
-    }
-
-    const activeCategories = this.group === 'build' || this.group === 'world' ? GROUP_CATEGORIES[this.group] : null;
     let visible = 0;
     for (const item of this.items) {
-      const show = browsingObjects && this.matches(item.definition, activeCategories);
+      const show = open && this.matches(item.definition);
       item.button.hidden = !show;
       if (show) visible++;
     }
     for (const tab of this.tabs) {
-      const inGroup = activeCategories ? activeCategories.includes(tab.category) : false;
-      tab.button.hidden = !inGroup;
       tab.button.classList.toggle('chip--active', tab.category === this.category);
     }
-    if (this.emptyLabel) this.emptyLabel.hidden = !browsingObjects || visible > 0;
+    if (this.emptyLabel) this.emptyLabel.hidden = !open || visible > 0;
   }
 
-  private matches(definition: ConstructionObjectDefinition, activeCategories: ObjectCategory[] | null): boolean {
+  private matches(definition: ConstructionObjectDefinition): boolean {
     if (this.searching) {
       if (this.query.length === 0) return true;
       const haystack = [definition.name, definition.type, definition.category, ...definition.gameplay.tags]
@@ -267,7 +174,6 @@ export class ToolbarScreen extends Screen {
         .toLowerCase();
       return haystack.includes(this.query);
     }
-    if (!activeCategories || !activeCategories.includes(definition.category)) return false;
     return definition.category === this.category;
   }
 
@@ -290,18 +196,18 @@ export class ToolbarScreen extends Screen {
 
   protected onUnmount(): void {
     this.items = [];
-    this.templateItems = [];
     this.tabs = [];
-    this.groupButtons = [];
-    this.tabsRow = null;
     this.searchInput = null;
     this.searchToggle = null;
     this.strip = null;
-    this.templateStrip = null;
     this.emptyLabel = null;
-    this.group = null;
     this.category = null;
     this.searching = false;
     this.query = '';
   }
+}
+
+/** Challenge Mode's catalogue: everything except My World's own large-world pieces. */
+function challengeCatalogue<T extends { gameplay: { tags: string[] } }>(definitions: T[]): T[] {
+  return definitions.filter((d) => !d.gameplay.tags.includes('studio-only'));
 }
