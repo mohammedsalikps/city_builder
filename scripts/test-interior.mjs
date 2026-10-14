@@ -347,6 +347,21 @@ try {
       const ahead = { x: view.x + forward.x * 0.6, z: view.z + forward.z * 0.6 };
       return pointIn(room.rect, ahead);
     }), `${label}: every viewpoint looks across its own room`);
+    // Sampled, independently of the walk model's own maths: nothing stands within 1.2 m straight ahead of a viewpoint.
+    const filledAhead = (view) => {
+      const forward = { x: -Math.sin(view.yaw), z: -Math.cos(view.yaw) };
+      for (let d = 0; d <= 1.2 + 1e-9; d += 0.02) {
+        const p = { x: view.x + forward.x * d, z: view.z + forward.z * d };
+        if (model.furniture.some((box) => pointIn(box, p))) return true;
+      }
+      return false;
+    };
+    check(views.every(({ view }) => !filledAhead(view)), `${label}: no furniture fills a room's view (nothing within 1.2 m straight ahead of any viewpoint)`);
+    check(views.every(({ room, view }) => {
+      const r = room.rect;
+      const far = { x: Math.abs(r.minX - view.x) > Math.abs(r.maxX - view.x) ? r.minX : r.maxX, z: Math.abs(r.minZ - view.z) > Math.abs(r.maxZ - view.z) ? r.minZ : r.maxZ };
+      return Math.hypot(far.x - view.x, far.z - view.z) >= 0.6 * Math.hypot(r.maxX - r.minX, r.maxZ - r.minZ);
+    }), `${label}: every viewpoint sees across most of its room (its far corner is at least 60% of the room's diagonal away)`);
     const front = frontDoorOf(model);
     const behind = front ? house.rooms.find((r) => front.sides.includes(r.id)) : null;
     check(front !== null && behind?.type === 'living', `${label}: the front door opens into the living room`);

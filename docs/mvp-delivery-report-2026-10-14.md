@@ -1,10 +1,41 @@
 # EAVARA City Builder: MVP delivery report (2026-10-14)
 
-Status: **build-ready; the production build was checked in a browser on this
-computer; not yet committed, pushed or deployed.** Recommended release: a
-**supervised, adult-led demonstration or invite-only test, with voice off**.
-Not ready for public or unsupervised use by children (see "Readiness" and
-"Release decision").
+Status (updated later on 2026-10-14): release `7fc455c` was committed, pushed
+and deployed to Production through Vercel's GitHub connection, and checked on
+the live site. A follow-up fixes the voice and the room-by-room interior
+(below). Recommended release unchanged: a **supervised, adult-led
+demonstration or invite-only test, with voice off**. Not ready for public or
+unsupervised use by children (see "Readiness" and "Release decision").
+
+## Update: voice and room-by-room interiors (2026-10-14)
+
+- **Voice.** "Talking isn't switched on yet" on the live site was the
+  Production switch doing its job (`EAVARA_VOICE_ENABLED` is off there). The
+  defect was that the app found out only after recording the child. It now
+  asks `/api/status` first: while voice is off the microphone looks off, a
+  line under the box says why, and nothing is recorded or sent. With voice on,
+  the whole chain was checked with a controlled speech sample (a synthesized
+  voice played into the browser, not a real microphone): recording, upload,
+  Groq transcription, the transcript shown in the box, and Send building from
+  it. The level meter no longer throws speech away when it cannot hear (a
+  suspended or missing audio context).
+- **Voice stays off in Production** until there is a decision on consent for
+  children's voice recordings, a recording notice in the app, confirmed Groq
+  Zero Data Retention and provider spending limits (section 1 of
+  [the child-facing checklist](child-facing-release-checklist.md)).
+- **Interiors.** Entering goes straight into the room behind the front door
+  (no glide in from the sky or through the closed front door). Choosing a room
+  is a cut with a short fade, never a glide through walls and furniture. Each
+  room is seen from a free corner or doorway spot with the longest view across
+  it and nothing filling the view. The indoor view is wider (84 degrees across;
+  up to 90 degrees vertical on a phone). The dollhouse faces the front like
+  the floor plan, fits narrow screens, names every room and lights the chosen
+  one. Leaving from inside is a cut. A ready-made house (one model, no plan)
+  explains that it has no rooms instead of offering no way in.
+- **Tests on that tree:** `typecheck` passed; `test:plan` 7,820; `test:ai` 326
+  (live speech-to-text included, with the controlled sample); `test:interior`
+  506; `test:walk` 179; `test:explorer` 139; `test:realworld` 514; `test:a11y`
+  62 - all passed, none failed or skipped; `build` succeeded.
 
 ## MVP features (no new features were added in the final passes)
 
@@ -158,16 +189,13 @@ and the on-device helper answered; the hosted AI service was not used.
   `EAVARA_STT_PROVIDER`, `EAVARA_STT_MODEL`, `EAVARA_STT_LANGUAGE` (and the
   `*_BASE_URL` / `*_API_KEY` / Cloudflare settings only if those providers
   are used).
-- **The live site today** (<https://eavara-city-builder.vercel.app>, checked
-  2026-10-14) still runs an older build (`index-DzwMIo2t.js`). Its
-  `/api/status` says AI is on and speech-to-text (Groq) is configured, and its
-  page records from the microphone and calls `/api/transcribe`: **voice
-  appears to be available in production now.** That deployment was uploaded
-  from a local copy, not built from GitHub (the committed code has no `api/`
-  folder). No sign of a GitHub-to-Vercel connection was found (no
-  deployments, commit statuses or checks on the repository); if the
-  repository was connected after its last push (17 September 2026), a push
-  to `master` would deploy to Production.
+- **The live site** (<https://eavara-city-builder.vercel.app>): `7fc455c`
+  was deployed through Vercel's GitHub connection (a push to `master` now
+  deploys to Production). Checked live on 2026-10-14: the new build loads,
+  `/api/status` answers `{"ai":true,"voice":false}`, `/api/transcribe`
+  refuses with `disabled`, `/api/build` refuses other websites and empty
+  requests, every lazy chunk and landmark asset loads, and no secrets or
+  `localhost` addresses are in the client files.
 - **Not verified:** the production values of the environment variables (the
   Vercel CLI is not installed or signed in on this computer, and there is no
   dashboard access); this version on the live site.
@@ -178,8 +206,8 @@ and the on-device helper answered; the hosted AI service was not used.
 | --- | --- |
 | Build-ready (tests and production build pass) | **Yes** |
 | Deployment-ready (configuration and deployment verified) | **Not yet**: the production build and configuration are verified locally; still to do: commit and push, set `EAVARA_VOICE_ENABLED=false` in Vercel Production, deploy this version |
-| Hosted | **Only an older version** is live; this version is not deployed |
-| Live-tested | **No** (this version is not live) |
+| Hosted | **Yes**: `7fc455c` is live; later commits deploy the same way |
+| Live-tested | **Yes for `7fc455c`** (assets, API answers, My World, interior and dollhouse checked on the live site) |
 | Demo-ready (under stated restrictions) | **Yes**, for a supervised, adult-led demonstration with voice off |
 | Public child-release-ready | **No** (see below) |
 
@@ -187,8 +215,8 @@ and the on-device helper answered; the hosted AI service was not used.
 
 | Blocker | Kind |
 | --- | --- |
-| Commit and push the working tree; deploy this version (Vercel CLI, or connect the GitHub repository in Vercel); check the live site | Operational |
-| Set `EAVARA_VOICE_ENABLED=false` in Vercel Production (voice appears available on the live site now), and spending limits (or `EAVARA_AI_ENABLED=false`) | Operational |
+| Check every deployment on the live site (a push to `master` deploys to Production) | Operational |
+| Keep `EAVARA_VOICE_ENABLED=false` in Production until consent, a recording notice and Groq Zero Data Retention are settled; set provider spending limits (or `EAVARA_AI_ENABLED=false`) | Operational, legal |
 | Parental consent flow and child-facing privacy notice | Legal, privacy |
 | Provider data retention (Groq zero data retention, Anthropic terms), data-processing agreements, provider-side deletion requests | Privacy, legal |
 | Global rate limit, spending caps, a kill switch that works without a redeploy | Technical, operational |

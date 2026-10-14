@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { motion } from '@/accessibility/motion';
 import type { GameStore } from '@/state/GameStore';
 import type { GameState, InteriorView } from '@/state/GameState';
 import type { GameActions } from '@/state/actions';
@@ -13,7 +12,6 @@ import {
   buildWalkModel,
   describeHouseInterior,
   entryPose,
-  exitPoint,
   findFreeSpot,
   findRoom,
   moveWithCollision,
@@ -25,6 +23,7 @@ import {
   type WalkModel,
 } from '@/creative/interior';
 import type { RoomType } from '@/creative/plan/ConstructionPlan';
+import { rotateAroundY } from '@/utils/math';
 import type { World } from '@/world/World';
 import type { CameraSnapshot } from '@/world/CameraController';
 import { WalkController, type WalkPose } from '@/world/WalkController';
@@ -41,8 +40,17 @@ const INDOOR_FILL_COLOUR = 0xffe4c4;
  * so rooms look warm and their colours read clearly instead of washed out in cool daylight. Restored on leaving.
  */
 const INDOOR_SKY_LIGHT = { environment: 0.16, hemisphere: 0.12 };
-/** Seconds for a walk between two places inside, from short to long trips. */
-const WALK_SECONDS = { min: 0.7, max: 2.2, perMetre: 0.16 };
+/**
+ * Indoors the view is wider than outside (50 degrees, tuned for the town): about 84 degrees
+ * across, so a room reads as a room - on a phone held upright too (there the
+ * vertical angle stops at 90 and the width follows the screen).
+ */
+const INDOOR_FOV = { across: 84, minVertical: 55, maxVertical: 90 };
+/** Dollhouse: the chosen room's floor is lit in this colour. */
+const ROOM_MARK_COLOUR = 0x8b6cff;
+const ROOM_MARK_OPACITY = 0.34;
+/** Shown when a house has no planned rooms (a ready-made model): never an empty or made-up inside. */
+const NO_ROOMS = 'This house has no rooms I can show you. Houses planned with EAVARA have rooms to explore.';
 
 /** Something the child (or EAVARA for them) wants to change inside, waiting for an explicit yes. */
 export interface InteriorProposal {
@@ -62,6 +70,8 @@ export interface InteriorSnapshot {
   touring: boolean;
   walker: { x: number; z: number; yaw: number } | null;
   proposal: InteriorProposal | null;
+  /** Counts the walker's cuts (on the way in, to a chosen room): the screen covers each with a short fade. */
+  cut: number;
 }
 
 /** The answer to an interior request: done or not, in the child's words (never claimed before it happened). */
@@ -104,6 +114,12 @@ export class InteriorExplorer {
   private outdoorSkyLight: { environment: number; hemisphere: number } | null = null;
   private ceiling: THREE.Mesh | null = null;
   private readonly ceilingMaterial: THREE.MeshStandardMaterial;
+  /** The camera's field of view outside, put back when walking ends (null while it is not changed). */
+  private outdoorFov: number | null = null;
+  /** See InteriorSnapshot.cut. */
+  private cuts = 0;
+  /** Dollhouse room names and the lit floor of the chosen room (null outside the dollhouse). */
+  private marks: THREE.Group | null = null;
   private readonly listeners = new Set<() => void>();
   private lastNotice: string | null = null;
   private unsubscribe: (() => void) | null = null;
@@ -159,10 +175,13 @@ export class InteriorExplorer {
     return notice;
   }
 
-  /** Per frame: which room the walker is in. */
+  /** Per frame: which room the walker is in (and the indoor field of view, which follows the window's shape). */
   update(): void {
     const interior = this.store.getState().interior;
-    if (!interior || !this.house || this.view !== 'walk') return;
+    if (!interior || !this.house) return;
+    if (this.view === 'dollhouse') this.showLabelsWhenAbove();
+    if (this.view !== 'walk') return;
+    this.applyIndoorFov();
     const pose = this.walk.getPose();
     const room = roomAt(this.house, pose.x, pose.z);
     if (room && room.id !== interior.roomId) this.actions.setInteriorRoom(room.id);
@@ -186,6 +205,7 @@ export class InteriorExplorer {
       touring: interior.touring,
       walker: pose ? { x: pose.x, z: pose.z, yaw: pose.yaw } : null,
       proposal: this.pending ? { kind: this.pending.kind, title: this.pending.title, roomName: this.pending.roomName } : null,
+      cut: this.cuts,
     };
   }
 
@@ -234,10 +254,18 @@ export class InteriorExplorer {
     return current ? { groupId: current.groupId, houseIndex: null } : null;
   }
 
-  /** Go inside (the house a tap or request means, unless one is given). */
-  enter(target: { groupId: string; houseIndex: number | null } | null = this.targetHouse(), view: InteriorView = 'walk'): InteriorResult {
+  /**
+   * Go inside: the house a tap or request means, unless one is given. A
+   * selected ready-made house is answered honestly (it has no rooms) - never
+   * by going into another house instead.
+   */
+  enter(target?: { groupId: string; houseIndex: number | null } | null, view: InteriorView = 'walk'): InteriorResult {
+    if (target === undefined) {
+      if (this.selectedHouseWithoutRooms()) return { ok: false, message: NO_ROOMS };
+      target = this.targetHouse();
+    }
     if (!target) return { ok: false, message: "Build a house first - then we can go inside!" };
-    if (!this.describe(target)) return { ok: false, message: "This house has no rooms I can show you. Houses planned with EAVARA have rooms to explore." };
+    if (!this.describe(target)) return { ok: false, message: NO_ROOMS };
     if (!this.actions.enterInterior(target.groupId, target.houseIndex, view)) return { ok: false, message: "We can't go inside right now. Finish what you're doing first." };
     return { ok: true, message: 'Welcome inside!' };
   }
@@ -252,20 +280,18 @@ export class InteriorExplorer {
 
   // ------------------------------------------------------------ moving around
 
-  /** Travel to a room: walk there (first person) or frame it from above (dollhouse). True once arrived. */
+  /** Go to a room: stand in it (first person) or frame it from above (dollhouse). True once there. */
   async goToRoom(roomId: string): Promise<boolean> {
     const room = this.house?.rooms.find((r) => r.id === roomId);
     if (!room || !this.model) return false;
     if (this.view === 'walk') {
-      const target = roomViewpoint(this.model, room);
-      const from = this.walk.getPose();
-      const duration = THREE.MathUtils.clamp(Math.hypot(target.x - from.x, target.z - from.z) * WALK_SECONDS.perMetre + WALK_SECONDS.min, WALK_SECONDS.min, WALK_SECONDS.max);
-      await this.walk.setPose(target, { duration: motion.duration(duration) });
+      // A cut to the room's viewpoint, not a glide: a straight glide passes through walls and furniture on the way.
+      this.jump(roomViewpoint(this.model, room));
     } else {
       const size = Math.max(room.rect.maxX - room.rect.minX, room.rect.maxZ - room.rect.minZ);
       this.world.cameraController.transitionTo(
         { x: room.center.x, y: this.house!.floorY, z: room.center.z },
-        { distance: THREE.MathUtils.clamp(size * 2.2 + 4, 7, 26), azimuth: this.world.cameraController.azimuth, elevation: 62 },
+        { distance: Math.max(THREE.MathUtils.clamp(size * 2.2 + 4, 7, 26), this.widthFit(size)), azimuth: this.world.cameraController.azimuth, elevation: 62 },
         0.9,
       );
     }
@@ -463,6 +489,7 @@ export class InteriorExplorer {
     }
     if (state.placedObjects !== this.modelSource) this.rebuildModel(state.placedObjects);
     if (interior.view !== this.view) this.applyView(interior.view);
+    if (this.view === 'dollhouse') this.highlightMarks(interior.roomId);
     this.emit();
   }
 
@@ -494,6 +521,8 @@ export class InteriorExplorer {
 
   /** Back outside: camera, lights and cutaway exactly as before going in. */
   private leave(animate: boolean): void {
+    // From the walking view the way out is a cut too: a glide back to the sky would pass through the house's walls.
+    const glide = animate && this.view !== 'walk';
     this.tourToken++;
     this.setPending(null);
     this.walk.setEnabled(false);
@@ -503,13 +532,15 @@ export class InteriorExplorer {
     this.world.cameraController.setSuspended(false);
     this.readability.setInteriorCutaway(null);
     this.removeCeiling();
+    this.removeMarks();
+    this.restoreFov();
     this.fill.intensity = 0;
     if (this.outdoorSkyLight) {
       this.world.scene.environmentIntensity = this.outdoorSkyLight.environment;
       this.world.environment.hemisphere.intensity = this.outdoorSkyLight.hemisphere;
       this.outdoorSkyLight = null;
     }
-    if (this.snapshot) this.world.cameraController.restore(this.snapshot, { animate, duration: 1.1 });
+    if (this.snapshot) this.world.cameraController.restore(this.snapshot, { animate: glide, duration: 1.1 });
     this.snapshot = null;
     this.house = null;
     this.model = null;
@@ -523,41 +554,148 @@ export class InteriorExplorer {
     const house = this.house;
     const model = this.model;
     if (!house || !model) return;
-    const first = this.view === null;
     this.view = view;
     if (view === 'walk') {
       this.readability.setInteriorCutaway(null);
+      this.removeMarks();
       this.addCeiling(house);
       this.world.cameraController.setSuspended(true);
       this.walk.setCollision((from, to) => (this.model ? moveWithCollision(this.model, from, to) : to));
-      // Start from where the camera is now, then walk in: first to the front door, then inside.
-      this.walk.setPose(this.cameraPose(), { duration: 0 });
       this.walk.setEnabled(true);
       this.world.setCameraDriver(this.walk);
-      const inside = this.currentRoom() ? roomViewpoint(model, this.currentRoom()!) : entryPose(model);
-      if (first) {
-        const door = exitPoint(model);
-        const approach: WalkPose = { x: door.x, y: inside.y, z: door.z, yaw: inside.yaw, pitch: -0.05 };
-        const arrived = this.walk.setPose(approach, { duration: motion.duration(1.1) });
-        const token = this.walk.poseToken;
-        // Step inside only if the walk to the door really arrived (not cut short by a room the child picked meanwhile).
-        void arrived.then(() => {
-          if (this.walk.poseToken === token && this.view === 'walk' && this.house === house) return this.walk.setPose(inside, { duration: motion.duration(0.9) });
-          return undefined;
-        });
-      } else {
-        void this.walk.setPose(inside, { duration: 0.8 });
-      }
+      this.applyIndoorFov();
+      // Straight to a view inside: no glide in from the sky, through the front door or down through the roof -
+      // each of those shows the outside of the house, or the inside of a wall, on the way. The first time in,
+      // the room behind the front door, seen from its best spot (the way a tour starts).
+      const firstRoomId = tourOrder(model)[0];
+      const room = this.currentRoom() ?? house.rooms.find((r) => r.id === firstRoomId) ?? null;
+      this.jump(room ? roomViewpoint(model, room) : entryPose(model));
     } else {
       this.walk.setEnabled(false);
       this.world.setCameraDriver(null);
+      this.restoreFov();
       this.world.cameraController.setSuspended(false);
       this.removeCeiling();
       this.readability.setInteriorCutaway(this.cutawayIds(house));
       const size = Math.max(house.footprint.maxX - house.footprint.minX, house.footprint.maxZ - house.footprint.minZ);
       const centre = { x: (house.footprint.minX + house.footprint.maxX) / 2, y: house.floorY, z: (house.footprint.minZ + house.footprint.maxZ) / 2 };
-      this.world.cameraController.transitionTo(centre, { distance: THREE.MathUtils.clamp(size * 1.5 + 6, 14, 60), azimuth: this.world.cameraController.azimuth, elevation: 58 }, 1);
+      // Seen from the front, like the floor plan beside it (front door at the bottom), whichever way the house faces.
+      this.world.cameraController.transitionTo(centre, { distance: Math.max(THREE.MathUtils.clamp(size * 1.5 + 6, 14, 60), this.widthFit(size)), azimuth: frontAzimuth(house), elevation: 58 }, 1);
+      this.showMarks(house, size);
     }
+  }
+
+  /** Put the walker straight at `pose`; the screen covers the cut with a short fade (see InteriorSnapshot.cut). */
+  private jump(pose: WalkPose): void {
+    void this.walk.setPose(pose);
+    this.cuts++;
+    this.emit();
+  }
+
+  /**
+   * How far back the dollhouse camera must stand for `size` metres (with a
+   * margin) to fit across the screen - on a phone held upright the view is
+   * narrow, so the house would otherwise run off both sides. Never more than 90 m.
+   */
+  private widthFit(size: number): number {
+    const camera = this.world.camera;
+    const across = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * (camera.aspect > 0 ? camera.aspect : 1));
+    return Math.min(90, (size * 0.62) / Math.tan(across / 2));
+  }
+
+  /** The walking view's wider field of view, recomputed when the window changes shape. */
+  private applyIndoorFov(): void {
+    const camera = this.world.camera;
+    this.outdoorFov ??= camera.fov;
+    const aspect = camera.aspect > 0 ? camera.aspect : 1;
+    const half = THREE.MathUtils.degToRad(INDOOR_FOV.across) / 2;
+    const vertical = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(half) / aspect)), INDOOR_FOV.minVertical, INDOOR_FOV.maxVertical);
+    if (Math.abs(camera.fov - vertical) < 0.01) return;
+    camera.fov = vertical;
+    camera.updateProjectionMatrix();
+  }
+
+  private restoreFov(): void {
+    if (this.outdoorFov === null) return;
+    this.world.camera.fov = this.outdoorFov;
+    this.world.camera.updateProjectionMatrix();
+    this.outdoorFov = null;
+  }
+
+  /**
+   * Dollhouse: every room's name floats over it and the chosen room's floor
+   * is lit, so the 3D view says the same as the room list and the plan.
+   */
+  private showMarks(house: InteriorHouse, size: number): void {
+    this.removeMarks();
+    const group = new THREE.Group();
+    group.name = 'interior-room-marks';
+    const labelHeight = THREE.MathUtils.clamp(size * 0.045, 0.5, 2);
+    for (const room of house.rooms) {
+      const width = Math.max(0.2, room.rect.maxX - room.rect.minX - 0.3);
+      const depth = Math.max(0.2, room.rect.maxZ - room.rect.minZ - 0.3);
+      const material = new THREE.MeshBasicMaterial({ color: ROOM_MARK_COLOUR, transparent: true, opacity: ROOM_MARK_OPACITY, depthWrite: false, toneMapped: false });
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), material);
+      floor.name = `interior-room-floor:${room.id}`;
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(room.center.x, house.floorY + 0.03, room.center.z);
+      floor.userData.roomId = room.id;
+      floor.visible = false;
+      group.add(floor);
+      const label = roomLabel(room.name, labelHeight);
+      if (label) {
+        label.name = `interior-room-label:${room.id}`;
+        label.position.set(room.center.x, house.floorY + 1.6, room.center.z);
+        label.userData.roomId = room.id;
+        // Shown once the camera is above the walls (see showLabelsWhenAbove).
+        label.visible = false;
+        group.add(label);
+      }
+    }
+    this.world.overlayRoot.add(group);
+    this.marks = group;
+    this.highlightMarks(this.store.getState().interior?.roomId ?? null);
+  }
+
+  /** Room names appear once the camera is above the walls: on its way up from inside they would fill the view. */
+  private showLabelsWhenAbove(): void {
+    if (!this.marks || !this.house) return;
+    const above = this.world.camera.position.y > this.house.ceilingY + 1.5;
+    for (const node of this.marks.children) if (node instanceof THREE.Sprite) node.visible = above;
+  }
+
+  private highlightMarks(roomId: string | null): void {
+    this.marks?.traverse((node) => {
+      if (node.userData.roomId === undefined) return;
+      const here = node.userData.roomId === roomId;
+      if (node instanceof THREE.Sprite) node.material.opacity = here ? 1 : 0.8;
+      else if (node instanceof THREE.Mesh) node.visible = here;
+    });
+  }
+
+  private removeMarks(): void {
+    if (!this.marks) return;
+    this.marks.traverse((node) => {
+      if (node instanceof THREE.Sprite) {
+        node.material.map?.dispose();
+        node.material.dispose();
+      } else if (node instanceof THREE.Mesh) {
+        node.geometry.dispose();
+        (node.material as THREE.Material).dispose();
+      }
+    });
+    this.marks.removeFromParent();
+    this.marks = null;
+  }
+
+  /** The selected piece belongs to a house without a plan (a ready-made house model): it has no real rooms to show. */
+  private selectedHouseWithoutRooms(): boolean {
+    const state = this.store.getState();
+    const selected = state.placedObjects.find((p) => p.id === state.selectedInstanceId);
+    if (!selected) return false;
+    const planned = selected.group ? this.planBuilder.planOf(selected.group.id) : null;
+    if (planned?.kind === 'house' || planned?.kind === 'neighborhood') return false;
+    return selected.group?.creation === 'house' || this.registry.get(selected.definitionId)?.category === 'buildings';
   }
 
   private rebuildModel(placedObjects: readonly PlacedObject[]): void {
@@ -644,13 +782,6 @@ export class InteriorExplorer {
     return null;
   }
 
-  /** The camera's current position and heading as a walk pose. */
-  private cameraPose(): WalkPose {
-    const camera = this.world.camera;
-    const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
-    return { x: camera.position.x, y: camera.position.y, z: camera.position.z, yaw: euler.y, pitch: THREE.MathUtils.clamp(euler.x, -0.95, 0.95) };
-  }
-
   private addCeiling(house: InteriorHouse): void {
     if (this.ceiling) return;
     const width = house.footprint.maxX - house.footprint.minX;
@@ -676,6 +807,49 @@ export class InteriorExplorer {
   private emit(): void {
     this.listeners.forEach((listener) => listener());
   }
+}
+
+/** The orbit camera's heading (degrees) that looks at a house from its front (house-local +Z). */
+function frontAzimuth(house: InteriorHouse): number {
+  const front = rotateAroundY(0, 1, house.rotationY);
+  return THREE.MathUtils.radToDeg(Math.atan2(front.x, front.z));
+}
+
+/**
+ * A room's name as a label that always faces the camera and stays readable
+ * over walls and furniture. Null where there is no canvas (headless tests).
+ */
+function roomLabel(text: string, height: number): THREE.Sprite | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  const font = '700 40px system-ui, -apple-system, "Segoe UI", sans-serif';
+  context.font = font;
+  const pad = 22;
+  const width = Math.ceil(context.measureText(text).width) + pad * 2;
+  canvas.width = width;
+  canvas.height = 64;
+  // Resizing a canvas resets its drawing state.
+  context.font = font;
+  context.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  if (typeof context.roundRect === 'function') {
+    context.beginPath();
+    context.roundRect(0, 0, width, 64, 22);
+    context.fill();
+  } else {
+    context.fillRect(0, 0, width, 64);
+  }
+  context.fillStyle = '#2d2550';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(text, width / 2, 33);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, toneMapped: false, fog: false }));
+  sprite.scale.set((height * width) / 64, height, 1);
+  sprite.renderOrder = 20;
+  return sprite;
 }
 
 /** "chairs", "sofas", "kitchen counters" (catalogue names are simple nouns). */

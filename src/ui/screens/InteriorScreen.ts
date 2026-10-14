@@ -61,6 +61,9 @@ export class InteriorScreen extends Screen {
   private furnitureList!: HTMLElement;
   private furnitureKey = '';
   private latestState: GameState | null = null;
+  /** A short fade over every cut of the walker (on the way in, to a chosen room). */
+  private veil!: HTMLElement;
+  private lastCut = -1;
   /** A change started from this screen's own buttons: move keyboard focus to its yes / no. */
   private focusProposal = false;
   /** Where focus goes back to once that change is answered. */
@@ -70,6 +73,9 @@ export class InteriorScreen extends Screen {
   protected build(): HTMLElement {
     const root = el('div', 'screen studio interior');
     const explorer = this.context.studio.interior;
+    this.veil = el('div', 'in-veil');
+    this.veil.setAttribute('aria-hidden', 'true');
+    root.appendChild(this.veil);
 
     // ---------------------------------------------------------- navigator
     const nav = el('section', 'in-nav');
@@ -82,6 +88,7 @@ export class InteriorScreen extends Screen {
     titles.append(this.titleLabel, this.floorLabel);
     head.appendChild(titles);
     nav.appendChild(head);
+    nav.appendChild(el('p', 'in-nav__hint', 'Tap a room to go there.'));
     this.roomList = el('div', 'in-nav__rooms');
     this.roomList.setAttribute('role', 'list');
     nav.appendChild(this.roomList);
@@ -211,6 +218,7 @@ export class InteriorScreen extends Screen {
     this.paletteKey = '';
     this.furnitureKey = '';
     this.lastRoomId = null;
+    this.lastCut = -1;
   }
 
   // ------------------------------------------------------------ rendering
@@ -223,6 +231,13 @@ export class InteriorScreen extends Screen {
     const snapshot = explorer.snapshotState();
     if (!snapshot) return;
     const { house, view, roomId, touring, proposal } = snapshot;
+    if (snapshot.cut !== this.lastCut) {
+      this.lastCut = snapshot.cut;
+      // Restart the fade (reduced motion turns CSS animations off: then the cut is simply instant).
+      this.veil.classList.remove('in-veil--dip');
+      void this.veil.offsetWidth;
+      this.veil.classList.add('in-veil--dip');
+    }
 
     const houseKey = `${house.groupId}:${house.houseIndex}:${house.rooms.map((r) => r.id).join(',')}`;
     if (houseKey !== this.houseKey) {

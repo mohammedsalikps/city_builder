@@ -203,7 +203,11 @@ export class ObjectBubble {
     this.colourButton.hidden = roleOf(definition) !== null;
     this.colourButton.classList.toggle('st-action--on', this.colourOpen);
     this.swatches.hidden = !this.colourOpen || roleOf(definition) !== null;
-    this.enterButton.hidden = state.interior !== null || (planned?.kind !== 'house' && planned?.kind !== 'neighborhood');
+    // A planned house (or one of a neighbourhood) can be entered. A ready-made house model shows the way in too,
+    // and says why there are no rooms to go into, instead of the button silently missing.
+    const enterable = planned?.kind === 'house' || planned?.kind === 'neighborhood';
+    const readyMadeHouse = !planned && (selected.group?.creation === 'house' || definition.category === 'buildings');
+    this.enterButton.hidden = state.interior !== null || (!enterable && !readyMadeHouse);
     this.sizer.hidden = !(caps.scalable && state.transformMode === 'scale');
     this.smaller.disabled = selected.scale.x <= caps.minScale + 1e-6;
     this.bigger.disabled = selected.scale.x >= caps.maxScale - 1e-6;

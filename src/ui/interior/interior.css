@@ -20,6 +20,37 @@
   inset: 0;
 }
 
+/* A short fade over each cut of the walker (on the way in, to a chosen room): the view never glides through walls. */
+.in-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #fbf7f0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.in-veil--dip {
+  animation: in-veil-dip 0.42s ease-out;
+}
+
+@keyframes in-veil-dip {
+  from {
+    opacity: 0.92;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.in-nav__hint {
+  margin: 0 2px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b6480;
+}
+
 /* ------------------------------------------------------------- navigator */
 .in-nav {
   position: absolute;

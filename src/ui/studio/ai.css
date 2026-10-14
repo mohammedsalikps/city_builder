@@ -535,6 +535,18 @@
   color: var(--st-berry);
 }
 
+/* Voice switched off on the server: the microphone looks off, and the line under the box says why (not an error). */
+.st-ai__mic.st-ai__mic--off {
+  opacity: 0.45;
+  filter: grayscale(1);
+  cursor: default;
+}
+
+.st-ai__hint.st-ai__hint--off {
+  color: #6b6480;
+  font-weight: 700;
+}
+
 .st-ai__quick {
   display: flex;
   flex-wrap: wrap;

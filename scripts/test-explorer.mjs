@@ -140,13 +140,15 @@ try {
         log.snapshots++;
         return { position: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, target: { x: 0, y: 0, z: 0 }, limits: { minDistance: 3, maxDistance: 820, halfSize: 290 }, minPolar: 0.05, maxPolar: 1.49 };
       },
-      restore: (snapshot) => {
+      restore: (snapshot, options) => {
         log.restored = snapshot;
+        log.restoreAnimated = options?.animate ?? false;
         camera.position.set(snapshot.position.x, snapshot.position.y, snapshot.position.z);
       },
       setSuspended: (on) => (log.suspended = on),
-      transitionTo: (point) => {
+      transitionTo: (point, view) => {
         log.transitions++;
+        log.view = view ?? null;
         controller.target.set(point.x, point.y, point.z);
       },
     };
@@ -274,6 +276,20 @@ try {
   check(fake.world.overlayRoot.children.some((c) => c.name === 'interior-ceiling'), 'a ceiling covers the rooms while walking (no sky through the roof)');
   const fill = fake.world.scene.getObjectByName('interior-fill');
   check(fill.intensity > 0 && fake.world.scene.environmentIntensity < 0.3 && fake.world.environment.hemisphere.intensity < 0.22, 'indoors: a warm fill light, and the blue sky\u2019s light turned down');
+  // In at once: no glide in from the sky or through the front door (each shows the outside, or the inside of a wall, on the way).
+  const atOnce = explorer.walk.getPose();
+  const fp0 = snap.house.footprint;
+  const cam = fake.camera.position;
+  check(roomAt(snap.house, atOnce.x, atOnce.z) !== null && cam.x > fp0.minX && cam.x < fp0.maxX && cam.z > fp0.minZ && cam.z < fp0.maxZ && near(cam.y, snap.house.floorY + 1.45, 1e-6), 'entering goes straight to a view inside a room (the camera is never shown outside, or in a wall, on the way in)');
+  check(snap.cut >= 1, 'the way in is a cut, which the screen covers with a short fade');
+  const across = (camera) => (2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect) * 180) / Math.PI;
+  check(near(across(fake.camera), 84, 0.01) && fake.camera.fov > 55, `walking indoors widens the view to 84 degrees across (vertical ${fake.camera.fov.toFixed(1)})`);
+  fake.camera.aspect = 375 / 812;
+  explorer.update();
+  check(near(fake.camera.fov, 90, 1e-9), 'on a phone held upright the indoor view opens to 90 degrees up and down (the most it goes)');
+  fake.camera.aspect = 1.5;
+  explorer.update();
+  check(near(across(fake.camera), 84, 0.01), 'and follows the window back when it changes shape');
   await step(2.5);
   const afterEntry = explorer.walk.getPose();
   const entryRoom = roomAt(snap.house, afterEntry.x, afterEntry.z);
@@ -286,6 +302,8 @@ try {
   const bedroom2 = explorer.room({ type: 'bedroom', ordinal: 2 });
   check(bedroom2?.name === 'Bedroom 2', 'the second bedroom exists');
   const going = explorer.goToRoom(bedroom2.id);
+  const cutTo = explorer.walk.getPose();
+  check(roomAt(snap.house, cutTo.x, cutTo.z)?.id === bedroom2.id && explorer.snapshotState().cut > snap.cut, 'choosing a room cuts straight to it - no glide through the walls and furniture in between');
   await step(3);
   check(await going, 'travelling to a room resolves when there');
   const atBed = explorer.walk.getPose();
@@ -317,8 +335,23 @@ try {
   check(roofs.length > 0 && roofs.every((r) => cut.has(r.id)), `the dollhouse cuts away the roof (${roofs.length} pieces)`);
   check(outerWalls.length > 0 && outerWalls.every((r) => cut.has(r.id)) && innerWalls.every((r) => !cut.has(r.id)), 'outer walls are cut away; inner walls stay, so the rooms read clearly');
   check(fake.log.driver === null && fake.log.suspended === false && !fake.world.overlayRoot.children.some((c) => c.name === 'interior-ceiling'), 'the orbit camera frames the house from above; no ceiling');
+  const frontDir = rotateAroundY(0, 1, snap.house.rotationY);
+  const frontAzimuth = (Math.atan2(frontDir.x, frontDir.z) * 180) / Math.PI;
+  check(fake.log.view !== null && near(fake.log.view.azimuth, frontAzimuth, 1e-6), `the dollhouse is seen from the front, like the floor plan beside it (azimuth ${fake.log.view?.azimuth})`);
+  check(near(fake.camera.fov, 50, 1e-9), 'the dollhouse uses the ordinary 50 degree view again');
+  const marks = fake.world.overlayRoot.getObjectByName('interior-room-marks');
+  const floorMarks = marks ? marks.children.filter((c) => c.name.startsWith('interior-room-floor:')) : [];
+  const litIs = (id) => floorMarks.length === snap.house.rooms.length && floorMarks.every((f) => f.visible === (f.userData.roomId === id));
+  check(litIs(w.store.getState().interior.roomId), `every room has a floor mark and only the chosen room is lit (${w.store.getState().interior.roomId})`);
+  const kitchenRoom = explorer.room({ type: 'kitchen' });
+  await explorer.goToRoom(kitchenRoom.id);
+  check(litIs(kitchenRoom.id), 'choosing another room in the dollhouse moves the lit floor to it');
+  await explorer.goToRoom(bedroom2.id);
   w.actions.setInteriorView('walk');
   check(fake.log.cutaway === null && fake.log.driver === explorer.walk, 'back to walking: nothing cut away, the walker drives again');
+  check(!fake.world.overlayRoot.getObjectByName('interior-room-marks') && near(across(fake.camera), 84, 0.01), 'walking again: the room marks are gone and the view is wide again');
+  const backIn = explorer.walk.getPose();
+  check(roomAt(snap.house, backIn.x, backIn.z)?.id === bedroom2.id, 'from the dollhouse back to walking lands in the chosen room (no glide down through the roof)');
 
   // ------------------------------------------------------------------ 3
   section('3. Furniture inside: shown first, made only on yes, only in the entered house, undoable, saved');
@@ -383,6 +416,17 @@ try {
   check(!explorer.isInside && w.store.getState().interior === null && fake.log.driver === null && fake.log.suspended === false && fake.log.restored !== null, 'going outside restores the camera exactly as it was');
   check(fake.world.scene.getObjectByName('interior-fill').intensity === 0 && fake.world.scene.environmentIntensity === 0.3 && fake.world.environment.hemisphere.intensity === 0.22, '...and the outdoor light exactly as it was');
   check(!fake.world.overlayRoot.children.some((c) => c.name === 'interior-ceiling') && fake.world.scene.children.find((c) => c.name === 'interior-fill')?.intensity === 0, 'the ceiling is removed and the indoor light is off');
+  check(near(fake.camera.fov, 50, 1e-9), '...and the ordinary 50 degree view is back');
+  check(fake.log.restoreAnimated === false, 'leaving from the walking view is a cut (no glide back out through the walls)');
+
+  // A ready-made house (a single model, no plan) has no rooms: entering it says so - it never takes the child into another house.
+  const readyMade = w.actions.instantiateTemplate(w.templates.get('house_family'), { x: 60, y: 0, z: -60 }, 0, 'house');
+  check(readyMade.placed > 0 && readyMade.groupId !== null, `a ready-made Family House stands nearby (${readyMade.placed} pieces)`);
+  const readyPiece = w.store.getState().placedObjects.find((p) => p.group?.id === readyMade.groupId);
+  w.actions.selectPlacedObject(readyPiece?.id ?? null);
+  const refused = explorer.enter();
+  check(!refused.ok && /no rooms I can show you/.test(refused.message) && w.store.getState().interior === null && !explorer.isInside, `entering a ready-made house is answered honestly, never by going into the planned house instead (${refused.message})`);
+  w.actions.selectPlacedObject(null);
 
   // ------------------------------------------------------------------ 4
   section('4. The AI helper: interior requests answered on the device, never sent to the AI, never claiming too much');

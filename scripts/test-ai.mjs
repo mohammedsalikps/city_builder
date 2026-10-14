@@ -171,6 +171,245 @@ try {
     check(cleanTranscript('make it wider') === 'make it wider' && cleanTranscript('a'.repeat(500)).length === 300, 'short requests pass; long ones are cut to 300 characters');
   }
 
+  section('1d. Voice: asked first whether it is on, then the recording lifecycle (fake microphone and network - NOT cloud inference)');
+  {
+    const { VoiceInput, VoiceSwitch, VoiceError } = await load('/src/creative/ai/VoiceInput.ts');
+    const { requestStatus } = await load('/src/creative/ai/AiClient.ts');
+    const realFetch = globalThis.fetch;
+    const realRecorder = globalThis.MediaRecorder;
+    const realReader = globalThis.FileReader;
+    const nav = globalThis.navigator ?? {};
+    if (!globalThis.navigator) Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true });
+    // The fake microphone: how loud it is, and whether the level meter's audio context ever starts.
+    let level = 0.1;
+    let contextState = 'running';
+    let clipBytes = 4000;
+    let micFailure = null;
+    const micCalls = [];
+    const tracks = [];
+    class FakeAudioContext {
+      constructor() {
+        this.state = contextState;
+      }
+      createAnalyser() {
+        return { fftSize: 1024, getFloatTimeDomainData: (samples) => samples.fill(this.state === 'running' ? level : 0) };
+      }
+      createMediaStreamSource() {
+        return { connect: () => {} };
+      }
+      resume() {
+        return Promise.resolve();
+      }
+      close() {
+        this.state = 'closed';
+        return Promise.resolve();
+      }
+    }
+    class FakeMediaRecorder {
+      static isTypeSupported(type) {
+        return type === 'audio/webm;codecs=opus' || type === 'audio/webm';
+      }
+      constructor(_stream, options) {
+        this.mimeType = options?.mimeType ?? 'audio/webm';
+        this.state = 'inactive';
+      }
+      start() {
+        this.state = 'recording';
+      }
+      stop() {
+        if (this.state === 'inactive') return;
+        this.state = 'inactive';
+        setTimeout(() => {
+          this.ondataavailable?.({ data: new Blob([new Uint8Array(clipBytes).fill(7)], { type: this.mimeType }) });
+          this.onstop?.();
+        }, 0);
+      }
+    }
+    // The fake network: /api/status and /api/transcribe only.
+    let statusReply = { status: 200, body: { ai: true, voice: true } };
+    let transcribeReply = { status: 200, body: { text: 'make it wider' } };
+    const requests = [];
+    globalThis.fetch = async (url, init = {}) => {
+      const path = String(url);
+      requests.push({ path, method: init.method ?? 'GET', body: typeof init.body === 'string' ? JSON.parse(init.body) : null });
+      const reply = path.endsWith('/api/status') ? statusReply : path.endsWith('/api/transcribe') ? transcribeReply : null;
+      if (reply === null) throw new Error(`unexpected request ${path}`);
+      if (reply === 'offline') throw new TypeError('fetch failed');
+      if (reply === 'timeout') throw new DOMException('timed out', 'TimeoutError');
+      if (reply === 'hang') return new Promise((_, reject) => init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
+      return new Response(typeof reply.body === 'string' ? reply.body : JSON.stringify(reply.body), { status: reply.status });
+    };
+    globalThis.MediaRecorder = FakeMediaRecorder;
+    globalThis.FileReader = class {
+      readAsDataURL(blob) {
+        blob.arrayBuffer().then(
+          (buffer) => {
+            this.result = `data:${blob.type};base64,${Buffer.from(buffer).toString('base64')}`;
+            this.onload?.();
+          },
+          () => this.onerror?.(),
+        );
+      }
+    };
+    Object.defineProperty(nav, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: async (constraints) => {
+          micCalls.push(constraints);
+          if (micFailure) throw new DOMException('fake microphone', micFailure);
+          const track = { stopped: false, stop() { this.stopped = true; } };
+          tracks.push(track);
+          return { getTracks: () => [track] };
+        },
+      },
+    });
+    window.isSecureContext = true;
+    window.AudioContext = FakeAudioContext;
+    let clock = 0;
+    Object.defineProperty(performance, 'now', { value: () => clock, configurable: true, writable: true });
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const uploads = () => requests.filter((r) => r.path.endsWith('/api/transcribe'));
+    const onSwitch = new VoiceSwitch(async () => ({ ai: true, voice: true }));
+    await onSwitch.check();
+    /** One tap-talk-stop: `seconds` of recording, with the level meter running for a real moment first. */
+    async function attempt({ seconds = 2.5, reply, voiceSwitch = onSwitch } = {}) {
+      if (reply !== undefined) transcribeReply = reply;
+      requests.length = 0;
+      const voice = new VoiceInput(voiceSwitch);
+      const { words } = await voice.start();
+      await wait(450);
+      clock += seconds * 1000;
+      voice.stop();
+      const result = await words.then((text) => ({ text }), (error) => ({ code: error.code }));
+      return { ...result, uploads: uploads().length, voice };
+    }
+    try {
+      statusReply = { status: 200, body: { ai: true, voice: false } };
+      check(JSON.stringify(await requestStatus()) === '{"ai":true,"voice":false}', 'the status check reads { ai, voice } from /api/status');
+      statusReply = { status: 404, body: {} };
+      check((await requestStatus()) === null, 'no backend on this host (404): null');
+      statusReply = { status: 200, body: '<!doctype html><p>a static page</p>' };
+      check((await requestStatus()) === null, 'a page instead of the API (a static host): null');
+      statusReply = 'offline';
+      const statusError = await requestStatus().then(() => null, (error) => error);
+      check(statusError?.code === 'offline', 'offline: it cannot tell (an error, never "voice off")');
+
+      let asks = 0;
+      let answer = { ai: true, voice: false };
+      let t = 0;
+      const sw = new VoiceSwitch(async () => {
+        asks++;
+        if (answer === 'fail') throw new Error('offline');
+        return answer;
+      }, () => t);
+      check(sw.current === 'unknown', 'the switch is unknown until the server is asked');
+      const [first, second] = await Promise.all([sw.check(), sw.check()]);
+      check(first === 'off' && second === 'off' && asks === 1, 'voice switched off on the server -> off; two checks at once share one request');
+      answer = { ai: true, voice: true };
+      await sw.check();
+      check(sw.current === 'off' && asks === 1, 'a recent answer is remembered (no request within a minute)');
+      t += 61_000;
+      check((await sw.check()) === 'on' && asks === 2, 'after a minute it asks again: on');
+      sw.markOff();
+      check(sw.current === 'off', 'a recording the server refuses turns the switch off');
+      t += 61_000;
+      answer = 'fail';
+      check((await sw.check()) === 'unknown', 'when the server cannot be reached: unknown (a recording may still be tried)');
+      t += 61_000;
+      answer = null;
+      check((await sw.check()) === 'off', 'no backend at all: off');
+
+      statusReply = { status: 200, body: { ai: true, voice: false } };
+      const offSwitch = new VoiceSwitch();
+      await offSwitch.check();
+      micCalls.length = 0;
+      requests.length = 0;
+      const offVoice = new VoiceInput(offSwitch);
+      const refused = await offVoice.start().then(() => null, (error) => error);
+      check(refused instanceof VoiceError && refused.code === 'not-configured' && offVoice.current === 'idle', 'voice switched off: starting is refused with a clear reason, stage stays idle');
+      check(micCalls.length === 0 && uploads().length === 0, '...before the microphone is asked for, and nothing is sent anywhere');
+
+      for (const [name, code] of [['NotAllowedError', 'denied'], ['NotFoundError', 'no-device'], ['NotReadableError', 'busy']]) {
+        micFailure = name;
+        const voice = new VoiceInput(onSwitch);
+        const error = await voice.start().then(() => null, (e) => e);
+        check(error?.code === code && voice.current === 'idle', `microphone ${name} -> "${code}", back to idle`);
+      }
+      micFailure = null;
+
+      micCalls.length = 0;
+      requests.length = 0;
+      tracks.length = 0;
+      transcribeReply = { status: 200, body: { text: '  "Build me a house by the lake."  ', model: 'whisper-large-v3-turbo', provider: 'groq' } };
+      const stages = [];
+      const voice = new VoiceInput(onSwitch);
+      voice.onStage = (stage) => stages.push(stage);
+      const started = await voice.start();
+      const twice = await voice.start().then(() => null, (e) => e);
+      check(twice?.code === 'busy' && micCalls.length === 1, 'a second start while recording is refused (one microphone, no overlapping recordings)');
+      await wait(450);
+      clock += 2500;
+      voice.stop();
+      voice.stop();
+      const text = await started.words;
+      const sent = uploads();
+      check(text === 'Build me a house by the lake.', `the transcript comes back tidied ("${text}")`);
+      check(JSON.stringify(stages) === JSON.stringify(['asking', 'recording', 'processing', 'idle']), `stages: ${stages.join(' > ')}`);
+      check(sent.length === 1 && sent[0].method === 'POST' && sent[0].body.mediaType === 'audio/webm' && Buffer.from(sent[0].body.audio, 'base64').length === 4000, 'one upload (stop pressed twice): the whole clip, as audio/webm (codec parameters dropped)');
+      check(tracks.length === 1 && tracks.every((track) => track.stopped), 'the microphone is released as soon as the recording ends');
+
+      const short = await attempt({ seconds: 0.3 });
+      check(short.code === 'too-short' && short.uploads === 0, 'a tap shorter than 0.7 s: "too short", nothing sent');
+      level = 0.004;
+      const quiet = await attempt();
+      check(quiet.code === 'no-speech' && quiet.uploads === 0, 'a silent recording (the meter hears only quiet): "no speech", nothing sent');
+      level = 0.1;
+      contextState = 'suspended';
+      const deadMeter = await attempt({ reply: { status: 200, body: { text: 'make it wider' } } });
+      check(deadMeter.text === 'make it wider' && deadMeter.uploads === 1, 'a level meter that never started (suspended audio context) does not throw speech away: the transcript decides');
+      contextState = 'running';
+      delete window.AudioContext;
+      const noMeter = await attempt({ reply: { status: 200, body: { text: 'add a balcony' } } });
+      check(noMeter.text === 'add a balcony', 'a browser without a level meter still sends what was said');
+      window.AudioContext = FakeAudioContext;
+      const phantom = await attempt({ reply: { status: 200, body: { text: 'Thank you.' } } });
+      check(phantom.code === 'no-speech', 'a phantom transcript of silence ("Thank you.") is never used as a request');
+      const flip = new VoiceSwitch(async () => ({ ai: true, voice: true }));
+      await flip.check();
+      const disabled = await attempt({ voiceSwitch: flip, reply: { status: 503, body: { error: 'disabled' } } });
+      check(disabled.code === 'not-configured' && flip.current === 'off', 'the server answers "disabled": "switched off", and the switch remembers it');
+      micCalls.length = 0;
+      const again = await new VoiceInput(flip).start().then(() => null, (e) => e);
+      check(again?.code === 'not-configured' && micCalls.length === 0, '...so the next tap does not open the microphone again');
+      check((await attempt({ reply: 'offline' })).code === 'offline', 'no network while sending: "offline"');
+      check((await attempt({ reply: 'timeout' })).code === 'timeout', 'too slow: "timeout"');
+      check((await attempt({ reply: { status: 502, body: { error: 'provider-error' } } })).code === 'provider', 'a provider failure: "something went wrong" (no crash)');
+      check((await attempt({ reply: { status: 429, body: { error: 'rate-limited' } } })).code === 'rate-limited', 'too many requests: "wait a moment"');
+
+      transcribeReply = 'hang';
+      const slow = new VoiceInput(onSwitch);
+      const { words: slowWords } = await slow.start();
+      await wait(450);
+      clock += 2500;
+      slow.stop();
+      await wait(30);
+      check(slow.current === 'processing', 'stopped: waiting for the transcript');
+      slow.cancel();
+      const cancelled = await slowWords.then(() => null, (e) => e.code);
+      check(cancelled === 'cancelled' && slow.current === 'idle', 'cancel while the transcript is on its way: nothing is used, back to idle');
+    } finally {
+      globalThis.fetch = realFetch;
+      if (realRecorder) globalThis.MediaRecorder = realRecorder;
+      else delete globalThis.MediaRecorder;
+      if (realReader) globalThis.FileReader = realReader;
+      else delete globalThis.FileReader;
+      delete nav.mediaDevices;
+      delete window.AudioContext;
+      delete window.isSecureContext;
+      delete performance.now;
+    }
+  }
+
   // ------------------------------------------------------------------ 2
   section('2. Offline helper (deterministic fallback)');
   {

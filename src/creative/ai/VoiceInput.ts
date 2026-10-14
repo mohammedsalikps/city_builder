@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { AiServiceError, requestTranscript } from './AiClient';
+import { AiServiceError, requestStatus, requestTranscript, type ServiceStatus } from './AiClient';
 
 /**
  * Tap-to-talk for the AI builder, recorded in the browser and transcribed
@@ -11,6 +11,10 @@ import { AiServiceError, requestTranscript } from './AiClient';
  * Every way it can go wrong ends in a VoiceError with a specific code, so
  * the UI can say what happened and what to do; it never pretends to have
  * heard something. Typing always remains available.
+ *
+ * Before the microphone is opened, VoiceSwitch asks the backend whether
+ * voice is switched on at all (GET /api/status): when it is off the child is
+ * told so straight away, and nothing is recorded or sent.
  *
  *   idle -> asking (permission) -> recording -> processing -> words
  *                                      \-> cancel / too short / silence
@@ -105,6 +109,62 @@ const PHANTOM_TRANSCRIPTS = new Set([
   'subtitles by the amaraorg community',
 ]);
 
+export type VoiceAvailability = 'on' | 'off' | 'unknown';
+
+/** How long an answer from /api/status is trusted before asking again. */
+const STATUS_TTL_MS = 60_000;
+
+/**
+ * Whether the hosted speech-to-text is switched on, as GET /api/status says.
+ * 'off' when the server has voice switched off (EAVARA_VOICE_ENABLED) or no
+ * speech-to-text is configured, or when there is no backend here at all;
+ * 'unknown' while it cannot tell (offline, refused) - then a recording may
+ * still be tried and its own errors are shown. Answers are remembered for a
+ * minute, and two checks at once share one request.
+ */
+export class VoiceSwitch {
+  private state: VoiceAvailability = 'unknown';
+  private checkedAt = Number.NEGATIVE_INFINITY;
+  private pending: Promise<VoiceAvailability> | null = null;
+
+  constructor(
+    private readonly ask: () => Promise<ServiceStatus | null> = requestStatus,
+    private readonly now: () => number = () => Date.now(),
+  ) {}
+
+  get current(): VoiceAvailability {
+    return this.state;
+  }
+
+  /** Ask the server (unless a recent answer is known); resolves with the new state. */
+  check(): Promise<VoiceAvailability> {
+    if (this.pending) return this.pending;
+    if (this.state !== 'unknown' && this.now() - this.checkedAt < STATUS_TTL_MS) return Promise.resolve(this.state);
+    const pending = this.ask().then(
+      (status) => {
+        this.state = status === null || !status.voice ? 'off' : 'on';
+        this.checkedAt = this.now();
+        return this.state;
+      },
+      () => {
+        this.state = 'unknown';
+        return this.state;
+      },
+    );
+    this.pending = pending;
+    void pending.finally(() => {
+      if (this.pending === pending) this.pending = null;
+    });
+    return pending;
+  }
+
+  /** The server refused a recording because voice is switched off: stop offering it (until the next check). */
+  markOff(): void {
+    this.state = 'off';
+    this.checkedAt = this.now();
+  }
+}
+
 export class VoiceInput {
   private stage: VoiceStage = 'idle';
   private recorder: MediaRecorder | null = null;
@@ -116,6 +176,8 @@ export class VoiceInput {
   private chunks: Blob[] = [];
   private startedAt = 0;
   private speechSamples = 0;
+  /** The level meter has heard any sound at all (a suspended or missing meter never does). */
+  private meterLive = false;
   private cancelled = false;
   private finished: ((text: string) => void) | null = null;
   private failed: ((error: VoiceError) => void) | null = null;
@@ -126,6 +188,9 @@ export class VoiceInput {
   onTick: ((seconds: number, level: number) => void) | null = null;
   /** Told when the time limit ends a recording by itself. */
   onAutoStop: (() => void) | null = null;
+
+  /** `availability`: when it says voice is switched off, `start` refuses before the microphone is opened. */
+  constructor(private readonly availability: VoiceSwitch | null = null) {}
 
   get current(): VoiceStage {
     return this.stage;
@@ -141,6 +206,8 @@ export class VoiceInput {
     if (this.stage !== 'idle') throw new VoiceError('busy');
     const support = voiceSupport();
     if (!support.ok) throw new VoiceError(support.code);
+    // Switched off on the server: say so now - never record (or ask for the microphone) for nothing.
+    if (this.availability?.current === 'off') throw new VoiceError('not-configured');
     this.cancelled = false;
     this.setStage('asking');
     let stream: MediaStream;
@@ -170,6 +237,7 @@ export class VoiceInput {
     this.recorder = recorder;
     this.chunks = [];
     this.speechSamples = 0;
+    this.meterLive = false;
     const words = new Promise<string>((resolve, reject) => {
       this.finished = resolve;
       this.failed = reject;
@@ -204,7 +272,8 @@ export class VoiceInput {
 
   private async finish(mediaType: string): Promise<void> {
     const seconds = (performance.now() - this.startedAt) / 1000;
-    const heard = this.speechSamples >= SPEECH_SAMPLES;
+    // A meter that never heard any sound (missing, or its audio context never started) cannot judge silence: let the transcript decide.
+    const heard = this.speechSamples >= SPEECH_SAMPLES || !this.meterLive;
     const blob = new Blob(this.chunks, { type: mediaType.split(';')[0] });
     this.chunks = [];
     this.release();
@@ -222,7 +291,10 @@ export class VoiceInput {
       this.reset();
       finished?.(text);
     } catch (error) {
-      this.fail(this.cancelled ? 'cancelled' : serviceProblem(error));
+      const code = this.cancelled ? 'cancelled' : serviceProblem(error);
+      // The server has voice switched off: stop offering it until the page asks again.
+      if (code === 'not-configured') this.availability?.markOff();
+      this.fail(code);
     }
   }
 
@@ -247,6 +319,8 @@ export class VoiceInput {
       if (!Context) return;
       const audio = new Context();
       this.audio = audio;
+      // Created after the permission prompt, a context can start suspended (it would then hear only silence).
+      if (audio.state === 'suspended') void audio.resume().catch(() => {});
       const analyser = audio.createAnalyser();
       analyser.fftSize = 1024;
       audio.createMediaStreamSource(stream).connect(analyser);
@@ -256,6 +330,7 @@ export class VoiceInput {
         let sum = 0;
         for (const s of samples) sum += s * s;
         const rms = Math.sqrt(sum / samples.length);
+        if (rms > 0) this.meterLive = true;
         if (rms > SPEECH_LEVEL) this.speechSamples++;
         this.onTick?.((performance.now() - this.startedAt) / 1000, Math.min(1, rms * 12));
       }, 100);

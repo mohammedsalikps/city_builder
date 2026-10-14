@@ -90,6 +90,12 @@ const SPOT_GRID = 0.1;
 const CORNER_PAD = 0.45;
 /** A slight downward look, so the floor and furniture are in view. */
 const VIEW_PITCH = -0.12;
+/** Furniture closer than this (m) along the line of sight fills the view from a standing spot. */
+const VIEW_BLOCK_DISTANCE = 1.2;
+/** Score (m) taken off a standing spot whose view is filled like that. */
+const VIEW_BLOCK_PENALTY = 3;
+/** Step (m) when checking that a straight walk is free all the way. */
+const LINE_STEP = 0.05;
 /** How far in front of the front door the camera returns outside. */
 const EXIT_DISTANCE = 1.5;
 /** Tried distances (m) from a door's centre into the room, and sideways offsets, for a viewpoint just inside it. */
@@ -228,17 +234,32 @@ export function moveWithCollision(
 }
 
 /**
- * Where to stand to look at a room: just inside the door the child would
- * come in by (on a tour from the front door), else a free corner 0.45 m from
- * the walls, else the free floor nearest the centre - always a free spot in
- * the room - looking across it towards the centre (or the far corner when
- * standing in the middle), at eye height, slightly down.
+ * Where to stand to look at a room: of the free spots just inside the door
+ * the child would come in by and in the room's corners (0.45 m from the
+ * walls) that are a straight, free walk from that doorway, the one that
+ * shows the most of the room - the longest sightline across it, and no
+ * furniture filling the view within 1.2 m - else the free floor nearest the
+ * centre. Always a free spot in the room, looking across it towards the
+ * centre (or the far corner when standing in the middle), at eye height,
+ * slightly down.
  */
 export function roomViewpoint(model: WalkModel, room: InteriorRoom): ViewPose {
   const door = entranceOf(model, room);
-  const spot = (door ? doorwaySpot(model, room, door) : null) ?? cornerSpot(model, room) ?? centreSpot(model, room);
-  const centre = room.center;
-  const target = Math.hypot(centre.x - spot.x, centre.z - spot.z) >= 0.8 ? centre : farthestCorner(room.rect, spot);
+  const doorway = door ? doorwaySpot(model, room, door) : null;
+  // Only corners in plain reach of the way in: never one behind furniture, or one that needs a detour to get to.
+  const corners = cornerSpots(model, room).filter((c) => !doorway || clearWalk(model, doorway, c));
+  const candidates = [...(doorway ? [doorway] : []), ...corners];
+  let spot: { x: number; z: number } | null = null;
+  let best = Number.NEGATIVE_INFINITY;
+  for (const candidate of candidates) {
+    const score = viewScore(model, room, candidate);
+    if (score > best + 1e-6) {
+      best = score;
+      spot = candidate;
+    }
+  }
+  spot ??= centreSpot(model, room);
+  const target = lookTarget(room, spot);
   return pose(model, spot, { x: target.x - spot.x, z: target.z - spot.z });
 }
 
@@ -521,8 +542,8 @@ function doorwaySpot(model: WalkModel, room: InteriorRoom, door: WalkDoor): { x:
   return null;
 }
 
-/** The first free corner of the room, 0.45 m from its walls. */
-function cornerSpot(model: WalkModel, room: InteriorRoom): { x: number; z: number } | null {
+/** The free corners of the room, 0.45 m from its walls. */
+function cornerSpots(model: WalkModel, room: InteriorRoom): Array<{ x: number; z: number }> {
   const r = room.rect;
   const corners = [
     { x: r.minX + CORNER_PAD, z: r.minZ + CORNER_PAD },
@@ -530,7 +551,62 @@ function cornerSpot(model: WalkModel, room: InteriorRoom): { x: number; z: numbe
     { x: r.minX + CORNER_PAD, z: r.maxZ - CORNER_PAD },
     { x: r.maxX - CORNER_PAD, z: r.maxZ - CORNER_PAD },
   ].map((c) => ({ x: tidy(c.x), z: tidy(c.z) }));
-  return corners.find((c) => contains(r, c.x, c.z) && isFree(model, c)) ?? null;
+  return corners.filter((c) => contains(r, c.x, c.z) && isFree(model, c));
+}
+
+/** A straight walk from `a` to `b` touches nothing (checked every 5 cm). */
+function clearWalk(model: WalkModel, a: { x: number; z: number }, b: { x: number; z: number }): boolean {
+  const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / LINE_STEP));
+  for (let k = 0; k <= steps; k++) {
+    const t = k / steps;
+    if (!isFree(model, { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t })) return false;
+  }
+  return true;
+}
+
+/** Where a viewpoint at `spot` looks: the room's centre, or its far corner when standing in the middle. */
+function lookTarget(room: InteriorRoom, spot: { x: number; z: number }): { x: number; z: number } {
+  const centre = room.center;
+  return Math.hypot(centre.x - spot.x, centre.z - spot.z) >= 0.8 ? centre : farthestCorner(room.rect, spot);
+}
+
+/**
+ * How much of the room a standing spot shows: its longest sightline across
+ * the room (to the far corner), less a penalty when furniture stands within
+ * 1.2 m on the line it looks along (a bed or a wardrobe would fill the view).
+ */
+function viewScore(model: WalkModel, room: InteriorRoom, spot: { x: number; z: number }): number {
+  const far = farthestCorner(room.rect, spot);
+  const reach = Math.hypot(far.x - spot.x, far.z - spot.z);
+  const target = lookTarget(room, spot);
+  const length = Math.hypot(target.x - spot.x, target.z - spot.z);
+  if (length < EPS) return reach;
+  const ahead = { x: spot.x + ((target.x - spot.x) / length) * VIEW_BLOCK_DISTANCE, z: spot.z + ((target.z - spot.z) / length) * VIEW_BLOCK_DISTANCE };
+  const filled = model.furniture.some((box) => segmentHitsBox(spot, ahead, box));
+  return reach - (filled ? VIEW_BLOCK_PENALTY : 0);
+}
+
+/** Whether the segment a-b passes through the box (touching counts). */
+function segmentHitsBox(a: { x: number; z: number }, b: { x: number; z: number }, box: Box2): boolean {
+  let t0 = 0;
+  let t1 = 1;
+  const axes: Array<[number, number, number, number]> = [
+    [a.x, b.x - a.x, box.minX, box.maxX],
+    [a.z, b.z - a.z, box.minZ, box.maxZ],
+  ];
+  for (const [start, delta, min, max] of axes) {
+    if (Math.abs(delta) < EPS) {
+      if (start < min || start > max) return false;
+      continue;
+    }
+    let u0 = (min - start) / delta;
+    let u1 = (max - start) / delta;
+    if (u0 > u1) [u0, u1] = [u1, u0];
+    t0 = Math.max(t0, u0);
+    t1 = Math.min(t1, u1);
+    if (t0 > t1) return false;
+  }
+  return true;
 }
 
 /** The room's centre when free, else the free grid point nearest it, else the centre anyway. */

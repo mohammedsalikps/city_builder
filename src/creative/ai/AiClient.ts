@@ -10,6 +10,8 @@ const API_BASE = String(import.meta.env.VITE_EAVARA_API_BASE ?? '').replace(/\/$
 /** Claude thinks before answering; the server allows ~25 s plus one retry. */
 const INTERPRET_TIMEOUT_MS = 55_000;
 const TRANSCRIBE_TIMEOUT_MS = 30_000;
+/** /api/status answers at once; past this the check counts as "can't tell". */
+const STATUS_TIMEOUT_MS = 8_000;
 
 export class AiServiceError extends Error {
   constructor(
@@ -48,6 +50,43 @@ export async function requestTranscript(audio: Blob, signal?: AbortSignal): Prom
   const text = (body as { text?: unknown }).text;
   if (typeof text !== 'string') throw new AiServiceError('bad-response');
   return text;
+}
+
+/** What the backend says can be used right now (GET /api/status). */
+export interface ServiceStatus {
+  ai: boolean;
+  voice: boolean;
+}
+
+/**
+ * Ask the backend whether the AI builder and voice are switched on. Null when
+ * this host has no backend at all (a static copy of the game: a 404, or a page
+ * instead of an answer). Throws an AiServiceError when it cannot tell
+ * (offline, timed out, refused, rate-limited).
+ */
+export async function requestStatus(): Promise<ServiceStatus | null> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(STATUS_TIMEOUT_MS) });
+  } catch (error) {
+    const name = error instanceof Error ? error.name : '';
+    throw new AiServiceError(name === 'TimeoutError' || name === 'AbortError' ? 'timeout' : 'offline');
+  }
+  if (response.status === 404) return null;
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    // not JSON: a page from a static host, not the API
+  }
+  if (!response.ok) {
+    const code = (body as { error?: unknown } | null)?.error;
+    throw new AiServiceError(typeof code === 'string' ? code : `http-${response.status}`);
+  }
+  if (body === null || typeof body !== 'object') return null;
+  const { ai, voice } = body as { ai?: unknown; voice?: unknown };
+  if (typeof ai !== 'boolean' || typeof voice !== 'boolean') throw new AiServiceError('bad-response');
+  return { ai, voice };
 }
 
 async function post(path: string, payload: unknown, timeoutMs: number, cancel?: AbortSignal): Promise<unknown> {

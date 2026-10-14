@@ -2,7 +2,7 @@ import { el, type ScreenContext } from '../Screen';
 import type { GameState } from '@/state/GameState';
 import { BUILD_GOALS, type AssistantTurn, type BuildGoal } from '@/creative/ai/BuildAssistant';
 import { designTip, type DesignTip } from '@/creative/ai/DesignTips';
-import { MAX_SECONDS, microphonePermission, VoiceError, VoiceInput, voiceSupport, type VoiceProblem, type VoiceStage } from '@/creative/ai/VoiceInput';
+import { MAX_SECONDS, microphonePermission, VoiceError, VoiceInput, VoiceSwitch, voiceSupport, type VoiceProblem, type VoiceStage } from '@/creative/ai/VoiceInput';
 import { KIND_NAMES, type ConstructionPlan } from '@/creative/plan/ConstructionPlan';
 import { icon } from './icons';
 import { setShown } from './dom';
@@ -99,9 +99,17 @@ const VOICE_PROBLEMS: Record<Exclude<VoiceProblem, 'cancelled'>, { text: string;
   offline: { text: 'You seem to be offline. Check the internet, then try again.', retry: true },
   timeout: { text: 'Listening took too long. Let\'s try again.', retry: true },
   'rate-limited': { text: 'Lots of builders are talking to me right now. Wait a moment, then try again.', retry: true },
-  'not-configured': { text: "Talking isn't switched on yet. Please type instead.", retry: false },
+  'not-configured': { text: "Talking is switched off right now, so I can't listen. Please type your idea instead.", retry: false },
   provider: { text: 'Something went wrong while I was listening. Try again, or type.', retry: true },
 };
+
+/** The microphone button and the line under the box while voice is switched off on the server. */
+const VOICE_OFF_LABEL = 'Talking is switched off - please type';
+const VOICE_OFF_HINT = 'Talking to EAVARA is switched off here, so the microphone stays off. Type your idea instead.';
+const MIC_BLOCKED_HINT = 'The microphone is blocked for this site. Allow it from the lock icon next to the web address - or type.';
+
+/** One answer from /api/status for the whole page: every panel (World Studio builds a new one each time) shares it. */
+const sharedVoiceSwitch = new VoiceSwitch();
 
 interface SayOptions {
   source?: AssistantTurn['source'];
@@ -147,7 +155,13 @@ export class AiBuilderPanel {
   private readonly input: HTMLTextAreaElement;
   private readonly micButton: HTMLButtonElement;
   private readonly sendButton: HTMLButtonElement;
-  private readonly voice = new VoiceInput();
+  /** Whether the server has voice switched on - asked before the microphone is ever opened. */
+  private readonly voiceSwitch = sharedVoiceSwitch;
+  private readonly voice = new VoiceInput(this.voiceSwitch);
+  /** A tap on the microphone is being checked or started: another tap waits (no overlapping recordings). */
+  private voiceStarting = false;
+  /** The microphone permission as last read without prompting. */
+  private micPermission: 'granted' | 'denied' | 'prompt' | 'unknown' = 'unknown';
   private readonly disposers: Array<() => void> = [];
   private open = false;
   private busy = false;
@@ -373,7 +387,7 @@ export class AiBuilderPanel {
     if (changed) this.onOpenChange?.(open);
     if (open) {
       this.refresh();
-      void this.checkMicrophone();
+      void this.checkVoice();
       if (!this.busy && this.voice.current === 'idle') setTimeout(() => this.input.focus(), 50);
     } else if (this.voice.current !== 'idle') {
       this.voice.cancel();
@@ -524,12 +538,21 @@ export class AiBuilderPanel {
       this.voice.stop();
       return;
     }
-    if (stage !== 'idle' || this.busy) return;
+    if (stage !== 'idle' || this.busy || this.voiceStarting) return;
+    this.voiceStarting = true;
     try {
+      // Ask the server first (quick, and remembered for a minute): when voice is switched off the microphone is never opened.
+      if (voiceSupport().ok && this.voiceSwitch.current !== 'on') {
+        await this.voiceSwitch.check();
+        this.showVoiceAvailability();
+      }
+      if (this.voice.current !== 'idle' || this.busy) return;
       const { words } = await this.voice.start();
       words.then((text) => this.heard(text)).catch((error: unknown) => this.voiceProblem(error));
     } catch (error) {
       this.voiceProblem(error);
+    } finally {
+      this.voiceStarting = false;
     }
   }
 
@@ -547,8 +570,14 @@ export class AiBuilderPanel {
     if (!(error instanceof VoiceError)) console.warn('[ai] voice failed', error);
     else console.info(`[ai] voice: ${code}`);
     if (code === 'cancelled') return;
-    this.showError();
     const problem = VOICE_PROBLEMS[code];
+    if (code === 'not-configured') {
+      // Switched off is a setting, not a mistake: no "try again" look, and no repeat of what EAVARA just said.
+      this.showVoiceAvailability();
+      if (this.log.lastElementChild?.textContent !== problem.text) this.say('eavara', problem.text);
+      return;
+    }
+    this.showError();
     this.say('eavara', problem.text, problem.retry ? { retry: () => void this.toggleVoice() } : {});
     if (code === 'denied') void this.checkMicrophone();
   }
@@ -569,15 +598,48 @@ export class AiBuilderPanel {
     else if (stage === 'recording') this.voiceLabel.textContent = `Listening ${formatSeconds(0)}`;
     else if (stage === 'processing') this.voiceLabel.textContent = 'Writing down what you said...';
     if (stage !== 'recording') this.avatar.style.removeProperty('--voice-level');
+    this.showVoiceAvailability();
     this.applyMood();
   }
 
-  /** Say up front when the browser has blocked the microphone, instead of failing on the first tap. */
+  /**
+   * Say up front when talking cannot work here - voice switched off on the
+   * server, or the microphone blocked - instead of finding out after a recording.
+   */
+  private async checkVoice(): Promise<void> {
+    if (!voiceSupport().ok) return;
+    await Promise.all([this.voiceSwitch.check(), this.checkMicrophone()]);
+    this.showVoiceAvailability();
+  }
+
+  /** The microphone permission as far as the browser says without prompting. */
   private async checkMicrophone(): Promise<void> {
     if (!voiceSupport().ok) return;
-    const permission = await microphonePermission();
-    this.micHint.hidden = permission !== 'denied';
-    if (permission === 'denied') this.micHint.textContent = 'The microphone is blocked for this site. Allow it from the lock icon next to the web address - or type.';
+    this.micPermission = await microphonePermission();
+    this.renderMicHint();
+  }
+
+  /** While voice is switched off the microphone button says so (it stays tappable, to explain) - it never pretends to listen. */
+  private showVoiceAvailability(): void {
+    if (!voiceSupport().ok) return;
+    const off = this.voiceSwitch.current === 'off';
+    this.micButton.classList.toggle('st-ai__mic--off', off);
+    if (off) this.micButton.setAttribute('aria-disabled', 'true');
+    else this.micButton.removeAttribute('aria-disabled');
+    if (this.voice.current === 'idle') {
+      this.micButton.setAttribute('aria-label', off ? VOICE_OFF_LABEL : 'Talk to EAVARA');
+      this.micButton.title = off ? VOICE_OFF_LABEL : '';
+    }
+    this.renderMicHint();
+  }
+
+  /** One line under the box: voice switched off, else the microphone blocked, else nothing. */
+  private renderMicHint(): void {
+    const off = this.voiceSwitch.current === 'off';
+    const blocked = this.micPermission === 'denied';
+    this.micHint.hidden = !off && !blocked;
+    this.micHint.textContent = off ? VOICE_OFF_HINT : blocked ? MIC_BLOCKED_HINT : '';
+    this.micHint.classList.toggle('st-ai__hint--off', off);
   }
 
   // ------------------------------------------------------------ helpers
