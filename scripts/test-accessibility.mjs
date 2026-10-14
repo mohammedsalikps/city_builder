@@ -112,6 +112,13 @@ try {
     check(/button:focus-visible,[\s\S]*?outline: 3px solid/.test(css), 'keyboard focus is always visible (a 3 px outline)');
   }
 
+  section('Interior: the fade over a room cut never takes a tap');
+  {
+    const interiorCss = readFileSync(`${root}src/ui/interior/interior.css`, 'utf8');
+    // `.screen > *` and `.studio > *` switch pointer events back on for every child of a screen: the veil's rule must outrank them.
+    check(/\.screen\.interior\s*>\s*\.in-veil\s*\{[^}]*pointer-events:\s*none/.test(interiorCss), 'the fade over a room cut lets every tap and drag through (its rule outranks `.screen > *` and `.studio > *`)');
+  }
+
   section('Reduced motion: camera glides become jumps, the menu orbit stops');
   {
     const { CameraController } = await load('/src/world/CameraController.ts');

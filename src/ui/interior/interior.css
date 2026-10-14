@@ -20,8 +20,12 @@
   inset: 0;
 }
 
-/* A short fade over each cut of the walker (on the way in, to a chosen room): the view never glides through walls. */
-.in-veil {
+/*
+ * A short fade over each cut of the walker (on the way in, to a chosen room): the view never glides through walls.
+ * It must never take a tap or a drag: `.screen > *` and `.studio > *` switch pointer events back on for every
+ * child of a screen, so this selector has to outrank them.
+ */
+.screen.interior > .in-veil {
   position: absolute;
   inset: 0;
   z-index: 1;
