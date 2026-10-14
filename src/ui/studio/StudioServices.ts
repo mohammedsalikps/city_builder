@@ -1,6 +1,9 @@
 import type { StudioCatalog } from '@/creative/Studio';
 import type { ThumbnailRenderer } from '@/creative/ThumbnailRenderer';
 import type { HistoryService } from '@/creative/HistoryService';
+import type { BuildAssistant } from '@/creative/ai/BuildAssistant';
+import type { InteriorExplorer } from '@/game/InteriorExplorer';
+import type { PlanKind } from '@/creative/plan/ConstructionPlan';
 import type { PlacedObject } from '@/construction/PlacedObject';
 import type { DistrictDefinition, WorldLake } from '@/world/WorldSpace';
 
@@ -52,6 +55,18 @@ export interface StudioServices {
   catalog: StudioCatalog;
   thumbnails: ThumbnailRenderer;
   history: HistoryService;
+  /** EAVARA's AI builder conversation (see src/creative/ai). */
+  assistant: BuildAssistant;
+  /** Interior Explorer: going inside planned houses, rooms, furniture (see src/game/InteriorExplorer.ts). */
+  interior: InteriorExplorer;
+  /** What a planned creation really is (kind and name), for honest creation cards; null when it was not planned. */
+  plannedCreation(groupId: string): { kind: PlanKind; name: string } | null;
+  /** For a neighbourhood being worked on: how many houses it has and the one picked to change (null: the whole street). */
+  houseChoice(): { groupId: string; houses: number; picked: number | null } | null;
+  /** Pick one house of a neighbourhood to change (null: the whole street); a picked house is selected in the world so it shows. */
+  pickHouse(groupId: string, index: number | null): void;
+  /** Which house of a planned neighbourhood a placed piece belongs to (0-based), or null. */
+  houseOf(instanceId: string): number | null;
   /** Place the template ghost at its current spot ("Place here"). */
   confirmTemplate(): boolean;
   /** Whether every piece of the template ghost fits where it is now. */
@@ -77,4 +92,7 @@ export interface StudioServices {
   flyTo(x: number, z: number): void;
   /** Travel to a whole district. */
   flyToDistrict(id: string): void;
+  /** See-through roofs so the rooms inside show (presentation only). */
+  setPeekInside(on: boolean): void;
+  isPeekingInside(): boolean;
 }

@@ -871,6 +871,54 @@
     }
   },
   {
+    "id": "tree_round",
+    "name": "Round Tree",
+    "category": "nature",
+    "type": "tree",
+    "shape": "tree",
+    "dimensions": {
+      "width": 1.4,
+      "height": 2.9,
+      "depth": 1.4
+    },
+    "material": "wood",
+    "color": "#5ba14a",
+    "colors": {
+      "trunk": "#6b4a2b"
+    },
+    "unlock": {
+      "type": "rank",
+      "rank": 4
+    },
+    "cost": {
+      "coins": 10
+    },
+    "reward": {
+      "xpOnFirstUse": 5
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 320,
+      "tags": [
+        "garden",
+        "park",
+        "forest",
+        "plant"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Plants grow on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_sub_tree_small",
+      "fit": "height"
+    }
+  },
+  {
     "id": "bush_round",
     "name": "Bush",
     "category": "nature",
@@ -2739,6 +2787,725 @@
           "top"
         ],
         "hint": "Roofs need walls or a floor underneath"
+      }
+    }
+  },
+  {
+    "id": "furniture_wardrobe",
+    "name": "Wardrobe",
+    "category": "furniture",
+    "type": "wardrobe",
+    "shape": "wardrobe",
+    "dimensions": {
+      "width": 1.2,
+      "height": 2,
+      "depth": 0.6
+    },
+    "material": "timber",
+    "color": "#8a5a3b",
+    "colors": {
+      "door": "#a8714b"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "wardrobe",
+        "bedroom",
+        "storage",
+        "studio-only"
+      ]
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "kitchen_counter",
+    "name": "Kitchen Counter",
+    "category": "furniture",
+    "type": "counter",
+    "shape": "counter",
+    "dimensions": {
+      "width": 2,
+      "height": 0.9,
+      "depth": 0.6
+    },
+    "material": "timber",
+    "color": "#d8d2c4",
+    "colors": {
+      "door": "#f4f1ea",
+      "top": "#6b6f75"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 60,
+      "tags": [
+        "kitchen",
+        "counter",
+        "cooking",
+        "studio-only"
+      ]
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "bath_tub",
+    "name": "Bathtub",
+    "category": "furniture",
+    "type": "bathtub",
+    "shape": "bathtub",
+    "dimensions": {
+      "width": 1.7,
+      "height": 0.55,
+      "depth": 0.75
+    },
+    "material": "ceramic",
+    "color": "#f4f4f2",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "bathroom",
+        "bath",
+        "studio-only"
+      ]
+    },
+    "distinctOrientations": 2
+  },
+  {
+    "id": "bath_toilet",
+    "name": "Toilet",
+    "category": "furniture",
+    "type": "toilet",
+    "shape": "toilet",
+    "dimensions": {
+      "width": 0.4,
+      "height": 0.8,
+      "depth": 0.65
+    },
+    "material": "ceramic",
+    "color": "#f4f4f2",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "bathroom",
+        "toilet",
+        "studio-only"
+      ]
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "bath_basin",
+    "name": "Washbasin",
+    "category": "furniture",
+    "type": "basin",
+    "shape": "basin",
+    "dimensions": {
+      "width": 0.6,
+      "height": 0.9,
+      "depth": 0.45
+    },
+    "material": "ceramic",
+    "color": "#f4f4f2",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "bathroom",
+        "sink",
+        "studio-only"
+      ]
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "decor_potted_plant",
+    "name": "Potted Plant",
+    "category": "furniture",
+    "type": "plant",
+    "shape": "bush",
+    "dimensions": {
+      "width": 0.42,
+      "height": 1.31,
+      "depth": 0.48
+    },
+    "material": "ceramic",
+    "color": "#4f9a4a",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "plant",
+        "decoration",
+        "indoor",
+        "studio-only"
+      ]
+    },
+    "visual": {
+      "asset": "kenney_furn_potted_plant",
+      "fit": "contain"
+    }
+  },
+  {
+    "id": "garden_flowerbed",
+    "name": "Flower Bed",
+    "category": "nature",
+    "type": "flowerbed",
+    "shape": "flowerbed",
+    "dimensions": {
+      "width": 2,
+      "height": 0.4,
+      "depth": 1
+    },
+    "material": "timber",
+    "color": "#8b5e3c",
+    "colors": {
+      "soil": "#5b3d27",
+      "flowerA": "#f06292",
+      "flowerB": "#ffd54f",
+      "flowerC": "#ba68c8"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "garden",
+        "park",
+        "flowers",
+        "plant",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Plants grow on the ground"
+      }
+    },
+    "distinctOrientations": 2
+  },
+  {
+    "id": "path_stones",
+    "name": "Stepping Stones",
+    "category": "roads",
+    "type": "path",
+    "shape": "box",
+    "dimensions": {
+      "width": 1,
+      "height": 0.07,
+      "depth": 2.8
+    },
+    "material": "stone",
+    "color": "#b9b4a8",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "garden",
+        "path",
+        "park",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Paths are laid on the ground"
+      }
+    },
+    "distinctOrientations": 2,
+    "visual": {
+      "asset": "kenney_sub_path_stones",
+      "fit": "stretch"
+    }
+  },
+  {
+    "id": "decor_bin",
+    "name": "Litter Bin",
+    "category": "decoration",
+    "type": "bin",
+    "shape": "cylinder",
+    "dimensions": {
+      "width": 0.42,
+      "height": 0.86,
+      "depth": 0.47
+    },
+    "material": "metal",
+    "color": "#4b6e4b",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "park",
+        "street",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Bins stand on the ground"
+      }
+    },
+    "visual": {
+      "asset": "kenney_furn_trashcan",
+      "fit": "contain"
+    }
+  },
+  {
+    "id": "play_slide",
+    "name": "Slide",
+    "category": "decoration",
+    "type": "slide",
+    "shape": "slide",
+    "dimensions": {
+      "width": 0.8,
+      "height": 2,
+      "depth": 3.2
+    },
+    "material": "plastic",
+    "color": "#f2c14e",
+    "colors": {
+      "frame": "#3d7cc9"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "playground",
+        "park",
+        "play",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Play equipment stands on the ground"
+      }
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "play_swing",
+    "name": "Swing Set",
+    "category": "decoration",
+    "type": "swing",
+    "shape": "swing",
+    "dimensions": {
+      "width": 3,
+      "height": 2.3,
+      "depth": 1.6
+    },
+    "material": "metal",
+    "color": "#2e86c1",
+    "colors": {
+      "frame": "#c0392b",
+      "rope": "#d8cfb8"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "playground",
+        "park",
+        "play",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Play equipment stands on the ground"
+      }
+    },
+    "distinctOrientations": 2
+  },
+  {
+    "id": "play_sandpit",
+    "name": "Sandpit",
+    "category": "decoration",
+    "type": "sandpit",
+    "shape": "sandpit",
+    "dimensions": {
+      "width": 2.4,
+      "height": 0.3,
+      "depth": 2.4
+    },
+    "material": "timber",
+    "color": "#a0703f",
+    "colors": {
+      "sand": "#e8d39a",
+      "bucket": "#e74c3c"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "playground",
+        "park",
+        "play",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Play equipment stands on the ground"
+      }
+    },
+    "distinctOrientations": 1
+  },
+  {
+    "id": "post_wood",
+    "name": "Wooden Post",
+    "category": "structures",
+    "type": "pillar",
+    "shape": "cylinder",
+    "dimensions": {
+      "width": 0.3,
+      "height": 2.4,
+      "depth": 0.3
+    },
+    "material": "timber",
+    "color": "#7a5233",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 60,
+      "tags": [
+        "post",
+        "support",
+        "treehouse",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [
+          "floor",
+          "pillar"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Posts stand on the ground or a floor"
+      }
+    }
+  },
+  {
+    "id": "deck_wood",
+    "name": "Wooden Deck",
+    "category": "structures",
+    "type": "floor",
+    "role": "floor",
+    "shape": "deck",
+    "dimensions": {
+      "width": 2,
+      "height": 0.2,
+      "depth": 2
+    },
+    "material": "timber",
+    "color": "#b07d4f",
+    "colors": {
+      "plank": "#a3724a"
+    },
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": true,
+      "weightKg": 60,
+      "tags": [
+        "floor",
+        "deck",
+        "treehouse",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "wall",
+          "floor",
+          "pillar",
+          "beam"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Decks go on the ground or on posts"
+      }
+    }
+  },
+  {
+    "id": "railing_wood",
+    "name": "Railing",
+    "category": "structures",
+    "type": "fence",
+    "shape": "fence",
+    "dimensions": {
+      "width": 2,
+      "height": 1,
+      "depth": 0.1
+    },
+    "material": "timber",
+    "color": "#9c6b43",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "railing",
+        "safety",
+        "treehouse",
+        "studio-only"
+      ]
+    },
+    "distinctOrientations": 2,
+    "placement": {
+      "horizontalSnap": "footprint",
+      "snapDivisions": 1,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor",
+          "fence"
+        ],
+        "surfaces": [
+          "top",
+          "side"
+        ],
+        "hint": "Railings stand on a floor or the ground"
+      }
+    }
+  },
+  {
+    "id": "ladder_wood",
+    "name": "Ladder",
+    "category": "structures",
+    "type": "ladder",
+    "shape": "ladder",
+    "dimensions": {
+      "width": 0.7,
+      "height": 3.5,
+      "depth": 0.7
+    },
+    "material": "timber",
+    "color": "#8b5e3c",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "ladder",
+        "access",
+        "treehouse",
+        "studio-only"
+      ]
+    },
+    "placement": {
+      "support": {
+        "ground": true,
+        "types": [],
+        "hint": "Ladders stand on the ground"
+      }
+    },
+    "distinctOrientations": 4
+  },
+  {
+    "id": "stairs_wood",
+    "name": "Wooden Stairs",
+    "category": "structures",
+    "type": "stairs",
+    "shape": "stairs",
+    "dimensions": {
+      "width": 1,
+      "height": 2.6,
+      "depth": 3.6
+    },
+    "material": "timber",
+    "color": "#9c6b43",
+    "unlock": {
+      "type": "none"
+    },
+    "cost": {
+      "coins": 15
+    },
+    "reward": {
+      "xpOnFirstUse": 10
+    },
+    "gameplay": {
+      "stackable": false,
+      "weightKg": 60,
+      "tags": [
+        "stairs",
+        "access",
+        "treehouse",
+        "studio-only"
+      ]
+    },
+    "distinctOrientations": 4,
+    "placement": {
+      "horizontalSnap": 0.25,
+      "support": {
+        "ground": true,
+        "types": [
+          "floor"
+        ],
+        "surfaces": [
+          "top"
+        ],
+        "hint": "Stairs stand on the ground or a floor"
       }
     }
   }

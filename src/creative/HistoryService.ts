@@ -50,6 +50,12 @@ export class HistoryService {
     return this.redoStack.length > 0;
   }
 
+  /** Drop every earlier version (deleting everything on this device): nothing can be undone back into existence. */
+  clear(): void {
+    const state = this.store.getState();
+    this.reset(this.isFreeBuild(state) ? state.placedObjects : null);
+  }
+
   /** Notified whenever canUndo/canRedo may have changed. */
   onChange(listener: () => void): () => void {
     this.listeners.add(listener);

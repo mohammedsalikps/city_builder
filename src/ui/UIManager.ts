@@ -8,6 +8,8 @@ import { ToolbarScreen } from './screens/ToolbarScreen';
 import { ChallengePanelScreen } from './screens/ChallengePanelScreen';
 import { WorldMapScreen } from './screens/WorldMapScreen';
 import { StudioScreen } from './screens/StudioScreen';
+import { InteriorScreen } from './screens/InteriorScreen';
+import { RealWorldLoaderScreen } from './screens/RealWorldLoaderScreen';
 import './styles.css';
 import './studio/studio.css';
 
@@ -30,6 +32,7 @@ export class UIManager {
     'world-map': ['world-map'],
     playing: ['hud', 'toolbar', 'challenge'],
     paused: ['hud', 'toolbar', 'challenge'],
+    realworld: ['realworld'],
   };
 
   /** My World is its own experience (World Studio); Challenge Mode keeps the level HUD. */
@@ -66,6 +69,8 @@ export class UIManager {
       new ChallengePanelScreen(context),
       new WorldMapScreen(context),
       new StudioScreen(context),
+      new InteriorScreen(context),
+      new RealWorldLoaderScreen(context),
     ];
     return new Map(list.map((screen) => [screen.id, screen]));
   }
@@ -73,6 +78,8 @@ export class UIManager {
   private apply(state: GameState): void {
     const inStudio = (state.mode === 'playing' || state.mode === 'paused') && state.challenge === null;
     const wanted = new Set(inStudio ? UIManager.STUDIO_SCREENS : UIManager.SCREENS_BY_MODE[state.mode] ?? []);
+    // Inside a house, Interior Explorer's screen joins World Studio (the AI helper, undo and the object card stay).
+    if (inStudio && state.interior !== null) wanted.add('interior');
 
     this.screens.forEach((screen, id) => {
       const shouldShow = wanted.has(id);

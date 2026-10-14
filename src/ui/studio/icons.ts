@@ -9,6 +9,7 @@ const PATHS: Record<string, string> = {
   road: '<path d="M8 3 5 21"/><path d="M16 3l3 18"/><path d="M12 4v2.5M12 10.5v3M12 17.5V20"/>',
   tree: '<path d="M12 21v-5"/><path d="M12 3c3.6 0 6 2.8 6 6.2 0 3.3-2.6 5.8-6 5.8s-6-2.5-6-5.8C6 5.8 8.4 3 12 3Z"/><path d="M9.5 21h5"/>',
   leaf: '<path d="M5 19C5 10 10 5 19 5c0 9-5 14-14 14Z"/><path d="M5 19 13 11"/>',
+  treehouse: '<path d="M15 21V11"/><path d="M15 3c2.9 0 5 2.2 5 4.8S17.9 12 15 12s-5-1.6-5-4.2S12.1 3 15 3Z"/><path d="M3.5 14.5 7 12l3.5 2.5"/><path d="M4.5 14v4h5v-4"/><path d="M4.5 18h10.5M6 18v3"/>',
   neighborhood: '<path d="M2.5 12 7 8.5l4.5 3.5"/><path d="M4 11v8h6v-8"/><path d="M12.5 10 17 6.5l4.5 3.5"/><path d="M14 9v10h6V9"/><path d="M16 19v-3h2v3"/>',
   town: '<path d="M3 20V10h5v10"/><path d="M8 20V5h7v15"/><path d="M15 20v-8h6v8"/><path d="M10.5 8h2M10.5 11h2M10.5 14h2"/><path d="M2 20h20"/>',
   map: '<path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/>',
@@ -36,6 +37,10 @@ const PATHS: Record<string, string> = {
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
   remove: '<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="m6 7 1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>',
   sparkle: '<path d="M12 3c.8 4.2 2.8 6.2 7 7-4.2.8-6.2 2.8-7 7-.8-4.2-2.8-6.2-7-7 4.2-.8 6.2-2.8 7-7Z"/><path d="M19 16c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M9 21h6"/>',
+  send: '<path d="M4 12 20 4l-6 16-2.5-6.5Z"/><path d="m11.5 13.5 4-4"/>',
+  stop: '<rect x="7" y="7" width="10" height="10" rx="2.5"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
@@ -50,6 +55,12 @@ const PATHS: Record<string, string> = {
   cloud: '<path d="M7 18a4 4 0 0 1-.6-8A5.5 5.5 0 0 1 17 8.5 4.5 4.5 0 0 1 17 18z"/><path d="m9.5 13.5 2 2 3.5-3.5"/>',
   hand: '<path d="M8 13V6a1.5 1.5 0 0 1 3 0v5M11 11V4.5a1.5 1.5 0 0 1 3 0V11M14 11V6a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6 7-2.5 0-4-1-5.5-3l-2.3-3.4a1.5 1.5 0 0 1 2.4-1.8L8 14"/>',
   star: '<path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.3 7.2 18.9l.9-5.4-3.9-3.8 5.4-.8z"/>',
+  pause: '<rect x="6" y="4.5" width="4.5" height="15" rx="1.5"/><rect x="13.5" y="4.5" width="4.5" height="15" rx="1.5"/>',
+  lock: '<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3"/>',
+  trophy: '<path d="M7 4h10v6a5 5 0 0 1-10 0Z"/><path d="M7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5"/><path d="M12 15v3M8.5 21.5h7l-.8-3.5h-5.4Z"/>',
+  target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z"/>',
+  forward: '<path d="M9 5l7 7-7 7"/>',
 };
 
 /** An inline SVG icon element string. Unknown names render an empty frame rather than throwing. */

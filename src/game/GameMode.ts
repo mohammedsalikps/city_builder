@@ -4,4 +4,4 @@
  *
  * Future modes (e.g. 'free-build', 'challenge') are added here.
  */
-export type GameMode = 'boot' | 'menu' | 'world-map' | 'playing' | 'paused';
+export type GameMode = 'boot' | 'menu' | 'world-map' | 'playing' | 'paused' | 'realworld';

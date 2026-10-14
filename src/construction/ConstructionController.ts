@@ -107,6 +107,17 @@ export class ConstructionController {
     this.placementSeeThrough = source;
   }
 
+  private ignoreClick: (() => boolean) | null = null;
+
+  /**
+   * A click to ignore - e.g. the release of a look-around drag while walking
+   * inside a house (a drag that ends near where it started still arrives as
+   * a click, and must not select whatever is under the pointer).
+   */
+  setClickGuard(guard: (() => boolean) | null): void {
+    this.ignoreClick = guard;
+  }
+
   dispose(): void {
     this.disposers.forEach((d) => d());
     this.disposers.length = 0;
@@ -138,6 +149,7 @@ export class ConstructionController {
   private readonly onClick = (click: PointerClick): void => {
     if (click.button !== 0) return;
     if (this.transform.consumeSuppressClick()) return;
+    if (this.ignoreClick?.()) return;
     const state = this.store.getState();
     if (state.mode !== 'playing' || state.templatePlacement || state.streetDrawing) return;
 
@@ -161,6 +173,8 @@ export class ConstructionController {
   private readonly onKeyDown = (key: KeyPress): void => {
     const state = this.store.getState();
     if (state.mode !== 'playing' || state.templatePlacement || state.streetDrawing) return;
+    // Walking inside a house uses W/A/S/D, Q/E and the arrows to move; the transform shortcuts stand down.
+    if (state.interior?.view === 'walk' && ['KeyR', 'KeyW', 'KeyE', 'KeyS'].includes(key.code)) return;
 
     switch (key.code) {
       case 'KeyR':

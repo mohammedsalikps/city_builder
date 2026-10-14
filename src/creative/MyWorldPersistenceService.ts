@@ -20,6 +20,8 @@ export class MyWorldPersistenceService {
   private unsubscribe: (() => void) | null = null;
   private lastSavedPlacedObjects: GameState['placedObjects'] | null = null;
   private lastSavedIdentity: GameState['myWorld'] | null = null;
+  /** A save is waiting for the end of the current burst of changes. */
+  private saveQueued = false;
 
   constructor(
     private readonly store: GameStore,
@@ -35,6 +37,16 @@ export class MyWorldPersistenceService {
   dispose(): void {
     this.unsubscribe?.();
     this.unsubscribe = null;
+  }
+
+  /**
+   * Let go of the last world it saved (deleting everything on this device).
+   * A save already queued finds the game outside My World and writes
+   * nothing; the next save only happens once the child builds again.
+   */
+  forget(): void {
+    this.lastSavedPlacedObjects = null;
+    this.lastSavedIdentity = null;
   }
 
   private isFreeBuild(state: GameState): boolean {
@@ -61,7 +73,17 @@ export class MyWorldPersistenceService {
     if (state.placedObjects === this.lastSavedPlacedObjects && state.myWorld === this.lastSavedIdentity) return;
     this.lastSavedPlacedObjects = state.placedObjects;
     this.lastSavedIdentity = state.myWorld;
-    if (!state.player) return;
-    this.storage.save({ player: state.player, placedObjects: state.placedObjects, identity: state.myWorld });
+    if (!state.player || this.saveQueued) return;
+    // One save per burst: a creation places its pieces one state update at a
+    // time, all in the same task, so saving the whole world after each piece
+    // (hundreds of times for a neighbourhood) would stall the page. The save
+    // runs straight after the burst, before anything else can happen.
+    this.saveQueued = true;
+    queueMicrotask(() => {
+      this.saveQueued = false;
+      const latest = this.store.getState();
+      if (!this.isFreeBuild(latest) || !latest.player) return;
+      this.storage.save({ player: latest.player, placedObjects: latest.placedObjects, identity: latest.myWorld });
+    });
   }
 }

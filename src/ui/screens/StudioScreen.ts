@@ -1,4 +1,5 @@
 import { Screen, el } from '../Screen';
+import { returnFocusTo } from '../keyboard';
 import { DEFAULT_WORLD_NAME, isPlacementMode, type GameState } from '@/state/GameState';
 import type { CreationDefinition, CreationVariant } from '@/creative/Studio';
 import { icon, iconSvg, ORB_MARK } from '../studio/icons';
@@ -6,6 +7,7 @@ import { actionButton, pillButton, setShown, thumbnail } from '../studio/dom';
 import { ObjectBubble } from '../studio/ObjectBubble';
 import { PiecesDrawer } from '../studio/PiecesDrawer';
 import { StudioMap } from '../studio/StudioMap';
+import { AiBuilderPanel } from '../studio/AiBuilderPanel';
 import type { CameraView } from '../studio/StudioServices';
 
 type MenuState = 'closed' | 'radial' | 'styles' | 'drawer';
@@ -102,6 +104,7 @@ export class StudioScreen extends Screen {
 
   private bubble!: ObjectBubble;
   private drawer!: PiecesDrawer;
+  private ai!: AiBuilderPanel;
 
   protected build(): HTMLElement {
     const root = el('div', 'screen studio');
@@ -137,6 +140,13 @@ export class StudioScreen extends Screen {
 
     root.appendChild(this.buildOrb());
 
+    this.ai = new AiBuilderPanel(this.context, (text) => this.showToast(text));
+    this.ai.onOpenChange = () => {
+      const state = this.latest;
+      if (state) this.updateWelcome(state, state.templatePlacement !== null || state.streetDrawing || isPlacementMode(state));
+    };
+    root.appendChild(this.ai.root);
+
     this.toast = el('div', 'st-toast');
     this.toast.hidden = true;
     root.appendChild(this.toast);
@@ -166,10 +176,13 @@ export class StudioScreen extends Screen {
     this.bubble.update(state, flowActive || this.menu !== 'closed');
     this.drawer.update(state);
     this.map.update(state);
+    this.ai.update(state, flowActive || this.menu !== 'closed');
     this.orb.parentElement!.classList.toggle('st-orb-dock--hidden', flowActive);
     this.orb.classList.toggle('st-orb--invite', state.placedObjects.length === 0 && !flowActive);
     this.updateSuggestions(state);
     this.refreshHistory();
+    // Inside a house the orbit-camera views, the build orb and the map step aside (see interior.css).
+    this.root?.classList.toggle('studio--interior', state.interior !== null);
   }
 
   frame(): void {
@@ -202,6 +215,7 @@ export class StudioScreen extends Screen {
     if (this.toastTimer) clearTimeout(this.toastTimer);
     if (this.savedTimer) clearTimeout(this.savedTimer);
     this.bubble.dispose();
+    this.ai.dispose();
     this.menu = 'closed';
     this.latest = null;
     this.lastObjects = null;
@@ -223,7 +237,10 @@ export class StudioScreen extends Screen {
     home.title = 'Home';
     home.setAttribute('aria-label', 'Back to home');
     home.appendChild(icon('home'));
-    home.addEventListener('click', () => this.context.actions.returnToMenu());
+    home.addEventListener('click', () => {
+      returnFocusTo(this.latest?.challenge ? '.mode-card--challenge' : '.mode-card--sandbox');
+      this.context.actions.returnToMenu();
+    });
     badge.appendChild(home);
 
     const body = el('div', 'st-badge__body');
@@ -245,8 +262,11 @@ export class StudioScreen extends Screen {
       event.stopPropagation();
     });
     this.nameInput.addEventListener('blur', () => this.endRename());
+    // Saving is local only: a tick, not a cloud, so nobody thinks the world was uploaded.
     this.savedMark = el('span', 'st-badge__saved');
-    this.savedMark.appendChild(icon('cloud'));
+    this.savedMark.title = 'Saved on this device';
+    this.savedMark.setAttribute('aria-label', 'Saved on this device');
+    this.savedMark.appendChild(icon('check'));
     this.savedMark.appendChild(el('span', '', 'Saved'));
     nameRow.append(this.nameLabel, this.nameInput, this.savedMark);
     body.appendChild(nameRow);
@@ -662,8 +682,10 @@ export class StudioScreen extends Screen {
     const hasSpot = services.templateHasSpot();
     const fits = services.templateFits();
     this.placementConfirm.disabled = !hasSpot;
+    const pinned = Boolean(this.latest?.templatePlacement?.origin);
     let hint = 'Point at the ground, then tap to place it';
-    if (hasSpot && !fits) hint = 'The red parts will be skipped - move it to fit it all';
+    if (hasSpot && !fits) hint = pinned ? 'The red parts will be skipped - tap the ground to move it' : 'The red parts will be skipped - move it to fit it all';
+    else if (pinned) hint = 'Here is the plan! Place it here, or tap the ground to move it';
     else if (hasSpot) hint = 'Looks great! Tap to place it here';
     if (this.placementHint.textContent !== hint) this.placementHint.textContent = hint;
     this.placementBar.classList.toggle('st-placing--warn', hasSpot && !fits);
@@ -731,7 +753,7 @@ export class StudioScreen extends Screen {
   }
 
   private updateWelcome(state: GameState, flowActive: boolean): void {
-    const show = state.placedObjects.length === 0 && !flowActive && this.menu === 'closed';
+    const show = state.placedObjects.length === 0 && !flowActive && this.menu === 'closed' && !this.ai?.isOpen;
     setShown(this.welcome, show);
     if (!show) return;
     if (document.activeElement !== this.welcomeName) {
@@ -766,7 +788,7 @@ export class StudioScreen extends Screen {
       this.closeMenus();
     } else if (event.code === 'Escape' && this.map.isOpen) {
       this.setMapOpen(false);
-    } else if (event.code === 'KeyM' && !mod) {
+    } else if (event.code === 'KeyM' && !mod && this.latest?.interior == null) {
       this.setMapOpen(!this.map.isOpen);
     }
   };

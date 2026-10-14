@@ -92,6 +92,37 @@ export interface GameState {
   creationFocus: CreationFocus | null;
   /** My World's identity: the child's own name for it and the story they chose. Persisted with the world. */
   myWorld: MyWorldIdentity;
+  /**
+   * Inside a planned house (Interior Explorer): which house was entered and
+   * how it is being viewed. Transient - never persisted and never an undo
+   * step; cleared whenever My World is left. Editing inside the house still
+   * goes through the ordinary placedObjects actions, so undo/redo and save
+   * work exactly as they do outside.
+   */
+  interior: InteriorState | null;
+  /** RealWorld Explorer: the landmark being explored, null for the landmark library. */
+  realWorld: RealWorldState;
+}
+
+/** Which house the child is inside and how they are looking at it. */
+export interface InteriorState {
+  /** Creation group of the planned house (or neighbourhood). */
+  groupId: string;
+  /** House index inside a neighbourhood; null for a single house. */
+  houseIndex: number | null;
+  /** First-person walk, or a dollhouse view from above with the roof and outer walls cut away. */
+  view: InteriorView;
+  /** Room the walker is in or was last sent to (InteriorRoom id, e.g. 'bedroom-2'); null in a corridor or unknown. */
+  roomId: string | null;
+  /** True while a guided tour walks the child from room to room. */
+  touring: boolean;
+}
+
+export type InteriorView = 'walk' | 'dollhouse';
+
+export interface RealWorldState {
+  /** RealLandmark id being explored; null shows the landmark library. */
+  landmarkId: string | null;
 }
 
 /** Which template is being positioned, and at what rotation, before it is placed. */
@@ -102,6 +133,22 @@ export interface TemplatePlacementState {
   label?: string;
   /** Build intent this placement came from, if any (see src/data/studio.json). */
   creationId?: string;
+  /**
+   * A pinned preview: the ghost stays at this spot instead of following the
+   * pointer (a planned creation shown where it was planned). Tapping the
+   * ground moves the pin; only an explicit confirm builds it.
+   */
+  origin?: { x: number; y: number; z: number };
+  /**
+   * This placement is a new version of an existing creation: `replace` is
+   * removed and `carry` (pieces the child edited) moves along from `from`
+   * when it is confirmed. The preview ignores both when checking the fit.
+   */
+  revise?: {
+    replace: string[];
+    carry: string[];
+    from: { origin: { x: number; y: number; z: number }; rotationY: number };
+  };
 }
 
 export interface CreationFocus {

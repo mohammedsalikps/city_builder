@@ -4,6 +4,8 @@ import type { PlacedObject } from '@/construction/PlacedObject';
 import { roleOf, type ConstructionObjectDefinition } from '@/construction/ConstructionObjectDefinition';
 import { transformCapabilitiesOf } from '@/construction/TransformCapabilities';
 import type { ImprovementAction, ImprovementKind } from '@/creative/Studio';
+import { creationCardText } from '@/creative/plan/PlanLayouts';
+import { PAINT_COLOURS } from '@/creative/colours';
 import { icon } from './icons';
 import { actionButton } from './dom';
 
@@ -42,6 +44,10 @@ export class ObjectBubble {
   private readonly improveButton: HTMLButtonElement;
   private readonly copyButton: HTMLButtonElement;
   private readonly removeButton: HTMLButtonElement;
+  private readonly enterButton: HTMLButtonElement;
+  private readonly colourButton: HTMLButtonElement;
+  private readonly swatches: HTMLElement;
+  private colourOpen = false;
   private readonly sizer: HTMLElement;
   private readonly smaller: HTMLButtonElement;
   private readonly bigger: HTMLButtonElement;
@@ -88,7 +94,38 @@ export class ObjectBubble {
       if (!status || !status.valid) this.toast('No room for a copy right here');
     });
     this.removeButton = actionButton('remove', 'Remove', () => this.context.actions.removeSelectedPlacedObject(), 'st-action--danger');
-    actions.append(this.moveButton, this.turnButton, this.sizeButton, this.improveButton, this.copyButton, this.removeButton);
+    // Interior Explorer: go inside the planned house this piece belongs to.
+    this.enterButton = actionButton('door', 'Enter house', () => {
+      const result = this.context.studio.interior.enter();
+      if (!result.ok) this.toast(result.message);
+    }, 'st-action--magic');
+    this.colourButton = actionButton('pencil', 'Colour', () => {
+      this.colourOpen = !this.colourOpen;
+      this.colourButton.classList.toggle('st-action--on', this.colourOpen);
+      this.swatches.hidden = !this.colourOpen;
+    });
+    actions.append(this.enterButton, this.moveButton, this.turnButton, this.sizeButton, this.colourButton, this.improveButton, this.copyButton, this.removeButton);
+
+    // A small fixed palette, plus "as it was".
+    this.swatches = el('div', 'st-bubble__swatches');
+    this.swatches.hidden = true;
+    this.swatches.setAttribute('role', 'group');
+    this.swatches.setAttribute('aria-label', 'Paint colour');
+    for (const colour of PAINT_COLOURS) {
+      const swatch = el('button', 'st-swatch');
+      swatch.type = 'button';
+      swatch.style.background = colour.hex;
+      swatch.title = colour.name;
+      swatch.setAttribute('aria-label', `Paint it ${colour.name}`);
+      swatch.addEventListener('click', () => {
+        if (!this.context.actions.recolorSelectedPlacedObject(colour.hex)) this.toast(`It's already ${colour.name}`);
+      });
+      this.swatches.appendChild(swatch);
+    }
+    const original = el('button', 'st-swatch st-swatch--reset', 'As it was');
+    original.type = 'button';
+    original.addEventListener('click', () => void this.context.actions.recolorSelectedPlacedObject(null));
+    this.swatches.appendChild(original);
 
     this.sizer = el('div', 'st-bubble__sizer');
     this.smaller = el('button', 'st-round st-round--small');
@@ -108,7 +145,7 @@ export class ObjectBubble {
     this.improveRow = el('div', 'st-bubble__improve-row');
     this.improvePanel.append(this.improveTitle, this.improveRow);
 
-    this.root.append(head, actions, this.sizer, this.improvePanel);
+    this.root.append(head, actions, this.sizer, this.swatches, this.improvePanel);
   }
 
   update(state: GameState, suppressed: boolean): void {
@@ -123,6 +160,7 @@ export class ObjectBubble {
     if (selected.id !== this.selectedId) {
       this.selectedId = selected.id;
       this.improveOpen = false;
+      this.colourOpen = false;
     }
     // Something the child just created opens straight onto "Make it yours" - once.
     const focusId = state.creationFocus?.instanceId ?? null;
@@ -140,9 +178,16 @@ export class ObjectBubble {
     this.icon.className = `st-bubble__icon st-kind--${kind}`;
     this.title.textContent = focus?.label ?? catalog.friendlyKindName(definition);
     // A piece of something bigger says so: "Part of your house · 9 pieces".
+    // A planned creation is named by what it really is (a treehouse shares
+    // the "park" group, but it is not a park).
     const group = selected.group ? state.placedObjects.filter((p) => p.group?.id === selected.group!.id).length : 0;
+    const planned = selected.group ? this.context.studio.plannedCreation(selected.group.id) : null;
+    const card = planned ? creationCardText(planned.kind, group) : null;
     const groupName = selected.group ? catalog.creation(selected.group.creation)?.name.toLowerCase() ?? 'creation' : '';
-    this.subtitle.textContent = group > 1 ? `Part of your ${groupName} · ${group} pieces` : '';
+    // One house of a neighbourhood says which one ("House 2 of your neighbourhood").
+    const house = planned?.kind === 'neighborhood' ? this.context.studio.houseOf(selected.id) : null;
+    const subtitle = house !== null ? `House ${house + 1} of your neighbourhood · ${group} pieces` : card?.subtitle;
+    this.subtitle.textContent = group > 1 ? subtitle ?? `Part of your ${groupName} · ${group} pieces` : '';
     this.subtitle.hidden = group <= 1;
 
     const hostsOpenings = state.placedObjects.some((p) => p.hostId === selected.id);
@@ -154,6 +199,11 @@ export class ObjectBubble {
     this.turnButton.classList.toggle('st-action--on', state.transformMode === 'rotate');
     this.sizeButton.classList.toggle('st-action--on', state.transformMode === 'scale');
     this.copyButton.hidden = roleOf(definition) === 'opening';
+    // Furniture and decorations can be painted; walls, floors, roofs, doors and windows keep their look.
+    this.colourButton.hidden = roleOf(definition) !== null;
+    this.colourButton.classList.toggle('st-action--on', this.colourOpen);
+    this.swatches.hidden = !this.colourOpen || roleOf(definition) !== null;
+    this.enterButton.hidden = state.interior !== null || (planned?.kind !== 'house' && planned?.kind !== 'neighborhood');
     this.sizer.hidden = !(caps.scalable && state.transformMode === 'scale');
     this.smaller.disabled = selected.scale.x <= caps.minScale + 1e-6;
     this.bigger.disabled = selected.scale.x >= caps.maxScale - 1e-6;
@@ -162,10 +212,10 @@ export class ObjectBubble {
     this.improveButton.hidden = actions.length === 0;
     this.improveButton.classList.toggle('st-action--on', this.improveOpen);
     this.improvePanel.hidden = !this.improveOpen || actions.length === 0;
-    const key = `${selected.id}:${kind}:${actions.map((a) => a.id).join(',')}`;
+    const key = `${selected.id}:${kind}:${planned?.kind ?? ''}:${actions.map((a) => a.id).join(',')}`;
     if (key !== this.improveKey) {
       this.improveKey = key;
-      this.improveTitle.textContent = catalog.improvements(kind).title;
+      this.improveTitle.textContent = card?.improveTitle ?? catalog.improvements(kind).title;
       this.improveRow.replaceChildren(
         ...actions.map((action) =>
           actionButton(action.icon, action.name, () => this.run(action), 'st-action--tile'),

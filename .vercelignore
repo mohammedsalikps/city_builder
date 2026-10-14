@@ -1,0 +1,10 @@
+/node_modules
+/dist
+/android
+/resources
+/scripts
+*.apk
+*.log
+/.claude
+/.vite
+.env*

@@ -6,13 +6,17 @@ import { roleOf, type ConstructionObjectDefinition } from './ConstructionObjectD
 import { buildWallGeometry, openingRects, openingSignature } from './walls';
 import type { AssetLibrary } from '@/visual/assets/AssetLibrary';
 import { cloneMaterial } from '@/visual/materials/MaterialLibrary';
+import { ConstructionEffects } from './ConstructionEffects';
+import { revealTierOf } from './ConstructionRevealOrder';
+import { motion } from '@/accessibility/motion';
 
 /** Key on `Object3D.userData` that links a mesh back to its PlacedObject. */
 export const INSTANCE_ID_KEY = 'instanceId';
 
 const EDGE_COLOR = 0x1e1a16;
-const SELECTED_EDGE_COLOR = 0xffd54a;
-const INVALID_EDGE_COLOR = 0xff5252;
+/** Shared with the Eavara gizmo (see ObjectTransformController) so the outline, halo and 3D handles agree on one selection/invalid language. */
+export const SELECTED_EDGE_COLOR = 0xffd54a;
+export const INVALID_EDGE_COLOR = 0xff5252;
 const SELECTED_EMISSIVE = 0x5a4300;
 const EDGE_THRESHOLD_DEGREES = 25;
 /** Outline strength on textured objects: a hint of drawing, not a wireframe. */
@@ -23,9 +27,14 @@ const SETTLE_SECONDS = 0.32;
 const FADED_OPACITY = 0.22;
 const FADED_EDGE_OPACITY = 0.45;
 /** Soft ground glow under a selected 3D model (instead of a wireframe box). */
-const HALO_COLOR = 0xffc23d;
-const HALO_INVALID_COLOR = 0xff5a4a;
+export const HALO_COLOR = 0xffc23d;
+export const HALO_INVALID_COLOR = 0xff5a4a;
 const HALO_MARGIN = 0.8;
+
+/** Gap between one reveal wave (foundation, walls, roof...) and the next, during a multi-piece build. */
+const REVEAL_WAVE_SECONDS = 0.13;
+/** Pause after the last wave settles before the final celebration plays. */
+const REVEAL_FINALE_DELAY = 0.22;
 
 /** A rounded, feathered ring painted once into a texture. */
 function createHaloTexture(): THREE.CanvasTexture {
@@ -123,10 +132,13 @@ export class ConstructionRenderer {
    * clone per base material, created once and reused.
    */
   private fadedIds: ReadonlySet<string> = new Set();
+  private passThroughIds: ReadonlySet<string> = new Set();
   private selectedId: string | null = null;
   /** Objects currently playing their placement settle (presentation only). */
   private readonly settling = new Map<string, Settling>();
   private readonly fadedMaterials = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+  /** Painted copies of 3D-model materials, one per (material, colour) - see tintedMaterialFor. */
+  private readonly tintedMaterials = new Map<string, THREE.MeshStandardMaterial>();
   private haloTexture: THREE.CanvasTexture | null = null;
   private halo: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | null = null;
   private haloClock = 0;
@@ -137,16 +149,64 @@ export class ConstructionRenderer {
     depthWrite: false,
   });
 
+  /** The construction celebration's particles/ground ring; see ConstructionEffects. */
+  private readonly effects: ConstructionEffects;
+  /**
+   * Id of the Creation Group currently being placed live by one
+   * `instantiateTemplate` call (see `eavara:creation-start`/`-end`), or null
+   * outside of one. New instances that belong to it are held back from
+   * `sync()`'s normal single-piece celebration and staged instead - see
+   * `beginGroupReveal`. Never set for a restore or undo/redo, which arrive
+   * with no such call in progress.
+   */
+  private liveCreationGroupId: string | null = null;
+  /** Ids created so far for the in-progress live group, in creation order. */
+  private pendingGroupIds: string[] = [];
+  /** One-shot: consumed by the very next `sync()`, suppressing all celebration for it (a restore or undo/redo). */
+  private silentSyncArmed = false;
+  /** Waves of a staged multi-piece reveal in progress; empty when none is. */
+  private revealQueue: Array<{ ids: string[]; startAt: number; fired: boolean }> = [];
+  private revealClock = 0;
+  private revealFinaleAt = 0;
+  private revealFinaleFired = false;
+  private revealCentroid = new THREE.Vector3();
+
+  private readonly onCreationStart = (event: Event): void => {
+    const detail = (event as CustomEvent<{ groupId: string }>).detail;
+    this.liveCreationGroupId = detail.groupId;
+    this.pendingGroupIds = [];
+  };
+
+  private readonly onCreationEnd = (event: Event): void => {
+    const detail = (event as CustomEvent<{ groupId: string; ids: string[] }>).detail;
+    this.liveCreationGroupId = null;
+    this.beginGroupReveal(detail.ids);
+  };
+
+  private readonly onSilentSync = (): void => {
+    this.silentSyncArmed = true;
+  };
+
   constructor(
     private readonly root: THREE.Group,
     private readonly registry: ObjectRegistry,
     private readonly resources: ConstructionResources,
     private readonly assets: AssetLibrary | null = null,
-  ) {}
+  ) {
+    this.effects = new ConstructionEffects(this.root);
+    window.addEventListener('eavara:creation-start', this.onCreationStart);
+    window.addEventListener('eavara:creation-end', this.onCreationEnd);
+    window.addEventListener('eavara:silent-sync', this.onSilentSync);
+  }
 
   /** Meshes that can be raycast for selection. Excludes edge overlays. */
+  /** Objects taps go straight through (roofs while peeking inside). Presentation only. */
+  setPassThrough(ids: ReadonlySet<string>): void {
+    this.passThroughIds = new Set(ids);
+  }
+
   get selectableMeshes(): THREE.Mesh[] {
-    return [...this.instances.values()].map((i) => i.mesh);
+    return [...this.instances.values()].filter((i) => !this.passThroughIds.has(i.source.id)).map((i) => i.mesh);
   }
 
   get count(): number {
@@ -163,6 +223,13 @@ export class ConstructionRenderer {
    * reference: state is immutable, so a changed instance is a new object.
    */
   sync(placedObjects: PlacedObject[], selectedInstanceId: string | null): void {
+    // A restore (load) or undo/redo snapshot: everything below still needs
+    // to create/update/remove meshes as normal, but none of it is a fresh
+    // creation worth celebrating. One-shot so a later, real placement still
+    // celebrates normally.
+    const silent = this.silentSyncArmed;
+    this.silentSyncArmed = false;
+
     const wantedIds = new Set<string>();
     const created: string[] = [];
 
@@ -170,15 +237,22 @@ export class ConstructionRenderer {
       wantedIds.add(placed.id);
       const existing = this.instances.get(placed.id);
       if (!existing) {
-        this.create(placed);
+        this.create(placed, silent);
         created.push(placed.id);
       } else if (existing.source !== placed) {
         this.update(existing, placed);
       }
     }
-    // One new object at a time is a placement worth celebrating; a whole
-    // world arriving at once (a restore) just appears.
-    if (created.length === 1) this.celebrate(created[0]);
+    // Ids just held back into the in-progress group's buffer never get the
+    // single-piece treatment - they're revealed together once the whole
+    // creation finishes (`beginGroupReveal`). Everything else newly created
+    // is a free-standing placement (or, if `silent`, a restore) that never
+    // joined a group, and celebrates - or doesn't - on its own.
+    if (!silent) {
+      for (const id of created) {
+        if (!this.pendingGroupIds.includes(id)) this.celebrate(id);
+      }
+    }
 
     for (const id of [...this.instances.keys()]) {
       if (!wantedIds.has(id)) this.remove(id);
@@ -285,20 +359,25 @@ export class ConstructionRenderer {
   }
 
   /**
-   * Advance placement settles. Presentation only: the authoritative
-   * transform is restored exactly when each settle ends.
+   * Advance placement settles, the staged multi-piece reveal, and the
+   * particle/ring effects. Presentation only: the authoritative transform is
+   * restored exactly when each settle ends, and nothing here ever writes to
+   * `PlacedObject` state.
    */
   tick(deltaSeconds: number): void {
     if (this.halo?.visible) {
       this.haloClock += deltaSeconds;
-      this.halo.material.opacity = 0.78 + 0.22 * Math.sin(this.haloClock * 3.2);
+      this.halo.material.opacity = motion.reduced ? 0.9 : 0.78 + 0.22 * Math.sin(this.haloClock * 3.2);
     }
+    this.effects.tick(deltaSeconds);
+    this.tickReveal(deltaSeconds);
+
     if (this.settling.size === 0) return;
     for (const [id, settle] of this.settling) {
       settle.elapsed += deltaSeconds;
       const { instance } = settle;
       const source = instance.source;
-      const t = Math.min(1, settle.elapsed / SETTLE_SECONDS);
+      const t = motion.reduced ? 1 : Math.min(1, settle.elapsed / SETTLE_SECONDS);
       if (t >= 1) {
         this.settling.delete(id);
         this.applyTransform(instance, source);
@@ -310,14 +389,110 @@ export class ConstructionRenderer {
     }
   }
 
+  /** One freshly placed, free-standing object: settle, a small warm burst, a soft ground pulse. */
   private celebrate(instanceId: string): void {
     const instance = this.instances.get(instanceId);
     if (!instance) return;
     this.settling.set(instanceId, { instance, elapsed: 0 });
-    // Sound-ready hook: a future audio layer can listen without touching construction code.
+    this.spawnPieceEffects(instance);
     window.dispatchEvent(
       new CustomEvent('eavara:placed', { detail: { instanceId, definitionId: instance.source.definitionId } }),
     );
+  }
+
+  private spawnPieceEffects(instance: RenderedInstance): void {
+    const definition = this.registry.get(instance.source.definitionId);
+    const footprint = definition ? Math.max(definition.dimensions.width, definition.dimensions.depth) : 1;
+    this.effects.pulse(instance.mesh.position, Math.max(0.8, footprint * 0.6));
+    this.effects.burst(instance.mesh.position, 6, 0.35);
+  }
+
+  /**
+   * Group the ids one `instantiateTemplate` call just placed into reveal
+   * waves (foundation, structure, openings, roof, details - see
+   * `revealTierOf`) and start staging them in. Piece order within a wave is
+   * whatever order they were created in - a safe, deterministic fallback
+   * when several pieces share a tier.
+   */
+  private beginGroupReveal(ids: string[]): void {
+    this.pendingGroupIds = [];
+    // A new creation while the last one is still being staged in: show the
+    // rest of that one at once, so none of its pieces is left hidden.
+    this.finishReveal();
+    const known = ids.filter((id) => this.instances.has(id));
+    if (known.length === 0) return;
+
+    const tiers = new Map<number, string[]>();
+    const centroid = new THREE.Vector3();
+    for (const id of known) {
+      const instance = this.instances.get(id)!;
+      const definition = this.registry.get(instance.source.definitionId);
+      const tier = definition ? revealTierOf(definition) : 5;
+      const list = tiers.get(tier) ?? [];
+      list.push(id);
+      tiers.set(tier, list);
+      centroid.add(instance.mesh.position);
+    }
+    centroid.divideScalar(known.length);
+    this.revealCentroid.copy(centroid);
+
+    const orderedTiers = [...tiers.keys()].sort((a, b) => a - b);
+    this.revealQueue = orderedTiers.map((tier, index) => ({
+      ids: tiers.get(tier)!,
+      startAt: index * REVEAL_WAVE_SECONDS,
+      fired: false,
+    }));
+    this.revealClock = 0;
+    this.revealFinaleFired = false;
+    this.revealFinaleAt = (orderedTiers.length - 1) * REVEAL_WAVE_SECONDS + REVEAL_FINALE_DELAY;
+  }
+
+  /** Show every piece of an unfinished staged reveal immediately and end it. */
+  private finishReveal(): void {
+    for (const wave of this.revealQueue) {
+      if (wave.fired) continue;
+      wave.fired = true;
+      for (const id of wave.ids) {
+        const instance = this.instances.get(id);
+        if (instance) instance.mesh.visible = true;
+      }
+    }
+    this.revealQueue = [];
+  }
+
+  /** Advance the staged reveal: show each wave's pieces as its moment arrives, then the finale. */
+  private tickReveal(deltaSeconds: number): void {
+    if (this.revealQueue.length === 0) return;
+    this.revealClock += deltaSeconds;
+
+    for (const wave of this.revealQueue) {
+      if (wave.fired || this.revealClock < wave.startAt) continue;
+      wave.fired = true;
+      const wavePosition = new THREE.Vector3();
+      let found = 0;
+      for (const id of wave.ids) {
+        const instance = this.instances.get(id);
+        if (!instance) continue;
+        instance.mesh.visible = true;
+        this.settling.set(id, { instance, elapsed: 0 });
+        wavePosition.add(instance.mesh.position);
+        found++;
+      }
+      if (found > 0) {
+        wavePosition.divideScalar(found);
+        this.effects.pulse(wavePosition, 1.2);
+        this.effects.burst(wavePosition, 8, 0.6);
+        window.dispatchEvent(new CustomEvent('eavara:placed', { detail: { instanceId: wave.ids[0], definitionId: null } }));
+      }
+    }
+
+    if (!this.revealFinaleFired && this.revealClock >= this.revealFinaleAt) {
+      this.revealFinaleFired = true;
+      this.effects.pulse(this.revealCentroid, 2.2);
+      this.effects.burst(this.revealCentroid, 16, 1.1);
+      window.dispatchEvent(new CustomEvent('eavara:creation-complete'));
+      this.revealQueue = [];
+    }
   }
 
   /** Remove every mesh. Shared geometries/materials are left to `resources`. */
@@ -326,6 +501,10 @@ export class ConstructionRenderer {
   }
 
   dispose(): void {
+    window.removeEventListener('eavara:creation-start', this.onCreationStart);
+    window.removeEventListener('eavara:creation-end', this.onCreationEnd);
+    window.removeEventListener('eavara:silent-sync', this.onSilentSync);
+    this.effects.dispose();
     this.clear();
     this.edgeMaterial.dispose();
     this.selectedEdgeMaterial.dispose();
@@ -333,6 +512,8 @@ export class ConstructionRenderer {
     this.fadedEdgeMaterial.dispose();
     this.fadedMaterials.forEach((m) => m.dispose());
     this.fadedMaterials.clear();
+    this.tintedMaterials.forEach((m) => m.dispose());
+    this.tintedMaterials.clear();
     this.proxyMaterial.dispose();
     this.halo?.geometry.dispose();
     this.halo?.material.dispose();
@@ -393,7 +574,7 @@ export class ConstructionRenderer {
 
   // -------------------------------------------------------------- instances
 
-  private create(placed: PlacedObject): void {
+  private create(placed: PlacedObject, silent = false): void {
     const definition = this.registry.get(placed.definitionId);
     if (!definition) {
       console.warn(`[renderer] Skipping placed object with unknown definition: ${placed.definitionId}`);
@@ -427,6 +608,13 @@ export class ConstructionRenderer {
     this.instances.set(placed.id, instance);
     this.root.add(mesh);
     this.attachVisual(instance, definition);
+
+    // Part of a live multi-piece creation in progress: held back, invisible,
+    // until `beginGroupReveal` stages it in with the rest of its wave.
+    if (!silent && this.liveCreationGroupId !== null && placed.group?.id === this.liveCreationGroupId) {
+      mesh.visible = false;
+      this.pendingGroupIds.push(placed.id);
+    }
   }
 
   /**
@@ -525,12 +713,15 @@ export class ConstructionRenderer {
       instance.mesh.material = this.proxyMaterial;
       instance.edges.visible = false;
       const faded = this.fadedIds.has(id) && id !== this.selectedId;
+      // A colour the child chose paints the whole model (shared materials are never changed).
+      const tint = overrideColor(instance.source);
       instance.visual.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh || Array.isArray(mesh.material)) return;
         const base = (mesh.userData.baseMaterial as THREE.MeshStandardMaterial | undefined) ?? (mesh.material as THREE.MeshStandardMaterial);
         mesh.userData.baseMaterial = base;
-        mesh.material = faded ? this.fadedMaterialFor(base) : base;
+        const painted = tint ? this.tintedMaterialFor(base, tint) : base;
+        mesh.material = faded ? this.fadedMaterialFor(painted) : painted;
       });
       return;
     }
@@ -550,6 +741,24 @@ export class ConstructionRenderer {
       instance.mesh.material = baseMaterial;
       instance.edges.material = this.edgeMaterial;
     }
+  }
+
+  /**
+   * A 3D model's material painted one flat colour: the palette texture is
+   * dropped so the chosen colour shows as chosen (a white cupboard really is
+   * white), roughness and metalness are kept. Cached per material and colour.
+   */
+  private tintedMaterialFor(base: THREE.MeshStandardMaterial, color: string): THREE.MeshStandardMaterial {
+    const key = `${base.uuid}|${color}`;
+    let tinted = this.tintedMaterials.get(key);
+    if (!tinted) {
+      tinted = cloneMaterial(base);
+      tinted.map = null;
+      tinted.color = new THREE.Color(color);
+      tinted.needsUpdate = true;
+      this.tintedMaterials.set(key, tinted);
+    }
+    return tinted;
   }
 
   private fadedMaterialFor(base: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial {

@@ -72,6 +72,46 @@ const ROAD_HALF = 3.5;
 const PAVING_HEIGHT = 0.14;
 /** Scenery vehicles follow the visual scale policy, like the ones the child places. */
 const VEHICLE_SCALE = DISPLAY_SCALE.vehicle ?? 1;
+
+/**
+ * How a road CLASS is dressed - the one thing that actually varies by
+ * hierarchy. The paved tile itself stays a fixed 7m (`ROAD_HALF*2`) for
+ * every class: that tile is also this road's construction-collision
+ * blocker (see `place()`), so widening it would mean widening what a
+ * child's building is kept clear of. Hierarchy reads instead through
+ * furniture grandeur, junction marking, sidewalk continuity and (for
+ * avenues) a planted median - all decorative-only placements that never
+ * touch the occupancy/blocker system.
+ */
+interface RoadProfile {
+  /** Street lamp fixture for this class. */
+  lampAsset: string;
+  /** Extra scale on the lamp fixture - a taller, grander fixture for busier roads. */
+  lampScale: number;
+  /** Distance between lamps along the road, in metres. */
+  lampSpacing: number;
+  /** Chance (0-1) a kerb spot along this road gets a parked vehicle. */
+  parkingChance: number;
+  /** Whether this class gets the paved footpath strip, tree line/planters. */
+  pedestrian: boolean;
+  /** Spacing between footpath paving pieces - denser reads as a stronger sidewalk. */
+  pathSpacing: number;
+  /** Utility pole style, for classes with overhead lines instead of pedestrian dressing. */
+  poleAsset?: string;
+  /** Use the painted line-marked junction tile where a matching asset exists. */
+  markedJunctions: boolean;
+  /** A line of low planters down the centreline - only where nothing else needs that space. */
+  median: boolean;
+}
+
+const ROAD_PROFILES: Record<RoadClass, RoadProfile> = {
+  lane: { lampAsset: 'kenney_road_light', lampScale: 0.85, lampSpacing: 48, parkingChance: 0, pedestrian: false, pathSpacing: 2.8, markedJunctions: false, median: false },
+  street: { lampAsset: 'kenney_road_light', lampScale: 1, lampSpacing: 24, parkingChance: 0.06, pedestrian: false, pathSpacing: 2.8, markedJunctions: false, median: false },
+  town: { lampAsset: 'kenney_road_light_square', lampScale: 1, lampSpacing: 18, parkingChance: 0.32, pedestrian: true, pathSpacing: 2.8, markedJunctions: true, median: false },
+  avenue: { lampAsset: 'kenney_road_light_square_double', lampScale: 1.1, lampSpacing: 16, parkingChance: 0.12, pedestrian: true, pathSpacing: 2.8, markedJunctions: true, median: true },
+  city: { lampAsset: 'kenney_road_light_square_double', lampScale: 1.15, lampSpacing: 18, parkingChance: 0.24, pedestrian: true, pathSpacing: 2.0, markedJunctions: true, median: false },
+  industrial: { lampAsset: 'kenney_road_light', lampScale: 1, lampSpacing: 30, parkingChance: 0.12, pedestrian: false, pathSpacing: 2.8, poleAsset: 'kenney_road_electricity_pole_wide', markedJunctions: false, median: false },
+};
 const CELL = 12;
 
 /** Kenney road tile yaw (degrees) by the sides a tile connects to (N = -Z, E = +X, S = +Z, W = -X). */
@@ -373,11 +413,13 @@ export class WorldComposer {
       const s = this.hasTile(i, j + 1);
       const w = this.hasTile(i - 1, j);
       const count = +n + +e + +s + +w;
+      const cls = this.tileClass.get(`${i},${j}`) ?? 'street';
+      const marked = ROAD_PROFILES[cls].markedJunctions;
       let asset = 'kenney_road_straight';
       let yaw = STRAIGHT_EW;
       if (count === 4) asset = 'kenney_road_road_crossroad';
       else if (count === 3) {
-        asset = 'kenney_road_intersection';
+        asset = marked ? 'kenney_road_road_intersection_line' : 'kenney_road_intersection';
         yaw = T_BY_MISSING[!n ? 'N' : !e ? 'E' : !s ? 'S' : 'W'];
       } else if (count === 2 && n && s) yaw = STRAIGHT_NS;
       else if (count === 2 && e && w) yaw = STRAIGHT_EW;
@@ -389,9 +431,7 @@ export class WorldComposer {
         yaw = END_BY_SIDE[n ? 'N' : e ? 'E' : s ? 'S' : 'W'];
       } else asset = 'kenney_road_road_square';
       // Zebra crossings next to busy junctions on avenues, town and city streets.
-      const cls = this.tileClass.get(`${i},${j}`);
-      const busy = cls === 'avenue' || cls === 'city' || cls === 'town';
-      if (count === 2 && busy && (n && s ? this.junction(i, j - 1) || this.junction(i, j + 1) : this.junction(i - 1, j) || this.junction(i + 1, j))) {
+      if (count === 2 && marked && (n && s ? this.junction(i, j - 1) || this.junction(i, j + 1) : this.junction(i - 1, j) || this.junction(i + 1, j))) {
         asset = 'kenney_road_crossing';
       }
       this.place(this.registry.get(asset), i * t, j * t, deg(yaw), { force: true, detail: 'far' });
@@ -422,7 +462,7 @@ export class WorldComposer {
     for (const { i, j } of this.tiles.values()) {
       if (!this.junction(i, j)) continue;
       const cls = this.tileClass.get(`${i},${j}`)!;
-      const busy = cls === 'avenue' || cls === 'city' || cls === 'town';
+      const busy = ROAD_PROFILES[cls].markedJunctions;
       const x = i * t;
       const z = j * t;
       const corners: Array<[number, number]> = [[1, 1], [-1, -1], [1, -1], [-1, 1]];
@@ -515,28 +555,30 @@ export class WorldComposer {
   }
 
   /**
-   * How a road is dressed is what makes the hierarchy readable:
-   *   avenue      wide paved sidewalks, square lamps, a line of trees
-   *   city/town   paved sidewalks, square lamps, planters, busy parking
-   *   industrial  poles and wires, curved lamps, parked trucks
+   * How a road is dressed is what makes the hierarchy readable (see
+   * `ROAD_PROFILES`):
+   *   avenue      wide paved sidewalks, grand double lamps, a tree line, a planted median
+   *   city        paved sidewalks, grand double lamps (downtown skyline core)
+   *   town        paved sidewalks, square lamps, planters, busy parking
+   *   industrial  wide poles and wires, plain lamps, parked trucks
    *   street      curved lamps, the odd parked car (gardens do the rest)
    *   lane        almost nothing: a quiet road through the green
    */
   private streetFurniture(length: number, at: (a: number, p: number) => Vec2, facing: number, cls: RoadClass, side: number, along: Vec2): void {
-    const urban = cls === 'avenue' || cls === 'city' || cls === 'town';
-    if (urban) {
+    const profile = ROAD_PROFILES[cls];
+    if (profile.pedestrian) {
       const strip = this.asset('kenney_sub_path_long');
       const yaw = Math.atan2(along.x, along.z);
-      for (let a = 1.4; a < length - 1.2; a += 2.8) {
+      for (let a = 1.4; a < length - 1.2; a += profile.pathSpacing) {
         const p = at(a, ROAD_HALF + 0.7);
         this.place(strip, p.x, p.z, yaw, { force: true, occupy: false, block: 'soft', detail: 'mid' });
       }
     }
-    const lamp = this.asset(urban ? 'kenney_road_light_square' : 'kenney_road_light');
-    const spacing = cls === 'avenue' ? 16 : urban ? 18 : cls === 'lane' ? 48 : 24;
-    for (let a = 6 + (side > 0 ? spacing / 2 : 0); a < length - 4; a += spacing) {
+    const lamp = this.asset(profile.lampAsset);
+    const squareStyle = profile.lampAsset.startsWith('kenney_road_light_square');
+    for (let a = 6 + (side > 0 ? profile.lampSpacing / 2 : 0); a < length - 4; a += profile.lampSpacing) {
       const p = at(a, ROAD_HALF - 0.95);
-      this.place(lamp, p.x, p.z, facing - Math.PI / 2 + (urban ? Math.PI / 2 : 0), { force: true, detail: 'small', occupy: false });
+      this.place(lamp, p.x, p.z, facing - Math.PI / 2 + (squareStyle ? Math.PI / 2 : 0), { force: true, detail: 'small', occupy: false, scale: profile.lampScale });
     }
     if (cls === 'avenue') {
       for (let a = 14 + (side > 0 ? 8 : 0); a < length - 6; a += 16) {
@@ -548,21 +590,28 @@ export class WorldComposer {
         const p = at(a, ROAD_HALF + 0.75);
         this.place(this.asset('kenney_sub_planter'), p.x, p.z, facing, { force: true, occupy: false, detail: 'near', scale: 0.6 });
       }
-    } else if (cls === 'industrial') {
-      const pole = this.asset('kenney_road_electricity_pole');
+    } else if (profile.poleAsset) {
+      const pole = this.asset(profile.poleAsset);
       for (let a = 10; a < length - 6; a += 30) {
         const p = at(a, ROAD_HALF + 1.4);
         this.place(pole, p.x, p.z, facing, { detail: 'small', margin: 0.2 });
       }
     }
     // Parked cars at the kerb (never in a quiet lane).
-    const parking = cls === 'town' ? 0.32 : cls === 'city' ? 0.24 : cls === 'avenue' ? 0.12 : cls === 'street' ? 0.06 : cls === 'industrial' ? 0.12 : 0;
     for (let a = 5; a < length - 5; a += 7.5) {
-      if (!this.chance(parking)) continue;
+      if (!this.chance(profile.parkingChance)) continue;
       const p = at(a, ROAD_HALF - 1.55);
       const pool = cls === 'industrial' ? this.pools.trucks : this.pools.cars;
       const yaw = facing + (side > 0 ? Math.PI / 2 : -Math.PI / 2) + (this.chance(0.15) ? Math.PI : 0);
       this.place(this.pick(pool), p.x, p.z, yaw, { force: true, occupy: false, scale: VEHICLE_SCALE, detail: 'small' });
+    }
+    // A planted median down the centreline - an avenue's boulevard feel.
+    // Only one side's call does this, or it would be placed twice on the same spot.
+    if (profile.median && side > 0) {
+      for (let a = 5 + this.rand() * 3; a < length - 4; a += 9 + this.rand() * 2) {
+        const p = at(a, 0);
+        this.place(this.asset('kenney_sub_planter'), p.x, p.z, facing, { force: true, occupy: false, detail: 'near', scale: 0.5 });
+      }
     }
   }
 

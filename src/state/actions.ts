@@ -1,18 +1,22 @@
 import type { GameStore } from './GameStore';
-import { DEFAULT_WORLD_NAME, isObjectUnlocked, type GameState } from './GameState';
+import { DEFAULT_WORLD_NAME, isObjectUnlocked, type GameState, type InteriorView, type TemplatePlacementState } from './GameState';
+import { createInitialState } from './initialState';
 import { createPlayer } from '@/player/Player';
 import type { ObjectRegistry } from '@/construction/ObjectRegistry';
 import { roleOf, type ConstructionObjectDefinition } from '@/construction/ConstructionObjectDefinition';
 import { createPlacedObject, type CreationGroupRef, type PlacedObject, type Vec3 } from '@/construction/PlacedObject';
 import { createId } from '@/utils/id';
 import { PLACEMENT_ROTATION_STEP, PLACEMENT_ROTATION_STEPS } from '@/construction/constants';
-import { computeBounds } from '@/construction/bounds';
+import { boundsOfPlaced, computeBounds, roundCoord } from '@/construction/bounds';
+import { rotateAroundY } from '@/utils/math';
 import {
   checkSupportRules,
   checkTargetSupport,
   findInvalidReason,
+  objectsNear,
   placementStatusEquals,
   PlacementResolver,
+  unionBounds,
   type PlacementCandidate,
   type PlacementRulesContext,
   type PlacementStatus,
@@ -30,6 +34,23 @@ function roundTo(value: number, step: number): number {
   return Math.round(value / step) * step;
 }
 
+/** See `GameActions.instantiateTemplate`. */
+export interface TemplateInstantiateOptions {
+  /** Objects of an earlier version of this creation, removed first (same step). */
+  replace?: string[];
+  /** Objects kept from the earlier version, moved rigidly from its placement to the new one. */
+  carry?: { ids: string[]; from: { origin: Vec3; rotationY: number } };
+}
+
+export interface TemplateInstantiateResult {
+  placed: number;
+  skipped: number;
+  ids: string[];
+  groupId: string | null;
+  /** The placed object made from each template entry (same index), or null when it was skipped. */
+  byIndex: Array<string | null>;
+}
+
 /** How a placement was resolved; the action re-validates against it. */
 export interface PlaceOptions {
   supportId?: string | null;
@@ -41,6 +62,18 @@ export interface PlaceOptions {
   surface?: PlacementSurface;
   /** Creation Group the new object joins. */
   group?: CreationGroupRef;
+  /** Size multiplier per axis (template pieces fitted to a creation); defaults to 1. */
+  scale?: Vec3;
+}
+
+/**
+ * What one creation's pieces are checked against while it is built: the
+ * objects already standing within its footprint plus its own pieces so far
+ * (see `placeTemplatePieces`), with the pieces by id for supports and hosts.
+ */
+interface PlacementScope {
+  others: PlacedObject[];
+  byId: Map<string, PlacedObject>;
 }
 
 /**
@@ -83,6 +116,7 @@ export class GameActions {
       selectedInstanceId: null,
       transformMode: 'move',
       placementStatus: null,
+      interior: null,
     });
   }
 
@@ -122,6 +156,7 @@ export class GameActions {
       templatePlacement: null,
       streetDrawing: false,
       creationFocus: null,
+      interior: null,
     });
   }
 
@@ -133,6 +168,10 @@ export class GameActions {
    * fresh one.
    */
   restoreMyWorld(placedObjects: PlacedObject[]): void {
+    // Tells the construction renderer the next batch of objects is a
+    // restore, not a creation: they should just appear, with no settle,
+    // particles or sound (see ConstructionRenderer).
+    window.dispatchEvent(new CustomEvent('eavara:silent-sync'));
     this.store.setState({
       placedObjects,
       selectedObjectId: null,
@@ -142,6 +181,7 @@ export class GameActions {
       templatePlacement: null,
       streetDrawing: false,
       creationFocus: null,
+      interior: null,
     });
   }
 
@@ -154,11 +194,21 @@ export class GameActions {
    * player confirms. Cancels any single-object placement/selection first;
    * the two never overlap.
    */
-  startTemplatePlacement(templateId: string, options: { label?: string; creationId?: string } = {}): void {
+  startTemplatePlacement(
+    templateId: string,
+    options: Pick<TemplatePlacementState, 'label' | 'creationId' | 'origin' | 'revise'> & { rotationY?: number } = {},
+  ): void {
     const state = this.store.getState();
     if (state.mode !== 'playing' || state.challenge !== null) return;
     this.store.setState({
-      templatePlacement: { templateId, rotationY: 0, label: options.label, creationId: options.creationId },
+      templatePlacement: {
+        templateId,
+        rotationY: options.rotationY ?? 0,
+        label: options.label,
+        creationId: options.creationId,
+        ...(options.origin ? { origin: { ...options.origin } } : {}),
+        ...(options.revise ? { revise: options.revise } : {}),
+      },
       streetDrawing: false,
       selectedObjectId: null,
       selectedInstanceId: null,
@@ -174,6 +224,13 @@ export class GameActions {
     const steps = Math.round(templatePlacement.rotationY / PLACEMENT_ROTATION_STEP) + direction;
     const rotationY = (((steps % PLACEMENT_ROTATION_STEPS) + PLACEMENT_ROTATION_STEPS) % PLACEMENT_ROTATION_STEPS) * PLACEMENT_ROTATION_STEP;
     this.store.setState({ templatePlacement: { ...templatePlacement, rotationY } });
+  }
+
+  /** Move a pinned template preview (one started with an `origin`) to another spot. */
+  moveTemplatePlacement(origin: Vec3): void {
+    const { templatePlacement } = this.store.getState();
+    if (!templatePlacement?.origin) return;
+    this.store.setState({ templatePlacement: { ...templatePlacement, origin: { ...origin } } });
   }
 
   /** Leave template placement without building anything. */
@@ -238,6 +295,9 @@ export class GameActions {
     const state = this.store.getState();
     if (state.challenge !== null) return;
     const keepSelection = state.selectedInstanceId !== null && placedObjects.some((p) => p.id === state.selectedInstanceId);
+    // Undo/redo restores a prior snapshot; the objects it brings back have
+    // already had their construction moment once and must not replay it.
+    window.dispatchEvent(new CustomEvent('eavara:silent-sync'));
     this.store.setState({
       placedObjects,
       selectedInstanceId: keepSelection ? state.selectedInstanceId : null,
@@ -323,7 +383,95 @@ export class GameActions {
       templatePlacement: null,
       streetDrawing: false,
       creationFocus: null,
+      interior: null,
+      realWorld: { landmarkId: null },
     });
+  }
+
+  // ------------------------------------------------------------ interior
+
+  /**
+   * Go inside a planned house (Interior Explorer). My World only, never
+   * during a placement flow. The house itself does not change: this is a
+   * view of the same placed objects, and edits made inside use the ordinary
+   * actions (undoable, saved with My World).
+   */
+  enterInterior(groupId: string, houseIndex: number | null, view: InteriorView = 'walk'): boolean {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null || state.templatePlacement !== null || state.streetDrawing) return false;
+    if (!state.placedObjects.some((p) => p.group?.id === groupId)) return false;
+    this.store.setState({
+      interior: { groupId, houseIndex, view, roomId: null, touring: false },
+      selectedObjectId: null,
+      // The piece tapped outside (often the roof) is not part of the visit: its card must not cover the interior.
+      selectedInstanceId: null,
+      creationFocus: null,
+      placementStatus: null,
+    });
+    return true;
+  }
+
+  /** Back outside: the camera returns to the world view (see Game). */
+  exitInterior(): void {
+    if (this.store.getState().interior === null) return;
+    this.store.setState({ interior: null, selectedObjectId: null, selectedInstanceId: null, creationFocus: null, placementStatus: null });
+  }
+
+  setInteriorView(view: InteriorView): void {
+    const interior = this.store.getState().interior;
+    if (!interior || interior.view === view) return;
+    this.store.setState({ interior: { ...interior, view, touring: false } });
+  }
+
+  /** Record which room the walker is in (or was sent to). */
+  setInteriorRoom(roomId: string | null): void {
+    const interior = this.store.getState().interior;
+    if (!interior || interior.roomId === roomId) return;
+    this.store.setState({ interior: { ...interior, roomId } });
+  }
+
+  setInteriorTouring(touring: boolean): void {
+    const interior = this.store.getState().interior;
+    if (!interior || interior.touring === touring) return;
+    this.store.setState({ interior: { ...interior, touring } });
+  }
+
+  // ------------------------------------------------------------ realworld
+
+  /**
+   * Open RealWorld Explorer (the landmark library). A mode of its own: My
+   * World's build, undo history and autosave are untouched, and nothing in
+   * placedObjects changes. Challenge state is cleared like enterMyWorld does.
+   */
+  enterRealWorld(): void {
+    this.store.setState({
+      mode: 'realworld',
+      challenge: null,
+      challengeMatch: null,
+      challengeResult: null,
+      selectedObjectId: null,
+      selectedInstanceId: null,
+      placementStatus: null,
+      templatePlacement: null,
+      streetDrawing: false,
+      creationFocus: null,
+      interior: null,
+      realWorld: { landmarkId: null },
+      menuNotice: null,
+    });
+  }
+
+  /** Explore one landmark (null returns to the library). */
+  openLandmark(landmarkId: string | null): void {
+    const state = this.store.getState();
+    if (state.mode !== 'realworld' || state.realWorld.landmarkId === landmarkId) return;
+    this.store.setState({ realWorld: { landmarkId } });
+  }
+
+  /** Leave RealWorld Explorer for the main menu. */
+  exitRealWorld(): void {
+    if (this.store.getState().mode !== 'realworld') return;
+    this.store.setState({ mode: 'menu', realWorld: { landmarkId: null } });
   }
 
   pause(): void {
@@ -391,6 +539,7 @@ export class GameActions {
       templatePlacement: null,
       streetDrawing: false,
       creationFocus: null,
+      interior: null,
     });
     return true;
   }
@@ -434,6 +583,7 @@ export class GameActions {
       templatePlacement: null,
       streetDrawing: false,
       creationFocus: null,
+      interior: null,
     });
   }
 
@@ -497,6 +647,16 @@ export class GameActions {
   /** Wipe Challenge Mode progress (completed levels and stars). */
   resetProgress(): void {
     this.store.setState({ progress: createInitialProgress(), challengeResult: null, menuNotice: null });
+  }
+
+  /**
+   * Start over as if EAVARA had never been opened on this device: no
+   * builder, no world, no progress - back on the home screen. The in-memory
+   * half of deleting everything (see src/state/DeviceData.ts, which also
+   * clears the services' memory and the stored copies).
+   */
+  eraseEverything(): void {
+    this.store.replaceState({ ...createInitialState(), mode: 'menu' });
   }
 
   clearMenuNotice(): void {
@@ -606,7 +766,42 @@ export class GameActions {
       console.warn(`[actions] Cannot place unknown object: ${state.selectedObjectId}`);
       return null;
     }
-    return this.placeDefinition(definition, position, options);
+    return this.placeDefinition(definition, position, { ...options, ...this.houseGroupFor(state, options) });
+  }
+
+  /**
+   * My World: furniture put on a planned house's floor (or on furniture
+   * inside it) joins that house's creation group, so it moves and is kept
+   * with the house when the house is changed later, and edits inside one
+   * house can never be mistaken for another's. Challenge Mode and pieces
+   * placed on the ground are unaffected.
+   */
+  private houseGroupFor(state: GameState, options: PlaceOptions): Pick<PlaceOptions, 'group'> {
+    if (state.challenge !== null || options.group || !options.supportId) return {};
+    const support = state.placedObjects.find((p) => p.id === options.supportId);
+    const group = support?.group;
+    if (!group || (group.creation !== 'house' && group.creation !== 'neighborhood')) return {};
+    return { group: { ...group } };
+  }
+
+  /**
+   * Place a catalogue object at an exact spot - furniture added to a room in
+   * Interior Explorer (by the palette or the AI builder, after the child
+   * confirmed it). My World only. Goes through the same validation as any
+   * placement (support rules, build area, overlaps); returns null when the
+   * spot is not allowed, so callers can say so honestly.
+   */
+  placeAt(definitionId: string, position: Vec3, rotationY: number, options: { supportId?: string | null; group?: CreationGroupRef } = {}): PlacedObject | null {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null) return null;
+    const definition = this.registry.get(definitionId);
+    if (!definition) return null;
+    const place: PlaceOptions = {
+      rotationY,
+      ...(options.supportId ? { supportId: options.supportId, surface: 'top' as const } : {}),
+      ...(options.group ? { group: { ...options.group } } : {}),
+    };
+    return this.placeDefinition(definition, position, { ...place, ...this.houseGroupFor(state, place) });
   }
 
   /**
@@ -623,34 +818,90 @@ export class GameActions {
    * "template state": once placed, each object is a normal `placedObjects`
    * entry, selectable, movable, deletable like anything the player built by
    * hand. My World only - never available mid-challenge.
+   *
+   * `options.replace` makes this a new version of an earlier creation (a
+   * planned house changed by a follow-up request): those objects are removed
+   * first, and `options.carry` objects - pieces the child edited - are moved
+   * rigidly from the old placement to the new one and join the new group.
+   * All of it happens in one synchronous burst, so one Undo restores the
+   * earlier version exactly.
    */
   instantiateTemplate(
     template: { objects: TemplateObjectSpec[] },
     origin: Vec3 = { x: 0, y: 0, z: 0 },
     groupRotationY = 0,
     creation?: string,
-  ): { placed: number; skipped: number; ids: string[]; groupId: string | null } {
+    options: TemplateInstantiateOptions = {},
+  ): TemplateInstantiateResult {
     const state = this.store.getState();
     if (state.mode !== 'playing' || state.challenge !== null) {
       console.warn('[actions] Templates are only available in My World');
-      return { placed: 0, skipped: template.objects.length, ids: [], groupId: null };
+      return { placed: 0, skipped: template.objects.length, ids: [], groupId: null, byIndex: template.objects.map(() => null) };
     }
     const ids: string[] = [];
+    const byIndex: Array<string | null> = template.objects.map(() => null);
     // Everything one creation places shares a Creation Group id.
     const group: CreationGroupRef | undefined = creation ? { id: createId('grp'), creation } : undefined;
-    const cos = Math.cos(groupRotationY);
-    const sin = Math.sin(groupRotationY);
+    // Brackets this call for the construction celebration (see
+    // ConstructionRenderer): the renderer needs to know up front that the
+    // pieces below all belong to one live creation, and needs an explicit
+    // "that's all of them" signal once they are in - it can't infer either
+    // from the state alone without also mistaking a save/undo restore for one.
+    if (group) window.dispatchEvent(new CustomEvent('eavara:creation-start', { detail: { groupId: group.id } }));
+    // Each piece is placed and validated against the state as it stands
+    // (so a door finds the wall placed just before it), but subscribers -
+    // renderer, autosave, history, UI - hear about the whole creation once.
+    const { placed, skipped } = this.store.batch(() => this.placeTemplatePieces(template, origin, groupRotationY, group, options, ids, byIndex));
+    if (group) window.dispatchEvent(new CustomEvent('eavara:creation-end', { detail: { groupId: group.id, ids } }));
+    return { placed, skipped, ids, groupId: group && placed > 0 ? group.id : null, byIndex };
+  }
+
+  /** The body of `instantiateTemplate`, run inside one store batch. */
+  private placeTemplatePieces(
+    template: { objects: TemplateObjectSpec[] },
+    origin: Vec3,
+    groupRotationY: number,
+    group: CreationGroupRef | undefined,
+    options: TemplateInstantiateOptions,
+    ids: string[],
+    byIndex: Array<string | null>,
+  ): { placed: number; skipped: number } {
+    if (options.replace?.length) this.removeObjects(new Set(options.replace));
+    if (options.carry?.ids.length) this.carryObjects(options.carry.ids, options.carry.from, { origin, rotationY: groupRotationY }, group);
     const localIds = new Map<string, string>(); // spec.localId -> real placedObject id
+    // Each piece is checked against what stands within the creation's own
+    // footprint (and the pieces placed so far), not the whole world: the
+    // same answers, without scanning thousands of far-away objects per piece.
+    const worldPose = (spec: TemplateObjectSpec) => {
+      const offset = rotateAroundY(spec.position.x, spec.position.z, groupRotationY);
+      return {
+        position: { x: roundCoord(origin.x + offset.x), y: roundCoord(origin.y + spec.position.y), z: roundCoord(origin.z + offset.z) },
+        rotationY: (spec.rotationY ?? 0) + groupRotationY,
+      };
+    };
+    const footprint = unionBounds(
+      template.objects.flatMap((spec) => {
+        const definition = this.registry.get(spec.definitionId);
+        if (!definition) return [];
+        const pose = worldPose(spec);
+        return [computeBounds(definition, pose.position, pose.rotationY, spec.scale ?? { x: 1, y: 1, z: 1 })];
+      }),
+    );
+    const scope: PlacementScope = {
+      others: footprint ? objectsNear(footprint, this.store.getState().placedObjects, this.registry) : [],
+      byId: new Map(),
+    };
 
     let placed = 0;
     let skipped = 0;
-    let pending = template.objects.slice();
+    let pending = template.objects.map((_, index) => index);
     for (let pass = 0; pass < 4 && pending.length > 0; pass++) {
-      const next: TemplateObjectSpec[] = [];
-      for (const spec of pending) {
+      const next: number[] = [];
+      for (const index of pending) {
+        const spec = template.objects[index];
         const dependsOn = spec.hostRef ?? spec.supportRef;
         if (dependsOn && !localIds.has(dependsOn)) {
-          next.push(spec); // its dependency hasn't been placed yet - try again next pass
+          next.push(index); // its dependency hasn't been placed yet - try again next pass
           continue;
         }
         const definition = this.registry.get(spec.definitionId);
@@ -658,13 +909,9 @@ export class GameActions {
           skipped++;
           continue;
         }
-        const position: Vec3 = {
-          x: origin.x + (spec.position.x * cos - spec.position.z * sin),
-          y: origin.y + spec.position.y,
-          z: origin.z + (spec.position.x * sin + spec.position.z * cos),
-        };
-        const rotationY = (spec.rotationY ?? 0) + groupRotationY;
-        const options: PlaceOptions = { rotationY, group };
+        // Same turn the placement ghost is drawn with (a three.js group rotation).
+        const { position, rotationY } = worldPose(spec);
+        const options: PlaceOptions = { rotationY, group, ...(spec.scale ? { scale: spec.scale } : {}) };
         if (dependsOn) {
           const refId = localIds.get(dependsOn);
           if (spec.hostRef) {
@@ -675,10 +922,11 @@ export class GameActions {
             options.surface = spec.surface ?? 'top';
           }
         }
-        const result = this.placeDefinition(definition, position, options, true);
+        const result = this.placeDefinition(definition, position, options, true, scope);
         if (result) {
           placed++;
           ids.push(result.id);
+          byIndex[index] = result.id;
           if (spec.localId) localIds.set(spec.localId, result.id);
         } else {
           skipped++;
@@ -687,7 +935,61 @@ export class GameActions {
       pending = next;
     }
     skipped += pending.length; // dependencies that never resolved
-    return { placed, skipped, ids, groupId: group && placed > 0 ? group.id : null };
+    return { placed, skipped };
+  }
+
+  /**
+   * Remove several objects in one state update, with the same consequences
+   * as `removePlacedObject`: openings set into a removed wall go too, and
+   * anything resting on a removed object keeps its place but loses the link.
+   */
+  private removeObjects(ids: Set<string>): void {
+    const state = this.store.getState();
+    const removed = new Set(ids);
+    for (const p of state.placedObjects) if (p.hostId && removed.has(p.hostId)) removed.add(p.id);
+    const remaining = state.placedObjects
+      .filter((p) => !removed.has(p.id))
+      .map((p) => (p.supportId && removed.has(p.supportId) ? { ...p, supportId: null } : p));
+    this.store.setState({
+      placedObjects: remaining,
+      selectedInstanceId: state.selectedInstanceId && removed.has(state.selectedInstanceId) ? null : state.selectedInstanceId,
+      creationFocus: state.creationFocus && removed.has(state.creationFocus.instanceId) ? null : state.creationFocus,
+    });
+  }
+
+  /**
+   * Move objects rigidly from one creation placement to another (same offset
+   * and turn relative to the creation's origin) and put them in `group`.
+   * Each is checked like any move; one that would not fit at its new spot
+   * stays where it was rather than being lost.
+   */
+  private carryObjects(
+    ids: string[],
+    from: { origin: Vec3; rotationY: number },
+    to: { origin: Vec3; rotationY: number },
+    group: CreationGroupRef | undefined,
+  ): void {
+    const state = this.store.getState();
+    const carried = new Set(ids);
+    const turn = to.rotationY - from.rotationY;
+    // Carried in place (one house of a neighbourhood rebuilt, the rest kept): nothing moves, only the group changes.
+    const still = turn === 0 && from.origin.x === to.origin.x && from.origin.z === to.origin.z;
+    const others = still ? [] : state.placedObjects.filter((o) => !carried.has(o.id));
+    const placedObjects = state.placedObjects.map((p) => {
+      if (!carried.has(p.id)) return p;
+      if (still) return group ? { ...p, group: { ...group } } : p;
+      const definition = this.registry.get(p.definitionId);
+      if (!definition) return p;
+      const local = rotateAroundY(p.position.x - from.origin.x, p.position.z - from.origin.z, -from.rotationY);
+      const offset = rotateAroundY(local.x, local.z, to.rotationY);
+      const position = { x: roundCoord(to.origin.x + offset.x), y: p.position.y, z: roundCoord(to.origin.z + offset.z) };
+      const rotationY = p.rotationY + turn;
+      const bounds = computeBounds(definition, position, rotationY, p.scale);
+      const fits = findInvalidReason(bounds, others, this.registry, this.placementRules) === null;
+      const moved = fits ? { ...p, position, rotationY } : { ...p };
+      return group ? { ...moved, group: { ...group } } : moved;
+    });
+    this.store.setState({ placedObjects });
   }
 
   /**
@@ -701,6 +1003,7 @@ export class GameActions {
     position: Vec3,
     options: PlaceOptions,
     quiet = false,
+    scope?: PlacementScope,
   ): PlacedObject | null {
     // Creative helpers probe many spots; a skipped probe is expected, not worth a warning.
     const warn = quiet ? () => {} : (message: string) => console.warn(message);
@@ -712,7 +1015,8 @@ export class GameActions {
     }
 
     const supportId = options.supportId ?? null;
-    const support = supportId ? state.placedObjects.find((p) => p.id === supportId) ?? null : null;
+    const lookup = (id: string) => scope?.byId.get(id) ?? state.placedObjects.find((p) => p.id === id) ?? null;
+    const support = supportId ? lookup(supportId) : null;
     const supportDefinition = support ? this.registry.get(support.definitionId) ?? null : null;
     const surface: PlacementSurface = options.surface ?? (support ? 'top' : 'ground');
     const rotationY = options.rotationY ?? this.getPlacementRotation();
@@ -727,7 +1031,7 @@ export class GameActions {
 
     let hostId: string | null = null;
     if (roleOf(definition) === 'opening') {
-      const host = options.hostId ? state.placedObjects.find((p) => p.id === options.hostId) ?? null : null;
+      const host = options.hostId ? lookup(options.hostId) : null;
       const hostDefinition = host ? this.registry.get(host.definitionId) ?? null : null;
       if (!host || !hostDefinition || roleOf(hostDefinition) !== 'wall') {
         warn(`[actions] Placement rejected (opening needs a host wall) for ${definition.id}`);
@@ -736,8 +1040,9 @@ export class GameActions {
       hostId = host.id;
     }
 
-    const bounds = computeBounds(definition, position, rotationY, { x: 1, y: 1, z: 1 });
-    const reason = findInvalidReason(bounds, state.placedObjects, this.registry, this.placementRules, hostId ? [hostId] : []);
+    const scale = options.scale ?? { x: 1, y: 1, z: 1 };
+    const bounds = computeBounds(definition, position, rotationY, scale);
+    const reason = findInvalidReason(bounds, scope?.others ?? state.placedObjects, this.registry, this.placementRules, hostId ? [hostId] : []);
     if (reason !== null) {
       warn(`[actions] Placement rejected (${reason}) for ${definition.id}`);
       return null;
@@ -748,7 +1053,12 @@ export class GameActions {
       hostId,
       group: options.group,
     });
+    if (options.scale) placed.scale = { ...options.scale };
     this.store.setState({ placedObjects: [...state.placedObjects, placed] });
+    if (scope) {
+      scope.others.push(placed);
+      scope.byId.set(placed.id, placed);
+    }
     return placed;
   }
 
@@ -865,6 +1175,8 @@ export class GameActions {
     const copy = createPlacedObject(definition, candidate.position, candidate.rotationY, {
       supportId: placed.supportId,
       hostId: null,
+      // A copy of furniture inside a house belongs to that house too (My World only).
+      ...(state.challenge === null && placed.group ? { group: { ...placed.group } } : {}),
     });
     copy.scale = { ...placed.scale };
     copy.materialOverrides = { ...placed.materialOverrides };
@@ -911,14 +1223,15 @@ export class GameActions {
     const caps = transformCapabilitiesOf(definition, this.playContext(state), this.hostsOpenings(state, placed.id));
     if (!caps.movable) return null;
 
-    const candidate = this.resolver.resolveMove(placed, definition, { x, z }, placed.rotationY, state.placedObjects);
+    const base = state.challenge === null ? this.withFloorUnder(placed, definition, x, z, state.placedObjects) : placed;
+    const candidate = this.resolver.resolveMove(base, definition, { x, z }, placed.rotationY, state.placedObjects);
     if (!candidate) return null;
     if (!candidate.status.valid) return candidate.status;
 
     const delta = { x: candidate.position.x - placed.position.x, z: candidate.position.z - placed.position.z };
     const carryOpenings = roleOf(definition) === 'wall';
     const placedObjects = state.placedObjects.map((p) => {
-      if (p.id === placed.id) return { ...p, position: candidate.position, rotationY: candidate.rotationY };
+      if (p.id === placed.id) return { ...p, position: candidate.position, rotationY: candidate.rotationY, supportId: base.supportId };
       if (carryOpenings && p.hostId === placed.id) {
         return { ...p, position: { x: p.position.x + delta.x, y: p.position.y, z: p.position.z + delta.z } };
       }
@@ -926,6 +1239,28 @@ export class GameActions {
     });
     this.store.setState({ placedObjects });
     return candidate.status;
+  }
+
+  /**
+   * My World: a piece standing on a floor (furniture in a house) whose
+   * support link was lost - its floor tile was rebuilt when the house was
+   * changed - would otherwise be moved as if it stood on the ground and
+   * collide with the floor slab. It re-finds the floor under it (at the same
+   * height) so it can be moved again. Anything else is returned unchanged.
+   */
+  private withFloorUnder(placed: PlacedObject, definition: ConstructionObjectDefinition, x: number, z: number, placedObjects: PlacedObject[]): PlacedObject {
+    if (placed.supportId || placed.hostId || placed.position.y < 0.01 || roleOf(definition) !== null) return placed;
+    for (const point of [{ x, z }, { x: placed.position.x, z: placed.position.z }]) {
+      const floor = placedObjects.find((p) => {
+        if (p.id === placed.id) return false;
+        const floorDefinition = this.registry.get(p.definitionId);
+        if (!floorDefinition || roleOf(floorDefinition) !== 'floor') return false;
+        const b = boundsOfPlaced(floorDefinition, p);
+        return point.x >= b.minX && point.x <= b.maxX && point.z >= b.minZ && point.z <= b.maxZ && Math.abs(b.maxY - placed.position.y) < 0.05;
+      });
+      if (floor) return { ...placed, supportId: floor.id };
+    }
+    return placed;
   }
 
   /**
@@ -981,6 +1316,43 @@ export class GameActions {
     const placedObjects = state.placedObjects.map((p) => (p.id === placed.id ? { ...p, scale } : p));
     this.store.setState({ placedObjects });
     return next;
+  }
+
+  /**
+   * Paint the selected object a colour (null restores its own colour). My
+   * World only; colours must be '#rrggbb'. Returns false when nothing changed.
+   */
+  recolorSelectedPlacedObject(color: string | null): boolean {
+    const state = this.store.getState();
+    const selected = this.selectedPlacedObject(state);
+    if (!selected) return false;
+    return this.recolorPlacedObjects([selected.placed.id], color) > 0;
+  }
+
+  /**
+   * Paint several objects at once ("make the kitchen cabinets white") in one
+   * undo step. My World only; walls, floors, roofs and openings keep their
+   * own look. Returns how many objects changed.
+   */
+  recolorPlacedObjects(ids: readonly string[], color: string | null): number {
+    const state = this.store.getState();
+    if (state.mode !== 'playing' || state.challenge !== null) return 0;
+    if (color !== null && !/^#[0-9a-fA-F]{6}$/.test(color)) return 0;
+    const wanted = new Set(ids);
+    let changed = 0;
+    const placedObjects = state.placedObjects.map((p) => {
+      if (!wanted.has(p.id)) return p;
+      const definition = this.registry.get(p.definitionId);
+      if (!definition || roleOf(definition) !== null) return p;
+      const current = p.materialOverrides.color ?? null;
+      const next = color === null ? null : color.toLowerCase();
+      if (current === next) return p;
+      changed++;
+      const { color: _old, ...rest } = p.materialOverrides;
+      return { ...p, materialOverrides: next === null ? rest : { ...rest, color: next } };
+    });
+    if (changed > 0) this.store.setState({ placedObjects });
+    return changed;
   }
 
   private selectedPlacedObject(

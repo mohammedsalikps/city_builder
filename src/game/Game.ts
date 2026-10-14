@@ -30,11 +30,16 @@ import { MyWorldPersistenceService } from '@/creative/MyWorldPersistenceService'
 import { TemplatePlacementController } from '@/creative/TemplatePlacementController';
 import { StreetDrawController } from '@/creative/StreetDrawController';
 import { HistoryService } from '@/creative/HistoryService';
+import { PlanBuilder } from '@/creative/plan/PlanBuilder';
+import { LocalPlanStore } from '@/creative/plan/PlanRecords';
+import { BuildAssistant } from '@/creative/ai/BuildAssistant';
+import { ConstructionSound } from '@/audio/ConstructionSound';
 import { ThumbnailRenderer } from '@/creative/ThumbnailRenderer';
 import { GhostKit } from '@/creative/Ghosts';
 import { StudioCatalog } from '@/creative/Studio';
 import type { CameraView, ScreenPoint, StudioServices } from '@/ui/studio/StudioServices';
 import { LocalMyWorldStorage } from '@/state/MyWorldStorage';
+import { eraseDeviceData } from '@/state/DeviceData';
 import { AssetRegistry } from '@/visual/assets/AssetRegistry';
 import { AssetLibrary } from '@/visual/assets/AssetLibrary';
 import { Scenery } from '@/visual/scenery/Scenery';
@@ -49,6 +54,13 @@ import { InputManager } from '@/input/InputManager';
 import { UIManager } from '@/ui/UIManager';
 import { GameLoop } from './GameLoop';
 import { InteriorReadability } from './InteriorReadability';
+import { InteriorExplorer } from './InteriorExplorer';
+import { interiorPortFor } from './interiorPort';
+import { RealWorldHost } from './RealWorldHost';
+import { RealWorldProgressStore } from '@/realworld/RealWorldProgress';
+import { IntroSequence } from '@/intro/IntroSequence';
+import { motion } from '@/accessibility/motion';
+import { IntroOverlay } from '@/intro/IntroOverlay';
 
 /** Where the world-map camera looks: the street and houses beyond the building sites. */
 const MENU_FOCUS = { x: 0, y: 2, z: -22 };
@@ -144,8 +156,13 @@ export class Game {
   readonly templatePlacement: TemplatePlacementController;
   readonly streetDraw: StreetDrawController;
   readonly history: HistoryService;
+  /** Construction plans (later: from the AI builder) -> pinned previews -> real objects. */
+  readonly planBuilder: PlanBuilder;
+  /** The AI builder's conversation: child's words -> intent -> PlanBuilder preview. */
+  readonly assistant: BuildAssistant;
   readonly thumbnails: ThumbnailRenderer;
   readonly studio: StudioCatalog;
+  private readonly constructionSound: ConstructionSound;
   private readonly ghosts: GhostKit;
   private readonly projector = new THREE.Vector3();
   readonly world: World;
@@ -154,6 +171,10 @@ export class Game {
   readonly ui: UIManager;
   readonly loop: GameLoop;
   readonly interior: InteriorReadability;
+  /** Interior Explorer: inside planned houses (walk, dollhouse, rooms, furniture). */
+  readonly interiorExplorer: InteriorExplorer;
+  /** RealWorld Explorer (landmarks, lessons, missions) - its own mode, loaded on demand (see RealWorldHost). */
+  readonly realWorld: RealWorldHost;
   readonly assetRegistry: AssetRegistry;
   readonly assets: AssetLibrary;
   readonly scenery: Scenery;
@@ -166,11 +187,16 @@ export class Game {
   private readonly groundPoint = new THREE.Vector3();
   private frameTimeAverage = 16;
   private renderScaleTimer = 0;
+  private readonly uiRoot: HTMLElement;
+  /** The startup "construction to creation" logo sequence; null once it has finished (see Step 30.1). */
+  private intro: IntroSequence | null = null;
+  private introOverlay: IntroOverlay | null = null;
 
   private unsubscribeStore: (() => void) | null = null;
   private unsubscribeKeys: (() => void) | null = null;
 
   constructor(elements: GameElements) {
+    this.uiRoot = elements.uiRoot;
     this.registry = new ObjectRegistry();
     this.registry.registerAll(objectDefinitions);
     this.challenges = new ChallengeRegistry(this.registry);
@@ -184,6 +210,7 @@ export class Game {
 
     this.world = new World({ canvas: elements.canvas, environment: sceneryDefinition.environment });
     this.assets = new AssetLibrary(this.assetRegistry, this.world.materials);
+    this.intro = new IntroSequence(this.assets, { getAspect: () => this.world.camera.aspect });
     this.scenery = new Scenery(sceneryDefinition, this.assets, (x, z) => this.world.environment.terrain.heightAt(x, z));
     this.world.sceneryRoot.add(this.scenery.root);
     this.homeShowcase = new HomeShowcase(this.assets, (x, z) => this.world.environment.terrain.heightAt(x, z));
@@ -194,6 +221,7 @@ export class Game {
 
     const storage = new LocalProgressStorage();
     const myWorldStorage = new LocalMyWorldStorage();
+    const planStore = new LocalPlanStore();
     const savedWorld = myWorldStorage.load();
     this.store = new GameStore(
       createInitialState(storage.load() ?? undefined, savedWorld?.player ?? null, savedWorld?.identity),
@@ -259,7 +287,41 @@ export class Game {
       placementRules,
     );
     this.streetDraw.onBuilt = (center, radius) => this.frameCreation(center, radius);
+    this.planBuilder = new PlanBuilder(
+      this.store,
+      this.actions,
+      this.registry,
+      this.templates,
+      placementRules,
+      this.worldSpace,
+      () => {
+        const controller = this.world.cameraController;
+        return { x: controller.target.x, z: controller.target.z, azimuth: controller.azimuth };
+      },
+      planStore,
+    );
+    this.planBuilder.onPreview = (center, radius, rotationY) => this.framePlan(center, radius, rotationY);
+    this.templatePlacement.onBuilt = (templateId, at, result) => this.planBuilder.onTemplateBuilt(templateId, at, result);
+    this.assistant = new BuildAssistant(this.planBuilder);
+    this.planBuilder.onBuilt = (groupId, plan, facts) => this.assistant.notifyBuilt(groupId, plan, facts);
     this.history = new HistoryService(this.store, this.actions);
+    this.interiorExplorer = new InteriorExplorer(
+      this.store,
+      this.actions,
+      this.registry,
+      this.planBuilder,
+      this.world,
+      this.input,
+      this.ghosts,
+      this.interior,
+    );
+    // Looking around inside a house (a drag) never selects what is under the pointer when it is let go.
+    this.construction.setClickGuard(() => this.interiorExplorer.walk.enabled && this.interiorExplorer.walk.didLookSinceDown);
+    // The AI helper understands "go to the kitchen" or "add a sofa" on the device and asks Interior Explorer to do it.
+    this.assistant.setInteriorPort(interiorPortFor(this.interiorExplorer, this.store, this.registry));
+    const realWorldProgress = new RealWorldProgressStore();
+    this.realWorld = new RealWorldHost(this.store, this.actions, this.world, this.input, realWorldProgress);
+    this.constructionSound = new ConstructionSound();
     this.thumbnails = new ThumbnailRenderer(this.registry, this.templates, this.construction.resources, this.assets);
     this.ui = new UIManager(elements.uiRoot, this.store, {
       actions: this.actions,
@@ -267,6 +329,19 @@ export class Game {
       challenges: this.challenges,
       templates: this.templates,
       studio: this.createStudioServices(),
+      realWorld: this.realWorld,
+      deviceData: {
+        erase: () =>
+          eraseDeviceData({
+            actions: this.actions,
+            history: this.history,
+            planBuilder: this.planBuilder,
+            assistant: this.assistant,
+            persistence: this.myWorldPersistence,
+            realWorld: realWorldProgress,
+            storages: [myWorldStorage, storage, planStore, realWorldProgress],
+          }),
+      },
     });
 
     this.loop = new GameLoop((delta) => this.frame(delta));
@@ -281,6 +356,8 @@ export class Game {
     this.history.start();
     this.templatePlacement.start();
     this.streetDraw.start();
+    this.interiorExplorer.start();
+    this.realWorld.start();
     this.unsubscribeStore = this.store.subscribe((state, previous) => {
       const myWorld = isMyWorld(state);
       const wasMyWorld = this.inMyWorld;
@@ -291,25 +368,61 @@ export class Game {
         myWorld && (isPlacementMode(state) || state.templatePlacement !== null || state.streetDrawing),
       );
       if (myWorld && (state.placedObjects !== previous.placedObjects || !wasMyWorld)) this.clearSceneryUnderCreations(state);
-      if (myWorld && state.selectedInstanceId && state.selectedInstanceId !== previous.selectedInstanceId) {
+      // Inside a house the camera is the walker's (or the dollhouse view's): selecting never flies it away.
+      if (myWorld && state.interior === null && state.selectedInstanceId && state.selectedInstanceId !== previous.selectedInstanceId) {
         this.flyToSelection(state.selectedInstanceId);
       }
+      // Tapping a house of a neighbourhood picks that house for the AI builder's follow-ups.
+      if (state.selectedInstanceId !== previous.selectedInstanceId) this.planBuilder.noteSelection(state.selectedInstanceId);
     });
     this.onModeChanged(this.store.getState().mode);
     this.world.setGridVisible(false);
     this.unsubscribeKeys = this.input.keyboard.on('keydown', (key) => {
-      if (this.store.getState().mode !== 'playing') return;
+      const state = this.store.getState();
+      // Number-key camera presets belong to the orbit camera, not to walking inside a house.
+      if (state.mode !== 'playing' || state.interior !== null) return;
       const preset = CAMERA_KEYS[key.code];
       if (preset) this.world.cameraController.setPreset(preset);
     });
     void this.scenery.build().catch((error) => console.warn('[scenery] could not be built', error));
     void this.homeShowcase.build().catch((error) => console.warn('[home] showcase could not be built', error));
     this.loop.start();
-    this.actions.finishBoot();
+    this.startIntro();
 
     console.info(
       `[game] started - ${this.registry.size} construction object definitions, ${this.challenges.worlds().length} worlds, ${this.challenges.size} challenges loaded`,
     );
+  }
+
+  /**
+   * "Construction to creation" (Step 30.1): plays once between boot and the
+   * Home screen, then reveals it exactly as `finishBoot()` always did. Any
+   * failure to load falls straight through to Home - a startup animation
+   * must never be able to trap the player.
+   */
+  private startIntro(): void {
+    const intro = this.intro;
+    if (!intro) {
+      this.actions.finishBoot();
+      return;
+    }
+    // Reduced motion: no startup animation, straight to Home.
+    if (motion.reduced) {
+      intro.dispose();
+      this.intro = null;
+      this.actions.finishBoot();
+      return;
+    }
+    this.introOverlay = new IntroOverlay(this.uiRoot, () => intro.skip());
+    intro.start(() => this.actions.finishBoot());
+    void intro.load().catch((error) => {
+      console.warn('[intro] could not load; skipping straight to Home', error);
+      this.intro?.dispose();
+      this.intro = null;
+      this.introOverlay?.dispose();
+      this.introOverlay = null;
+      this.actions.finishBoot();
+    });
   }
 
   /**
@@ -329,13 +442,18 @@ export class Game {
     this.loop.stop();
     this.unsubscribeStore?.();
     this.unsubscribeKeys?.();
+    this.intro?.dispose();
+    this.introOverlay?.dispose();
     this.assets.dispose();
     this.ui.dispose();
     this.progression.dispose();
     this.myWorldPersistence.dispose();
     this.history.dispose();
+    this.constructionSound.dispose();
     this.templatePlacement.dispose();
     this.streetDraw.dispose();
+    this.interiorExplorer.dispose();
+    this.realWorld.dispose();
     this.thumbnails.dispose();
     this.ghosts.dispose();
     this.livingWorld.dispose();
@@ -353,14 +471,40 @@ export class Game {
       this.followPointerWithGrid();
       this.adaptRenderScale(delta);
     }
+    this.interiorExplorer.update();
+    this.realWorld.update(delta);
     this.assets.update(delta);
     // Readability first: the preview resolved next uses this frame's
     // occluders, the same ones the frame is rendered with.
     this.interior.update();
     this.construction.update(delta);
     this.templatePlacement.update();
-    this.world.render();
+    this.renderFrame(delta);
     this.ui.frame();
+  }
+
+  /** Normally just `world.render()` - see Step 30.1 for the startup intro's brief detour. */
+  private renderFrame(delta: number): void {
+    const intro = this.intro;
+    if (!intro) {
+      this.world.render();
+      return;
+    }
+    intro.update(delta);
+    this.introOverlay?.setTaglineOpacity(intro.taglineOpacity);
+    if (intro.isFinished) {
+      intro.dispose();
+      this.intro = null;
+      this.introOverlay?.dispose();
+      this.introOverlay = null;
+      this.world.render();
+    } else if (intro.blending) {
+      // The dissolve into Home: both scenes drawn the same frame, the intro fading out on top.
+      this.world.render();
+      intro.renderBlend(this.world.renderer);
+    } else {
+      intro.render(this.world.renderer);
+    }
   }
 
   /**
@@ -376,6 +520,17 @@ export class Game {
       { x: center.x, y: 0.5, z: center.z },
       { distance, azimuth: this.currentAzimuth(), elevation },
       1.1,
+    );
+  }
+
+  /**
+   * Travel to a planned creation's preview and look at its front from high
+   * enough to see into the rooms (planned houses have no roof by default).
+   */
+  private framePlan(center: { x: number; y: number; z: number }, radius: number, rotationY: number): void {
+    this.world.cameraController.flyTo(
+      { x: center.x, y: 0.5, z: center.z },
+      { distance: THREE.MathUtils.clamp(radius * 2.3, 30, 170), azimuth: THREE.MathUtils.radToDeg(rotationY) + 20, elevation: 50 },
     );
   }
 
@@ -492,6 +647,22 @@ export class Game {
       catalog: this.studio,
       thumbnails: this.thumbnails,
       history: this.history,
+      assistant: this.assistant,
+      interior: this.interiorExplorer,
+      plannedCreation: (groupId) => this.planBuilder.planOf(groupId),
+      houseChoice: () => {
+        const target = this.assistant.target;
+        if (!target || target.plan.kind !== 'neighborhood') return null;
+        const focus = this.planBuilder.houseFocus();
+        return { groupId: target.groupId, houses: target.plan.houses, picked: focus?.groupId === target.groupId ? focus.index : null };
+      },
+      pickHouse: (groupId, index) => {
+        this.planBuilder.setHouseFocus(groupId, index);
+        const piece = index === null ? null : this.planBuilder.housePiece(groupId, index);
+        if (piece) this.actions.selectPlacedObject(piece);
+        else if (index === null && this.planBuilder.houseOf(this.store.getState().selectedInstanceId ?? '')?.groupId === groupId) this.actions.selectPlacedObject(null);
+      },
+      houseOf: (instanceId) => this.planBuilder.houseOf(instanceId)?.index ?? null,
       confirmTemplate: () => this.templatePlacement.confirm(),
       templateFits: () => this.templatePlacement.fits,
       templateHasSpot: () => this.templatePlacement.hasSpot,
@@ -525,6 +696,8 @@ export class Game {
       },
       flyTo: (x, z) => this.flyToPoint(x, z),
       flyToDistrict: (id) => this.flyToDistrict(id),
+      setPeekInside: (on) => this.interior.setPeekInside(on),
+      isPeekingInside: () => this.interior.peekInside,
     };
   }
 
@@ -628,8 +801,13 @@ export class Game {
   }
 
   private onModeChanged(mode: string, previousMode?: string, freeBuild?: boolean): void {
-    // The camera is only controllable while actually playing.
-    this.world.cameraController.setEnabled(mode === 'playing');
+    // The camera is only controllable while actually playing (or exploring a landmark).
+    this.world.cameraController.setEnabled(mode === 'playing' || mode === 'realworld');
+    // RealWorld Explorer frames, lights and restores its own scene (see RealWorldScene).
+    if (mode === 'realworld') {
+      this.world.homeRoot.visible = false;
+      return;
+    }
     // The home screen gets its own cinematic composition and presentation;
     // the world map keeps the original showcase view unchanged.
     this.world.homeRoot.visible = mode === 'menu';

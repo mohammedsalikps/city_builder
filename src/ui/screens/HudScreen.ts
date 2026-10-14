@@ -1,44 +1,64 @@
 import { Screen, el } from '../Screen';
-import { isFreeBuildMode, isPlacementMode, type GameState } from '@/state/GameState';
+import { returnFocusTo } from '../keyboard';
+import { isPlacementMode, type GameState } from '@/state/GameState';
 import { describePlacementStatus } from '@/construction/PlacementResolver';
 import { roleOf } from '@/construction/ConstructionObjectDefinition';
-import { transformCapabilitiesOf, hasAnyCapability, type TransformMode } from '@/construction/TransformCapabilities';
+import { transformCapabilitiesOf, type TransformMode } from '@/construction/TransformCapabilities';
+import { icon } from '../studio/icons';
+import { actionButton } from '../studio/dom';
 
 /**
- * In-game heads-up display: session facts on top, construction status and
- * context actions at the bottom. Every context button pairs a plain icon
- * with a short, child-facing label (Move / Turn / Size / Copy / Remove) -
- * never a raw keyboard hint or an engine term. Objectives/rewards panels
- * attach later.
+ * Challenge Mode's own head-up display (Step 27.1 visual pass - same
+ * actions and state reads as before, new presentation only):
+ *
+ *   ev-header (top-left)  world/level, the level's title, best stars and
+ *                         this attempt's live match progress, plus Pause
+ *                         and Exit in a small dock (top-right).
+ *   ev-flow (bottom)      contextual: hidden while nothing is happening,
+ *                         a placement pill (with a big, always-visible
+ *                         Cancel) while placing, or the selected object's
+ *                         Move / Turn / Size / Copy / Remove row while
+ *                         something is selected.
+ *
+ * Every button still calls the exact same `context.actions` method it did
+ * before; only the DOM/CSS changed.
  */
 export class HudScreen extends Screen {
   readonly id = 'hud';
 
-  private playerLabel: HTMLElement | null = null;
-  private worldLabel: HTMLElement | null = null;
-  private levelLabel: HTMLElement | null = null;
-  private placedLabel: HTMLElement | null = null;
-  private savedLabel: HTMLElement | null = null;
-  private lastPlacedObjects: GameState['placedObjects'] | null = null;
-  private savedTimeout: ReturnType<typeof setTimeout> | null = null;
-  private statusLabel: HTMLElement | null = null;
-  private hintLabel: HTMLElement | null = null;
+  private headerTitle: HTMLElement | null = null;
+  private headerEyebrow: HTMLElement | null = null;
+  private headerStars: HTMLElement | null = null;
+  private headerPct: HTMLElement | null = null;
+  private pauseButton: HTMLButtonElement | null = null;
+
+  private flow: HTMLElement | null = null;
+  private flowThumb: HTMLElement | null = null;
+  private flowTitle: HTMLElement | null = null;
+  private flowHint: HTMLElement | null = null;
+  private flowButtons: HTMLElement | null = null;
   private rotateButton: HTMLButtonElement | null = null;
   private cancelButton: HTMLButtonElement | null = null;
-  private deleteButton: HTMLButtonElement | null = null;
-  private duplicateButton: HTMLButtonElement | null = null;
-  private pauseOverlay: HTMLElement | null = null;
-  private transformGroup: HTMLElement | null = null;
-  private moveModeButton: HTMLButtonElement | null = null;
-  private rotateModeButton: HTMLButtonElement | null = null;
-  private scaleModeButton: HTMLButtonElement | null = null;
-  private scaleStepper: HTMLElement | null = null;
+
+  private actionRow: HTMLElement | null = null;
+  private moveButton: HTMLButtonElement | null = null;
+  private turnButton: HTMLButtonElement | null = null;
+  private sizeButton: HTMLButtonElement | null = null;
+  private copyButton: HTMLButtonElement | null = null;
+  private stepper: HTMLElement | null = null;
   private scaleDownButton: HTMLButtonElement | null = null;
   private scaleUpButton: HTMLButtonElement | null = null;
+
+  private pauseOverlay: HTMLElement | null = null;
+
   /** Latest state, so the fixed button closures below can branch on it. */
   private latestState: GameState | null = null;
+  private lastFlowKey = '';
 
-  private readonly onMenu = () => this.context.actions.returnToMenu();
+  private readonly onMenu = () => {
+    returnFocusTo('.mode-card--challenge');
+    this.context.actions.returnToMenu();
+  };
   private readonly onPause = () => this.context.actions.pause();
   private readonly onResume = () => this.context.actions.resume();
   private readonly onRotate = () => {
@@ -58,46 +78,79 @@ export class HudScreen extends Screen {
   protected build(): HTMLElement {
     const root = el('div', 'screen screen--hud');
 
-    const topBar = el('div', 'hud__top');
-    this.playerLabel = el('span', 'hud__stat');
-    this.worldLabel = el('span', 'hud__stat');
-    this.levelLabel = el('span', 'hud__stat');
-    this.placedLabel = el('span', 'hud__stat');
-    this.savedLabel = el('span', 'hud__saved', '✓ Saved');
-    this.savedLabel.hidden = true;
-    topBar.append(this.playerLabel, this.worldLabel, this.levelLabel, this.placedLabel, this.savedLabel);
-    topBar.appendChild(el('span', 'hud__spacer'));
-    topBar.appendChild(this.button('Pause', this.onPause));
-    topBar.appendChild(this.button('Menu', this.onMenu));
-    root.appendChild(topBar);
+    // ------------------------------------------------------------ header
+    const header = el('div', 'ev-header');
+    const mark = el('div', 'ev-header__mark');
+    mark.appendChild(icon('target'));
+    const text = el('div', 'ev-header__text');
+    this.headerEyebrow = el('div', 'ev-header__eyebrow');
+    this.headerTitle = el('div', 'ev-header__title');
+    text.append(this.headerEyebrow, this.headerTitle);
+    const progress = el('div', 'ev-header__progress');
+    this.headerStars = el('div', 'ev-stars');
+    for (let i = 0; i < 3; i++) this.headerStars.appendChild(this.starIcon());
+    this.headerPct = el('span', 'ev-header__pct');
+    progress.append(this.headerStars, this.headerPct);
+    header.append(mark, text, progress);
+    root.appendChild(header);
 
-    const bottomBar = el('div', 'hud__bottom');
-    this.statusLabel = el('span', 'hud__status');
-    this.hintLabel = el('span', 'hud__hint');
-    bottomBar.append(this.statusLabel, this.hintLabel);
-    bottomBar.appendChild(el('span', 'hud__spacer'));
-    this.rotateButton = this.iconButton('↻', 'Rotate', this.onRotate);
-    this.cancelButton = this.iconButton('✕', 'Cancel', this.onCancel);
+    const dock = el('div', 'ev-dock');
+    this.pauseButton = el('button', 'ev-round');
+    this.pauseButton.type = 'button';
+    this.pauseButton.setAttribute('aria-label', 'Pause');
+    this.pauseButton.title = 'Pause';
+    this.pauseButton.appendChild(icon('pause'));
+    this.pauseButton.addEventListener('click', this.onPause);
+    const menuButton = el('button', 'ev-round');
+    menuButton.type = 'button';
+    menuButton.setAttribute('aria-label', 'Back to levels');
+    menuButton.title = 'Back to levels';
+    menuButton.appendChild(icon('home'));
+    menuButton.addEventListener('click', this.onMenu);
+    dock.append(this.pauseButton, menuButton);
+    root.appendChild(dock);
 
-    this.transformGroup = el('span', 'hud__transform');
-    this.moveModeButton = this.iconButton('↔', 'Move', this.onSetMode('move'));
-    this.rotateModeButton = this.iconButton('↻', 'Turn', this.onSetMode('rotate'));
-    this.scaleModeButton = this.iconButton('⤢', 'Size', this.onSetMode('scale'));
-    this.scaleStepper = el('span', 'hud__scale-stepper');
-    this.scaleDownButton = this.button('−', this.onScaleDown, 'hud__scale-btn');
-    this.scaleUpButton = this.button('+', this.onScaleUp, 'hud__scale-btn');
-    this.scaleStepper.append(this.scaleDownButton, this.scaleUpButton);
-    this.transformGroup.append(this.moveModeButton, this.rotateModeButton, this.scaleModeButton, this.scaleStepper);
+    // -------------------------------------------------------- bottom flow
+    this.flow = el('div', 'ev-flow');
+    this.flow.hidden = true;
+    this.flowThumb = el('span', 'ev-flow__thumb');
+    const flowText = el('div', 'ev-flow__text');
+    this.flowTitle = el('strong', 'ev-flow__title');
+    this.flowHint = el('span', 'ev-flow__hint');
+    flowText.append(this.flowTitle, this.flowHint);
+    this.flowButtons = el('div', 'ev-flow__buttons');
+    this.flow.append(this.flowThumb, flowText, this.flowButtons);
+    root.appendChild(this.flow);
 
-    this.duplicateButton = this.iconButton('⧉', 'Copy', this.onDuplicate);
-    this.deleteButton = this.iconButton('🗑', 'Remove', this.onDelete, 'hud-btn--danger');
-    bottomBar.append(this.rotateButton, this.cancelButton, this.transformGroup, this.duplicateButton, this.deleteButton);
-    root.appendChild(bottomBar);
+    this.rotateButton = this.roundButton('turn', 'Rotate', this.onRotate);
+    this.cancelButton = el('button', 'ev-cancel');
+    this.cancelButton.type = 'button';
+    this.cancelButton.appendChild(icon('close'));
+    this.cancelButton.appendChild(el('span', '', 'Cancel'));
+    this.cancelButton.addEventListener('click', this.onCancel);
 
+    this.actionRow = el('div', 'ev-flow__buttons');
+    this.moveButton = actionButton('move', 'Move', this.onSetMode('move'));
+    this.turnButton = actionButton('turn', 'Turn', this.onSetMode('rotate'));
+    this.sizeButton = actionButton('size', 'Size', this.onSetMode('scale'));
+    const copy = actionButton('copy', 'Copy', this.onDuplicate);
+    this.copyButton = copy;
+    const remove = actionButton('remove', 'Remove', this.onDelete, 'ev-action--danger');
+    this.actionRow.append(this.moveButton, this.turnButton, this.sizeButton, copy, remove);
+
+    this.stepper = el('span', 'ev-stepper');
+    this.stepper.appendChild(el('span', 'ev-stepper__label', 'Size'));
+    this.scaleDownButton = this.roundButton('minus', 'Smaller', this.onScaleDown, 'ev-round--small');
+    this.scaleUpButton = this.roundButton('plus', 'Bigger', this.onScaleUp, 'ev-round--small');
+    this.stepper.append(this.scaleDownButton, this.scaleUpButton);
+
+    // ------------------------------------------------------------- pause
     this.pauseOverlay = el('div', 'hud__pause');
     this.pauseOverlay.appendChild(el('h2', 'title', 'Paused'));
-    const resumeButton = el('button', 'button button--primary', 'Resume');
+    const resumeButton = el('button', 'ev-pill ev-pill--primary');
     resumeButton.type = 'button';
+    resumeButton.appendChild(icon('check'));
+    resumeButton.appendChild(el('span', '', 'Resume'));
     resumeButton.addEventListener('click', this.onResume);
     this.pauseOverlay.appendChild(resumeButton);
     root.appendChild(this.pauseOverlay);
@@ -107,12 +160,25 @@ export class HudScreen extends Screen {
 
   update(state: GameState): void {
     this.latestState = state;
-    if (this.playerLabel) this.playerLabel.textContent = `Player: ${state.player?.name ?? '-'}`;
-    if (this.worldLabel) this.worldLabel.textContent = `World: ${state.world?.name ?? '-'}`;
-    if (this.levelLabel) this.levelLabel.textContent = `Level: ${state.level?.index ?? '-'}`;
-    if (this.placedLabel) this.placedLabel.textContent = `Placed: ${state.placedObjects.length}`;
     if (this.pauseOverlay) this.pauseOverlay.hidden = state.mode !== 'paused';
-    this.updateSavedIndicator(state);
+
+    const challenge = state.challenge ? this.context.challenges.get(state.challenge.challengeId) : undefined;
+    if (challenge) {
+      const world = this.context.challenges.getWorld(challenge.worldId);
+      if (this.headerEyebrow) {
+        this.headerEyebrow.textContent = world ? `World ${world.index} · Level ${String(challenge.index).padStart(2, '0')}` : `Level ${challenge.index}`;
+      }
+      if (this.headerTitle) this.headerTitle.textContent = challenge.title;
+      const best = state.progress.bestStars[challenge.id] ?? 0;
+      this.headerStars?.querySelectorAll('.ev-stars__star').forEach((star, i) => {
+        star.classList.toggle('ev-stars__star--on', i < best);
+      });
+      const live = state.challengeMatch ? Math.round(state.challengeMatch.progress * 100) : 0;
+      if (this.headerPct) {
+        this.headerPct.hidden = state.challengeMatch === null || state.challengeMatch.progress <= 0;
+        this.headerPct.textContent = `${live}%`;
+      }
+    }
 
     const placing = isPlacementMode(state);
     const templatePlacing = state.templatePlacement !== null;
@@ -120,130 +186,131 @@ export class HudScreen extends Screen {
       ? state.placedObjects.find((p) => p.id === state.selectedInstanceId) ?? null
       : null;
 
-    let status = 'Nothing selected';
-    let hint = 'Pick a piece below to build, or tap something you built to change it. Drag to look around, wheel to zoom.';
-    if (templatePlacing) {
-      const template = this.context.templates.get(state.templatePlacement!.templateId);
-      status = template ? `Building: ${template.icon} ${template.name}` : 'Building...';
-      hint = 'Point at the ground, then tap to place it. Rotate turns it, Cancel puts it away.';
-    } else if (placing && state.selectedObjectId) {
-      const definition = this.context.registry.get(state.selectedObjectId);
-      status = `Placing: ${definition?.name ?? state.selectedObjectId}`;
-      hint = state.placementStatus
-        ? `${describePlacementStatus(state.placementStatus)} Tap to place.`
-        : 'Point at the ground or something you built. Rotate turns it, Cancel puts it away.';
-    } else if (selected) {
-      const definition = this.context.registry.get(selected.definitionId);
-      status = `Selected: ${definition?.name ?? selected.definitionId}`;
-      hint = 'Move, Turn or Copy it, or tap Remove to take it away.';
-    }
-    if (this.statusLabel) this.statusLabel.textContent = status;
-    if (this.hintLabel) {
-      this.hintLabel.classList.toggle('hud__hint--invalid', placing && state.placementStatus?.valid === false);
-    }
-    if (this.hintLabel) this.hintLabel.textContent = hint;
-
-    const inPlacementFlow = placing || templatePlacing;
-    if (this.rotateButton) this.rotateButton.hidden = !inPlacementFlow;
-    if (this.cancelButton) this.cancelButton.hidden = !inPlacementFlow;
-    if (this.deleteButton) this.deleteButton.hidden = selected === null;
-    if (this.duplicateButton) {
-      const selectedDefinition = selected ? this.context.registry.get(selected.definitionId) : undefined;
-      this.duplicateButton.hidden = selected === null || !selectedDefinition || roleOf(selectedDefinition) === 'opening';
-    }
-    this.updateTransformControls(state, selected);
+    this.updateFlow(state, placing, templatePlacing, selected);
   }
 
-  /**
-   * Subtle "Saved" flash whenever My World's build actually changes - the
-   * only player-visible sign that persistence happened (see
-   * MyWorldPersistenceService). Never shown in Challenge Mode, where
-   * placedObjects isn't durable and saving would be meaningless.
-   */
-  private updateSavedIndicator(state: GameState): void {
-    if (!isFreeBuildMode(state) || state.mode !== 'playing') {
-      this.lastPlacedObjects = null;
+  private updateFlow(
+    state: GameState,
+    placing: boolean,
+    templatePlacing: boolean,
+    selected: GameState['placedObjects'][number] | null,
+  ): void {
+    const inPlacementFlow = placing || templatePlacing;
+    const showFlow = inPlacementFlow || selected !== null;
+    if (this.flow) this.flow.hidden = !showFlow;
+    if (!showFlow) return;
+
+    if (inPlacementFlow) {
+      this.setFlowButtons([this.rotateButton!, this.cancelButton!]);
+      let definitionId = state.selectedObjectId;
+      let name = 'Building';
+      let iconName = 'sparkle';
+      if (templatePlacing) {
+        const template = this.context.templates.get(state.templatePlacement!.templateId);
+        name = template?.name ?? 'Building';
+        iconName = 'sparkle';
+      } else if (definitionId) {
+        const definition = this.context.registry.get(definitionId);
+        name = definition?.name ?? definitionId;
+        iconName = 'bricks';
+      }
+      if (this.flowThumb) this.flowThumb.replaceChildren(icon(iconName));
+      if (this.flowTitle) this.flowTitle.textContent = `Placing: ${name}`;
+      const hint = templatePlacing
+        ? 'Tap the ground to place it'
+        : state.placementStatus
+          ? describePlacementStatus(state.placementStatus)
+          : 'Point at the ground, then tap';
+      if (this.flowHint) {
+        this.flowHint.textContent = hint;
+        this.flowHint.classList.toggle('ev-flow__hint--invalid', !templatePlacing && state.placementStatus?.valid === false);
+      }
       return;
     }
-    if (this.lastPlacedObjects !== null && state.placedObjects !== this.lastPlacedObjects) {
-      if (this.savedLabel) this.savedLabel.hidden = false;
-      if (this.savedTimeout !== null) clearTimeout(this.savedTimeout);
-      this.savedTimeout = setTimeout(() => {
-        if (this.savedLabel) this.savedLabel.hidden = true;
-        this.savedTimeout = null;
-      }, 1600);
-    }
-    this.lastPlacedObjects = state.placedObjects;
-  }
 
-  /** Move / Turn / Size indicator: only the modes this selection actually supports. */
-  private updateTransformControls(state: GameState, selected: GameState['placedObjects'][number] | null): void {
+    // Selected: Move / Turn / Size / Copy / Remove.
     const definition = selected ? this.context.registry.get(selected.definitionId) : undefined;
     if (!selected || !definition) {
-      if (this.transformGroup) this.transformGroup.hidden = true;
+      if (this.flow) this.flow.hidden = true;
       return;
     }
+    if (this.flowThumb) this.flowThumb.replaceChildren(icon('target'));
+    if (this.flowTitle) this.flowTitle.textContent = definition.name;
+    if (this.flowHint) {
+      this.flowHint.textContent = 'Move, Turn or Copy it';
+      this.flowHint.classList.remove('ev-flow__hint--invalid');
+    }
+
     const hostsOpenings = state.placedObjects.some((p) => p.hostId === selected.id);
     const caps = transformCapabilitiesOf(definition, state.challenge ? 'challenge' : 'freeplay', hostsOpenings);
-    if (this.transformGroup) this.transformGroup.hidden = !hasAnyCapability(caps);
+    if (this.moveButton) {
+      this.moveButton.hidden = !caps.movable;
+      this.moveButton.classList.toggle('ev-action--on', state.transformMode === 'move');
+    }
+    if (this.turnButton) {
+      this.turnButton.hidden = !caps.rotatableY;
+      this.turnButton.classList.toggle('ev-action--on', state.transformMode === 'rotate');
+    }
+    if (this.sizeButton) {
+      this.sizeButton.hidden = !caps.scalable;
+      this.sizeButton.classList.toggle('ev-action--on', state.transformMode === 'scale');
+    }
+    if (this.copyButton) this.copyButton.hidden = roleOf(definition) === 'opening';
 
-    if (this.moveModeButton) {
-      this.moveModeButton.hidden = !caps.movable;
-      this.moveModeButton.classList.toggle('hud-btn--active', state.transformMode === 'move');
-    }
-    if (this.rotateModeButton) {
-      this.rotateModeButton.hidden = !caps.rotatableY;
-      this.rotateModeButton.classList.toggle('hud-btn--active', state.transformMode === 'rotate');
-    }
-    if (this.scaleModeButton) {
-      this.scaleModeButton.hidden = !caps.scalable;
-      this.scaleModeButton.classList.toggle('hud-btn--active', state.transformMode === 'scale');
-    }
     const showStepper = caps.scalable && state.transformMode === 'scale';
-    if (this.scaleStepper) this.scaleStepper.hidden = !showStepper;
+    if (this.stepper) this.stepper.hidden = !showStepper;
     if (this.scaleDownButton) this.scaleDownButton.disabled = selected.scale.x <= caps.minScale + 1e-6;
     if (this.scaleUpButton) this.scaleUpButton.disabled = selected.scale.x >= caps.maxScale - 1e-6;
+
+    this.setFlowButtons([this.actionRow!, this.stepper!]);
+  }
+
+  private setFlowButtons(children: HTMLElement[]): void {
+    if (!this.flowButtons) return;
+    const key = children.map((c) => c === this.actionRow ? 'a' : c === this.stepper ? 's' : 'p').join('');
+    if (key === this.lastFlowKey) return;
+    this.lastFlowKey = key;
+    this.flowButtons.replaceChildren(...children);
   }
 
   protected onUnmount(): void {
-    if (this.savedTimeout !== null) clearTimeout(this.savedTimeout);
-    this.savedTimeout = null;
-    this.lastPlacedObjects = null;
     this.latestState = null;
-    this.playerLabel = null;
-    this.worldLabel = null;
-    this.levelLabel = null;
-    this.placedLabel = null;
-    this.savedLabel = null;
-    this.statusLabel = null;
-    this.hintLabel = null;
+    this.lastFlowKey = '';
+    this.headerTitle = null;
+    this.headerEyebrow = null;
+    this.headerStars = null;
+    this.headerPct = null;
+    this.pauseButton = null;
+    this.flow = null;
+    this.flowThumb = null;
+    this.flowTitle = null;
+    this.flowHint = null;
+    this.flowButtons = null;
     this.rotateButton = null;
     this.cancelButton = null;
-    this.deleteButton = null;
-    this.duplicateButton = null;
-    this.pauseOverlay = null;
-    this.transformGroup = null;
-    this.moveModeButton = null;
-    this.rotateModeButton = null;
-    this.scaleModeButton = null;
-    this.scaleStepper = null;
+    this.actionRow = null;
+    this.moveButton = null;
+    this.turnButton = null;
+    this.sizeButton = null;
+    this.copyButton = null;
+    this.stepper = null;
     this.scaleDownButton = null;
     this.scaleUpButton = null;
+    this.pauseOverlay = null;
   }
 
-  private button(label: string, onClick: () => void, extraClass = ''): HTMLButtonElement {
-    const button = el('button', `button button--small ${extraClass}`.trim(), label);
-    button.type = 'button';
-    button.addEventListener('click', onClick);
-    return button;
+  private starIcon(): HTMLElement {
+    const star = el('span', 'ev-stars__star');
+    star.appendChild(icon('star'));
+    return star;
   }
 
-  /** A context button: a plain icon over a short, child-facing label - never a technical term or raw shortcut. */
-  private iconButton(icon: string, label: string, onClick: () => void, extraClass = ''): HTMLButtonElement {
-    const button = el('button', `hud-btn ${extraClass}`.trim());
+  private roundButton(iconName: string, label: string, onClick: () => void, extraClass = ''): HTMLButtonElement {
+    const button = el('button', `ev-round ${extraClass}`.trim());
     button.type = 'button';
-    button.appendChild(el('span', 'hud-btn__icon', icon));
-    button.appendChild(el('span', 'hud-btn__label', label));
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.appendChild(icon(iconName));
     button.addEventListener('click', onClick);
     return button;
   }

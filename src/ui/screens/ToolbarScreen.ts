@@ -1,69 +1,61 @@
 import { Screen, el } from '../Screen';
 import { isObjectUnlocked, type GameState } from '@/state/GameState';
-import {
-  CATEGORY_LABELS,
-  OBJECT_CATEGORIES,
-  type ConstructionObjectDefinition,
-  type ObjectCategory,
-} from '@/construction/ConstructionObjectDefinition';
+import type { ConstructionObjectDefinition } from '@/construction/ConstructionObjectDefinition';
+import type { PieceShelf } from '@/creative/Studio';
+import { icon } from '../studio/icons';
+import { thumbnail } from '../studio/dom';
 
 interface ToolbarItem {
   definition: ConstructionObjectDefinition;
   button: HTMLButtonElement;
-  status: HTMLElement;
+  lock: HTMLElement;
 }
 
-/** One small glyph per category, so the compact bar reads at a glance. */
-const CATEGORY_ICONS: Record<ObjectCategory, string> = {
-  structures: '🧱',
-  openings: '🚪',
-  buildings: '🏠',
-  furniture: '🛋️',
-  nature: '🌳',
-  decoration: '💡',
-  roads: '🛣️',
-  vehicles: '🚗',
-  utilities: '🔧',
-};
-
 /**
- * Challenge Mode's piece palette: a compact floating bar of category chips
- * at the bottom of the screen. Tapping a category slides open one
- * horizontal strip of its pieces; tapping it again closes it. My World no
- * longer uses this screen - it has World Studio (see StudioScreen).
+ * Challenge Mode's piece palette (Step 27.1 visual pass - same actions,
+ * unlock rules and available objects as before, new presentation only): a
+ * compact floating bar of shelf tabs at the bottom of the screen, each
+ * opening a strip of real 3D piece thumbnails. My World no longer uses this
+ * screen - it has World Studio (see StudioScreen).
  *
- * Every category that has pieces gets a chip (a level's furniture, roads or
- * vehicles must always be reachable). Locked definitions show disabled so
- * the player can see what exists without being able to select it.
+ * Shelves come straight from World Studio's own catalogue
+ * (`studio.catalog.pieces`), so grouping and iconography already match the
+ * "By hand" drawer there; the underlying category filter and every locked
+ * definition are unchanged. Thumbnails reuse the same `ThumbnailRenderer`
+ * World Studio uses, so a wall or a tree looks like a picture of the real
+ * thing rather than a flat colour swatch.
  */
 export class ToolbarScreen extends Screen {
   readonly id = 'toolbar';
 
   private items: ToolbarItem[] = [];
-  private tabs: Array<{ category: ObjectCategory; button: HTMLButtonElement }> = [];
+  private tabs: Array<{ shelf: PieceShelf; button: HTMLButtonElement }> = [];
   private searchInput: HTMLInputElement | null = null;
   private searchToggle: HTMLButtonElement | null = null;
   private strip: HTMLElement | null = null;
   private emptyLabel: HTMLElement | null = null;
-  private category: ObjectCategory | null = null;
+  private shelf: PieceShelf | null = null;
   private searching = false;
   private query = '';
 
   protected build(): HTMLElement {
     const root = el('div', 'screen screen--toolbar');
-    const palette = el('div', 'palette');
+    const palette = el('div', 'ev-palette');
+    const shelves = this.context.studio.catalog.pieces;
+    this.shelf = null;
 
-    this.strip = el('div', 'palette__strip');
+    this.strip = el('div', 'ev-palette__strip');
     palette.appendChild(this.strip);
 
-    const bar = el('div', 'palette__bar');
-    this.searchToggle = el('button', 'palette__search-toggle', '🔍');
+    const bar = el('div', 'ev-palette__bar');
+    this.searchToggle = el('button', 'ev-palette__search-toggle');
     this.searchToggle.type = 'button';
     this.searchToggle.setAttribute('aria-label', 'Search construction pieces');
+    this.searchToggle.appendChild(icon('zoom'));
     this.searchToggle.addEventListener('click', () => {
       this.searching = !this.searching;
       if (this.searching) {
-        this.category = null;
+        this.shelf = null;
       } else {
         this.query = '';
         if (this.searchInput) this.searchInput.value = '';
@@ -72,10 +64,10 @@ export class ToolbarScreen extends Screen {
       if (this.searching) this.searchInput?.focus();
     });
     bar.appendChild(this.searchToggle);
-    bar.appendChild(this.buildTabs());
+    bar.appendChild(this.buildTabs(shelves));
     palette.appendChild(bar);
 
-    this.searchInput = el('input', 'palette__search');
+    this.searchInput = el('input', 'ev-palette__search');
     this.searchInput.type = 'search';
     this.searchInput.placeholder = 'Search (door, roof, tree...)';
     this.searchInput.hidden = true;
@@ -91,7 +83,7 @@ export class ToolbarScreen extends Screen {
       this.items.push(item);
       this.strip.appendChild(item.button);
     }
-    this.emptyLabel = el('div', 'palette__empty', 'Nothing here yet.');
+    this.emptyLabel = el('div', 'ev-palette__empty', 'Nothing here yet.');
     this.emptyLabel.hidden = true;
     this.strip.appendChild(this.emptyLabel);
 
@@ -100,59 +92,54 @@ export class ToolbarScreen extends Screen {
     return root;
   }
 
-  /** One chip per category that has at least one definition. */
-  private buildTabs(): HTMLElement {
-    const row = el('div', 'palette__tabs');
-    const present = new Set(challengeCatalogue(this.context.registry.list()).map((d) => d.category));
-    for (const category of OBJECT_CATEGORIES.filter((c) => present.has(c))) {
-      const chip = el('button', 'chip');
+  /** One tab per shelf that has at least one available definition. */
+  private buildTabs(shelves: PieceShelf[]): HTMLElement {
+    const row = el('div', 'ev-palette__tabs');
+    const available = challengeCatalogue(this.context.registry.list());
+    for (const shelf of shelves) {
+      if (!available.some((d) => shelf.categories.includes(d.category))) continue;
+      const chip = el('button', 'ev-chip');
       chip.type = 'button';
-      chip.dataset.category = category;
-      chip.appendChild(el('span', 'chip__icon', CATEGORY_ICONS[category]));
-      chip.appendChild(el('span', 'chip__label', CATEGORY_LABELS[category]));
+      chip.appendChild(icon(shelf.icon));
+      chip.appendChild(el('span', '', shelf.name));
       chip.addEventListener('click', () => {
         this.searching = false;
-        this.category = this.category === category ? null : category;
+        this.shelf = this.shelf === shelf ? null : shelf;
         this.applyFilter();
       });
-      this.tabs.push({ category, button: chip });
+      this.tabs.push({ shelf, button: chip });
       row.appendChild(chip);
     }
     return row;
   }
 
   private buildItem(definition: ConstructionObjectDefinition): ToolbarItem {
-    const button = el('button', 'piece');
+    const button = el('button', 'ev-piece');
     button.type = 'button';
     button.dataset.objectId = definition.id;
-    button.dataset.category = definition.category;
 
-    const swatch = el('span', 'piece__swatch');
-    swatch.style.background = definition.color;
-    button.appendChild(swatch);
-
-    const text = el('span', 'piece__text');
-    text.appendChild(el('span', 'piece__name', definition.name));
-    const status = el('span', 'piece__status');
-    text.appendChild(status);
-    button.appendChild(text);
+    button.appendChild(thumbnail(this.context.studio.thumbnails.forDefinition(definition.id), 'ev-piece__thumb'));
+    const lock = el('span', 'ev-piece__lock');
+    lock.appendChild(icon('lock'));
+    button.appendChild(lock);
+    button.appendChild(el('span', 'ev-piece__name', definition.name));
 
     button.addEventListener('click', () => {
-      // Clicking the active piece again leaves placement mode.
+      // Tapping the active piece again leaves placement mode.
       const actions = this.context.actions;
-      if (button.classList.contains('piece--active')) actions.cancelPlacement();
+      if (button.classList.contains('ev-piece--active')) actions.cancelPlacement();
       else actions.selectObject(definition.id);
     });
 
-    return { definition, button, status };
+    return { definition, button, lock };
   }
 
-  /** Show the strip only while browsing a category or searching; filter its pieces. */
+  /** Show the strip only while browsing a shelf or searching; filter its pieces. */
   private applyFilter(): void {
-    const open = this.searching || this.category !== null;
+    const open = this.searching || this.shelf !== null;
     if (this.strip) this.strip.hidden = !open;
     if (this.searchInput) this.searchInput.hidden = !this.searching;
-    if (this.searchToggle) this.searchToggle.classList.toggle('palette__search-toggle--active', this.searching);
+    if (this.searchToggle) this.searchToggle.classList.toggle('ev-palette__search-toggle--active', this.searching);
 
     let visible = 0;
     for (const item of this.items) {
@@ -161,7 +148,7 @@ export class ToolbarScreen extends Screen {
       if (show) visible++;
     }
     for (const tab of this.tabs) {
-      tab.button.classList.toggle('chip--active', tab.category === this.category);
+      tab.button.classList.toggle('ev-chip--active', tab.shelf === this.shelf);
     }
     if (this.emptyLabel) this.emptyLabel.hidden = !open || visible > 0;
   }
@@ -174,7 +161,7 @@ export class ToolbarScreen extends Screen {
         .toLowerCase();
       return haystack.includes(this.query);
     }
-    return definition.category === this.category;
+    return this.shelf !== null && this.shelf.categories.includes(definition.category);
   }
 
   /** Definitions currently shown, for tests and debugging. */
@@ -187,10 +174,10 @@ export class ToolbarScreen extends Screen {
       const unlocked = isObjectUnlocked(state, item.definition.id);
       const active = state.selectedObjectId === item.definition.id;
       item.button.disabled = !unlocked;
-      item.button.classList.toggle('piece--locked', !unlocked);
-      item.button.classList.toggle('piece--active', active);
+      item.button.classList.toggle('ev-piece--locked', !unlocked);
+      item.button.classList.toggle('ev-piece--active', active);
       item.button.setAttribute('aria-pressed', String(active));
-      item.status.textContent = !unlocked ? 'Locked' : active ? 'Placing' : '';
+      item.lock.hidden = unlocked;
     }
   }
 
@@ -201,7 +188,7 @@ export class ToolbarScreen extends Screen {
     this.searchToggle = null;
     this.strip = null;
     this.emptyLabel = null;
-    this.category = null;
+    this.shelf = null;
     this.searching = false;
     this.query = '';
   }

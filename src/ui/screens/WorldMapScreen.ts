@@ -1,12 +1,12 @@
 import { Screen, el } from '../Screen';
 import type { GameState } from '@/state/GameState';
 import { listLevels, type LevelEntry } from '@/progression/levelState';
-import { starString } from '@/progression/stars';
+import { icon } from '../studio/icons';
 
 interface MapNode {
   challengeId: string;
   button: HTMLButtonElement;
-  number: HTMLElement;
+  badge: HTMLElement;
   stars: HTMLElement;
   label: HTMLElement;
 }
@@ -15,10 +15,12 @@ interface MapNode {
 const ZIGZAG = [18, 50, 82, 50];
 
 /**
- * World map: the levels of one world as nodes along a zig-zag "site path".
- * Node state (locked / available / completed, stars, current) is derived
- * from `state.progress` through the same level-state rule the menu and the
- * unlocking use; the map holds no progression of its own.
+ * World map (Step 27.1 visual pass - same node state and actions as
+ * before, new presentation only): the levels of one world as nodes along a
+ * zig-zag "site path". Node state (locked / available / completed, stars,
+ * current) is derived from `state.progress` through the same level-state
+ * rule the menu and the unlocking use; the map holds no progression of its
+ * own.
  *
  * Only World 1 exists today, but the screen reads worlds from the registry
  * and shows whichever world holds the next level to play.
@@ -40,24 +42,26 @@ export class WorldMapScreen extends Screen {
 
   protected build(): HTMLElement {
     const root = el('div', 'screen screen--map');
-    const panel = el('div', 'map');
+    const panel = el('div', 'ev-map');
 
-    const header = el('div', 'map__header');
-    const back = el('button', 'button button--small', '← Menu');
+    const header = el('div', 'ev-map__header');
+    const back = el('button', 'ev-map__back');
     back.type = 'button';
+    back.appendChild(icon('back'));
+    back.appendChild(el('span', '', 'Menu'));
     back.addEventListener('click', this.onBack);
     header.appendChild(back);
-    const titles = el('div', 'map__titles');
-    this.titleLabel = el('div', 'map__title');
-    this.descriptionLabel = el('div', 'map__description');
+    const titles = el('div', 'ev-map__titles');
+    this.titleLabel = el('div', 'ev-map__title');
+    this.descriptionLabel = el('div', 'ev-map__description');
     titles.append(this.titleLabel, this.descriptionLabel);
     header.appendChild(titles);
     panel.appendChild(header);
 
-    this.summaryLabel = el('div', 'map__summary');
+    this.summaryLabel = el('div', 'ev-map__summary');
     panel.appendChild(this.summaryLabel);
 
-    this.path = el('div', 'map__path');
+    this.path = el('div', 'ev-map__path');
     panel.appendChild(this.path);
 
     this.noticeLabel = el('div', 'menu__notice');
@@ -75,39 +79,39 @@ export class WorldMapScreen extends Screen {
     this.nodes = [];
 
     const levels = this.context.challenges.listByWorld(worldId);
-    const rowHeight = 76;
-    this.path.style.height = `${levels.length * rowHeight + 56}px`;
+    const rowHeight = 84;
+    this.path.style.height = `${levels.length * rowHeight + 60}px`;
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'map__svg');
+    svg.setAttribute('class', 'ev-map__svg');
     svg.setAttribute('preserveAspectRatio', 'none');
     this.pathLine = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    this.pathLine.setAttribute('class', 'map__line');
+    this.pathLine.setAttribute('class', 'ev-map__line');
     svg.appendChild(this.pathLine);
     this.path.appendChild(svg);
 
     const points: string[] = [];
     levels.forEach((challenge, i) => {
       const xPercent = ZIGZAG[i % ZIGZAG.length];
-      const y = 56 + i * rowHeight;
+      const y = 60 + i * rowHeight;
       points.push(`${xPercent},${y}`);
 
-      const button = el('button', 'node');
+      const button = el('button', 'ev-node');
       button.type = 'button';
       button.dataset.challengeId = challenge.id;
       button.style.left = `${xPercent}%`;
       button.style.top = `${y}px`;
-      const number = el('span', 'node__number', String(challenge.index));
-      const stars = el('span', 'node__stars');
-      const label = el('span', 'node__label', challenge.title);
-      button.append(number, stars, label);
+      const badge = el('span', 'ev-node__badge');
+      const stars = el('span', 'ev-node__stars');
+      const label = el('span', 'ev-node__label', challenge.title);
+      button.append(badge, stars, label);
       button.addEventListener('click', () => this.context.actions.startChallenge(challenge.id));
       this.path?.appendChild(button);
-      this.nodes.push({ challengeId: challenge.id, button, number, stars, label });
+      this.nodes.push({ challengeId: challenge.id, button, badge, stars, label });
     });
 
     // The polyline is drawn in a 100 x height user space so x can be percent-like.
-    svg.setAttribute('viewBox', `0 0 100 ${levels.length * rowHeight + 56}`);
+    svg.setAttribute('viewBox', `0 0 100 ${levels.length * rowHeight + 60}`);
     this.pathLine.setAttribute('points', points.join(' '));
   }
 
@@ -141,14 +145,14 @@ export class WorldMapScreen extends Screen {
       const entry = byId.get(node.challengeId);
       if (!entry) continue;
       const isCurrent = entry.challenge.id === current.challenge.id;
-      node.button.classList.toggle('node--locked', entry.status === 'locked');
-      node.button.classList.toggle('node--available', entry.status === 'available');
-      node.button.classList.toggle('node--completed', entry.status === 'completed');
-      node.button.classList.toggle('node--current', isCurrent);
+      node.button.classList.toggle('ev-node--locked', entry.status === 'locked');
+      node.button.classList.toggle('ev-node--available', entry.status === 'available');
+      node.button.classList.toggle('ev-node--completed', entry.status === 'completed');
+      node.button.classList.toggle('ev-node--current', isCurrent);
       node.button.dataset.status = entry.status;
       node.button.setAttribute('aria-label', `Level ${entry.challenge.index}: ${entry.challenge.title} (${entry.status})`);
-      node.number.textContent = entry.status === 'locked' ? '🔒' : entry.status === 'completed' ? '✓' : String(entry.challenge.index);
-      node.stars.textContent = entry.status === 'completed' ? starString(entry.bestStars) : '';
+      this.renderBadge(node.badge, entry);
+      this.renderStars(node.stars, entry.status === 'completed' ? entry.bestStars : 0);
       // Long worlds scroll: keep the level the player is on in view.
       if (isCurrent && node.challengeId !== this.scrolledTo) {
         this.scrolledTo = node.challengeId;
@@ -159,6 +163,26 @@ export class WorldMapScreen extends Screen {
     if (this.noticeLabel) {
       this.noticeLabel.textContent = state.menuNotice ?? '';
       this.noticeLabel.hidden = state.menuNotice === null;
+    }
+  }
+
+  private renderBadge(badge: HTMLElement, entry: LevelEntry): void {
+    if (entry.status === 'locked') {
+      badge.replaceChildren(icon('lock'));
+    } else if (entry.status === 'completed') {
+      badge.replaceChildren(icon('check'));
+    } else {
+      badge.replaceChildren(document.createTextNode(String(entry.challenge.index)));
+    }
+  }
+
+  private renderStars(row: HTMLElement, count: number): void {
+    row.replaceChildren();
+    if (count === 0) return;
+    for (let i = 0; i < 3; i++) {
+      const star = el('span', i < count ? 'ev-stars__star ev-stars__star--on' : 'ev-stars__star');
+      star.appendChild(icon('star'));
+      row.appendChild(star);
     }
   }
 

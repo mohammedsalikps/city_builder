@@ -31,6 +31,11 @@ export interface TemplateObjectSpec {
   supportRef?: string;
   /** Surface used when supportRef/hostRef is given. Defaults to 'top' for a support, 'side' for a host. */
   surface?: 'top' | 'side';
+  /**
+   * Size multiplier per axis (1 = the catalogue size), for pieces fitted to
+   * a planned creation - e.g. one roof spanning a whole house. Defaults to 1.
+   */
+  scale?: Vec3;
 }
 
 /**
@@ -74,6 +79,20 @@ export class TemplateRegistry {
     definitions.forEach((d) => this.register(d));
   }
 
+  /**
+   * Add or replace a template made at runtime (a planned creation being
+   * previewed - see src/creative/plan). Validated exactly like the JSON ones.
+   */
+  upsert(definition: TemplateDefinition): void {
+    const error = validateTemplate(definition);
+    if (error) throw new Error(`Invalid template "${definition?.id ?? 'unknown'}": ${error}`);
+    this.definitions.set(definition.id, definition);
+  }
+
+  remove(id: string): void {
+    this.definitions.delete(id);
+  }
+
   get(id: string): TemplateDefinition | undefined {
     return this.definitions.get(id);
   }
@@ -108,6 +127,10 @@ function validateTemplate(d: TemplateDefinition): string | null {
     }
     if (spec.rotationY !== undefined && typeof spec.rotationY !== 'number') {
       return `objects[${index}] has an invalid rotationY`;
+    }
+    const s = spec.scale;
+    if (s !== undefined && ![s?.x, s?.y, s?.z].every((v) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 20)) {
+      return `objects[${index}] has an invalid scale`;
     }
     if (spec.hostRef !== undefined && !localIds.has(spec.hostRef)) {
       return `objects[${index}] hostRef "${spec.hostRef}" is not declared by any localId`;

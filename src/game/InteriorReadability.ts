@@ -61,6 +61,36 @@ export class InteriorReadability {
     private readonly renderer: ConstructionRenderer,
   ) {}
 
+  private peeking = false;
+  /** Interior Explorer's dollhouse cutaway: one house's roof and outer walls. */
+  private cutaway: ReadonlySet<string> = new Set();
+
+  /**
+   * My World "peek inside": roofs are drawn see-through and taps pass
+   * through them to the rooms below. Presentation only - the roofs stay in
+   * the world, unchanged.
+   */
+  setPeekInside(on: boolean): void {
+    if (on === this.peeking) return;
+    this.peeking = on;
+    this.lastState = null; // recompute on the next frame
+  }
+
+  get peekInside(): boolean {
+    return this.peeking;
+  }
+
+  /**
+   * Interior Explorer's dollhouse view: the given pieces (one house's roof
+   * and outer walls) are drawn faded, with the doors and windows set into
+   * them, and taps pass through them to the rooms. Null or empty: none.
+   * My World only; presentation only, like peek inside.
+   */
+  setInteriorCutaway(ids: Iterable<string> | null): void {
+    this.cutaway = new Set(ids ?? []);
+    this.lastState = null; // recompute on the next frame
+  }
+
   /** Ids currently drawn faded (diagnostics and tests). */
   get fadedIds(): ReadonlySet<string> {
     return this.faded;
@@ -132,6 +162,23 @@ export class InteriorReadability {
       findOccluders(camera, this.selectionFocus, this.occluders, this.faded, this.allFocus);
       this.addHostedOpenings(state.placedObjects, this.faded);
     }
+    const roofs = new Set<string>();
+    if (this.peeking && state.challenge === null) {
+      for (const placed of state.placedObjects) {
+        const definition = this.registry.get(placed.definitionId);
+        if (definition && roleOf(definition) === 'roof') roofs.add(placed.id);
+      }
+      roofs.forEach((id) => this.faded.add(id));
+    }
+    if (this.cutaway.size > 0 && state.challenge === null) {
+      const cut = new Set(this.cutaway);
+      this.addHostedOpenings(state.placedObjects, cut);
+      cut.forEach((id) => {
+        roofs.add(id);
+        this.faded.add(id);
+      });
+    }
+    this.renderer.setPassThrough(roofs);
     this.renderer.setFaded(this.faded);
   }
 

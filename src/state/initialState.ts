@@ -42,5 +42,7 @@ export function createInitialState(
     streetDrawing: false,
     creationFocus: null,
     myWorld,
+    interior: null,
+    realWorld: { landmarkId: null },
   };
 }

@@ -1,6 +1,42 @@
 import { Screen, el } from '../Screen';
 import type { GameState } from '@/state/GameState';
 import { listLevels } from '@/progression/levelState';
+import { confirmDialog } from '../confirmDialog';
+import { motion, type MotionSetting } from '@/accessibility/motion';
+import { focusIfPresent, takeReturnFocus } from '../keyboard';
+
+/**
+ * What the two "start over" questions say. DRAFT WORDING - needs product
+ * sign-off (see docs/child-facing-release-checklist.md, section 2) before a
+ * release for children.
+ */
+const WORDING = {
+  resetProgress: {
+    title: 'Start the levels again?',
+    body: ['This clears your finished levels and stars, so every level starts fresh. Your world in My World stays as it is.'],
+    confirm: 'Yes, start again',
+    cancel: 'No, keep my stars',
+  },
+  deleteEverything: {
+    title: 'Delete everything on this device?',
+    body: [
+      'This deletes your world, everything you built, your builder name, your stars and what you discovered in RealWorld Explorer from this device. You cannot get them back.',
+      'Grown-ups: this only deletes what EAVARA saved on this device. It cannot delete words or recordings already sent to the AI services that run the building helper.',
+    ],
+    confirm: 'Delete everything',
+    cancel: 'Keep my things',
+  },
+  deleted: {
+    title: 'All deleted',
+    body: ['Everything EAVARA saved on this device is gone. EAVARA will start fresh now.'],
+    confirm: 'OK',
+  },
+  notDeleted: {
+    title: 'Some things could not be deleted',
+    body: ['Please close EAVARA and try again. A grown-up can also clear this site\u2019s data in the browser settings.'],
+    confirm: 'OK',
+  },
+};
 
 /** Small inline icon: a house sitting on a blueprint sheet (Challenge Mode). */
 const BLUEPRINT_ICON = `
@@ -23,6 +59,18 @@ const SANDBOX_ICON = `
   <path d="M36 30l8-6 8 6" stroke="#1c2836" stroke-width="2" stroke-linejoin="round" fill="none"/>
   <circle cx="50" cy="16" r="6" fill="#5fae5a"/>
   <rect x="48.5" y="20" width="3" height="7" fill="#6b4a2b"/>
+</svg>`;
+
+/** Small inline icon: a tall tower and a bridge under a sun (RealWorld Explorer). */
+const EXPLORER_ICON = `
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="48" cy="14" r="6" fill="#ffd36b"/>
+  <path d="M4 52h56" stroke="#7a6bd1" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <path d="M8 46c6-9 14-9 20 0" stroke="#8b6cff" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M8 46v6M28 46v6M18 40v12" stroke="#8b6cff" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M40 52V24l3-4 3 4v28z" fill="#e8ecf6" stroke="#1c2836" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M43 20V6" stroke="#1c2836" stroke-width="2" stroke-linecap="round"/>
+  <path d="M36 52V36l4-3M50 52V40l-4-3" stroke="#1c2836" stroke-width="2" stroke-linejoin="round" fill="none"/>
 </svg>`;
 
 /** Small mark for the Eavara parent-brand lockup: an arched doorway, echoing the main badge. */
@@ -83,11 +131,28 @@ export class MainMenuScreen extends Screen {
   private readonly onContinue = () => {
     this.context.actions.continueGame();
   };
-  private readonly onResetProgress = () => {
+  private readonly onResetProgress = async () => {
+    if (!this.root || !(await confirmDialog(this.root, WORDING.resetProgress))) return;
     this.context.actions.resetProgress();
+  };
+  /**
+   * "Delete everything on this device": asks first, deletes (memory, then
+   * storage - see src/state/DeviceData.ts), says how it went, then reloads
+   * so nothing of the old world is left on screen or in memory.
+   */
+  private readonly onDeleteEverything = async () => {
+    if (!this.root || !(await confirmDialog(this.root, { ...WORDING.deleteEverything, danger: true }))) return;
+    const { remaining } = this.context.deviceData.erase();
+    if (this.nameInput) this.nameInput.value = '';
+    if (remaining.length > 0) console.warn('[privacy] could not delete', remaining);
+    if (this.root) await confirmDialog(this.root, remaining.length === 0 ? WORDING.deleted : WORDING.notDeleted);
+    window.location.reload();
   };
   private readonly onChallengeMode = () => {
     this.context.actions.openWorldMap();
+  };
+  private readonly onRealWorld = () => {
+    this.context.actions.enterRealWorld();
   };
 
   protected build(): HTMLElement {
@@ -145,6 +210,21 @@ export class MainMenuScreen extends Screen {
     sandboxCard.addEventListener('click', this.onStartSandbox);
     modes.appendChild(sandboxCard);
 
+    const explorerCard = el('button', 'mode-card mode-card--explorer');
+    explorerCard.type = 'button';
+    explorerCard.appendChild(el('span', 'mode-card__eyebrow', 'Explore'));
+    explorerCard.appendChild(icon(EXPLORER_ICON, 'mode-card__icon'));
+    explorerCard.appendChild(el('span', 'mode-card__title', 'RealWorld Explorer'));
+    explorerCard.appendChild(el('span', 'mode-card__desc', 'Explore real landmarks and discover how they stand up.'));
+    explorerCard.appendChild(el('span', 'mode-card__meta', 'Discover · physics and engineering'));
+    explorerCard.appendChild(el('span', 'mode-card__cta', 'Start Exploring'));
+    explorerCard.addEventListener('click', this.onRealWorld);
+    // RealWorld Explorer is a separate download: start fetching it as soon as the child points at (or tabs to) its card.
+    const preload = () => this.context.realWorld.preload();
+    explorerCard.addEventListener('pointerenter', preload);
+    explorerCard.addEventListener('focus', preload);
+    modes.appendChild(explorerCard);
+
     root.appendChild(modes);
 
     const footer = el('div', 'home__footer');
@@ -158,13 +238,43 @@ export class MainMenuScreen extends Screen {
     this.continueButton.addEventListener('click', this.onContinue);
     footer.appendChild(this.continueButton);
 
+    const resets = el('div', 'home__resets');
     const reset = el('button', 'home__reset', 'Reset level progress');
     reset.type = 'button';
-    reset.addEventListener('click', this.onResetProgress);
-    footer.appendChild(reset);
+    reset.addEventListener('click', () => void this.onResetProgress());
+    const erase = el('button', 'home__reset', 'Delete everything on this device');
+    erase.type = 'button';
+    erase.addEventListener('click', () => void this.onDeleteEverything());
+    resets.append(reset, erase);
+    footer.appendChild(resets);
+    footer.appendChild(this.motionControl());
     root.appendChild(footer);
 
+    // Back from a mode: focus the card the child came from (keyboard users keep their place).
+    const returnTo = takeReturnFocus();
+    if (returnTo) requestAnimationFrame(() => focusIfPresent(root.querySelector(returnTo)));
     return root;
+  }
+
+  /** "Animations": follow the device's reduce-motion setting, or always reduce, or always full (stored on this device only). */
+  private motionControl(): HTMLElement {
+    const label = el('label', 'home__motion');
+    label.appendChild(el('span', 'home__motion-label', 'Animations'));
+    const select = el('select', 'home__motion-select');
+    const choices: Array<[MotionSetting, string]> = [
+      ['system', 'Follow my device'],
+      ['reduce', 'Reduce motion'],
+      ['full', 'Full motion'],
+    ];
+    for (const [value, text] of choices) {
+      const option = el('option', undefined, text);
+      option.value = value;
+      select.appendChild(option);
+    }
+    select.value = motion.setting;
+    select.addEventListener('change', () => motion.set(select.value as MotionSetting));
+    label.appendChild(select);
+    return label;
   }
 
   update(state: GameState): void {

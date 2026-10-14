@@ -97,6 +97,7 @@ export class ThumbnailRenderer {
       }
       object.position.set(spec.position.x, spec.position.y, spec.position.z);
       object.rotation.y = spec.rotationY ?? 0;
+      if (spec.scale) object.scale.set(spec.scale.x, spec.scale.y, spec.scale.z);
       content.add(object);
     }
     scene.add(content);

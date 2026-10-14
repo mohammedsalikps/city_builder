@@ -74,6 +74,11 @@ export class PointerInput extends EventEmitter<PointerEvents> {
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     this.downPosition = { x: event.clientX, y: event.clientY, button: event.button };
+    // A touch has no hover: its first contact is the only "move" it will ever
+    // get before a tap-to-place needs a position, so treat first contact the
+    // same as a move. Harmless for mouse, which already reports moves first.
+    this.pointerInside = true;
+    this.lastPosition = this.toNdc(event);
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {

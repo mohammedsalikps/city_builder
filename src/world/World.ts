@@ -4,6 +4,20 @@ import { MaterialLibrary } from '@/visual/materials/MaterialLibrary';
 import { Environment, type EnvironmentConfig } from '@/visual/environment/Environment';
 import { LocalGrid } from '@/visual/world/LocalGrid';
 
+/**
+ * Something other than the orbit camera that moves the camera each frame,
+ * e.g. the first-person WalkController. While one is set the World calls it
+ * instead of the orbit CameraController, and the sun's shadow box follows
+ * its `focus` (a point on the ground the viewer is looking at).
+ */
+export interface CameraDriver {
+  update(deltaSeconds: number): void;
+  readonly focus: THREE.Vector3;
+}
+
+/** Shadow-box view distance used while a camera driver (a walker) is in charge: a room-sized area. */
+const DRIVER_VIEW_DISTANCE = 14;
+
 export interface WorldOptions {
   canvas: HTMLCanvasElement;
   /**
@@ -53,6 +67,7 @@ export class World {
   private readonly canvas: HTMLCanvasElement;
   private readonly resizeObserver: ResizeObserver;
   private renderScale = 1;
+  private driver: CameraDriver | null = null;
 
   constructor(options: WorldOptions) {
     this.canvas = options.canvas;
@@ -106,10 +121,35 @@ export class World {
 
   /** Advance per-frame systems: camera easing, sun/shadow follow, animated surfaces. */
   update(deltaSeconds: number): void {
-    this.cameraController.update(deltaSeconds);
-    const target = this.cameraController.target;
-    this.environment.update(deltaSeconds, target, this.camera.position.distanceTo(target));
+    const driver = this.driver;
+    if (driver) {
+      // The orbit controls are not updated at all: they would re-clamp and look at their old target every frame.
+      driver.update(deltaSeconds);
+      this.environment.update(deltaSeconds, driver.focus, DRIVER_VIEW_DISTANCE);
+    } else {
+      this.cameraController.update(deltaSeconds);
+      const target = this.cameraController.target;
+      this.environment.update(deltaSeconds, target, this.camera.position.distanceTo(target));
+    }
     this.grid.update(deltaSeconds);
+  }
+
+  /**
+   * Let another driver move the camera (or `null` to give it back to the
+   * orbit controls). While a driver is set the orbit controls ignore all
+   * input and any easing move is stopped. Take a `cameraController.snapshot()`
+   * before setting one and `restore` it after clearing it, so the orbit view
+   * comes back exactly as the player left it.
+   */
+  setCameraDriver(driver: CameraDriver | null): void {
+    if (driver === this.driver) return;
+    this.driver = driver;
+    this.cameraController.setSuspended(driver !== null);
+  }
+
+  /** The driver moving the camera right now, or null while the orbit controls are in charge. */
+  get cameraDriver(): CameraDriver | null {
+    return this.driver;
   }
 
   render(): void {

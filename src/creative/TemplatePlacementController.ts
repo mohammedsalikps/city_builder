@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { GameStore } from '@/state/GameStore';
-import type { GameActions } from '@/state/actions';
+import type { GameActions, TemplateInstantiateResult } from '@/state/actions';
+import type { Vec3 } from '@/construction/PlacedObject';
 import type { GameState } from '@/state/GameState';
 import type { World } from '@/world/World';
 import type { InputManager } from '@/input/InputManager';
@@ -10,7 +11,8 @@ import type { ObjectRegistry } from '@/construction/ObjectRegistry';
 import { roleOf } from '@/construction/ConstructionObjectDefinition';
 import { ConstructionRaycaster } from '@/construction/ConstructionRaycaster';
 import { computeBounds } from '@/construction/bounds';
-import { findInvalidReason, type PlacementRulesContext } from '@/construction/PlacementResolver';
+import { findInvalidReason, objectsNear, unionBounds, type PlacementRulesContext } from '@/construction/PlacementResolver';
+import { rotateAroundY } from '@/utils/math';
 import type { TemplateObjectSpec, TemplateRegistry } from './Template';
 import type { GhostKit } from './Ghosts';
 
@@ -42,6 +44,8 @@ export class TemplatePlacementController {
 
   /** Called after a template is placed, with its world centre and rough size - lets Game.ts frame it. */
   onPlaced: ((center: { x: number; y: number; z: number }, radius: number) => void) | null = null;
+  /** Called after a template is placed, with where it went and what was made (see src/creative/plan). */
+  onBuilt: ((templateId: string, at: { origin: Vec3; rotationY: number }, result: TemplateInstantiateResult) => void) | null = null;
 
   constructor(
     private readonly store: GameStore,
@@ -64,9 +68,9 @@ export class TemplatePlacementController {
     return this.allFit;
   }
 
-  /** Whether the ghost has a spot under the pointer yet (the "Place here" button needs one). */
+  /** Whether the ghost has a spot under the pointer yet (the "Place here" button needs one); a pinned ghost always has. */
   get hasSpot(): boolean {
-    return this.lastGround !== null;
+    return this.lastGround !== null || !!this.store.getState().templatePlacement?.origin;
   }
 
   start(): void {
@@ -85,30 +89,37 @@ export class TemplatePlacementController {
     this.world.overlayRoot.remove(this.group);
   }
 
-  /** Called every frame; keeps the ghost glued to the ground under the pointer. */
+  /** Called every frame; keeps the ghost glued to the ground under the pointer (unless it is pinned). */
   update(): void {
     const state = this.store.getState();
-    if (!state.templatePlacement) return;
+    if (!state.templatePlacement || state.templatePlacement.origin) return;
     const pointer = this.input.pointer.position;
     if (pointer) this.moveTo(pointer, state);
   }
 
   /** Confirm at the last spot the ghost was shown at (the on-screen "Place here" button). */
   confirm(): boolean {
-    if (!this.lastGround) return false;
-    return this.placeAt(this.lastGround);
+    // A pinned preview is confirmed where it is pinned, even before this controller has seen the state change.
+    const spot = this.store.getState().templatePlacement?.origin ?? this.lastGround;
+    if (!spot) return false;
+    return this.placeAt(spot);
   }
 
   private moveTo(pointer: PointerPosition, state: GameState): void {
-    const hit = this.raycaster.hitSurface(pointer, this.world.ground, []);
-    if (!hit) return;
-    // Snap to a half-metre grid: arrangements line up with each other and with drawn streets.
-    const point = { x: Math.round(hit.point.x * 2) / 2, y: 0, z: Math.round(hit.point.z * 2) / 2 };
+    const point = this.groundPoint(pointer);
+    if (!point) return;
     this.lastGround = point;
     this.group.visible = state.templatePlacement !== null;
     this.group.position.set(point.x, point.y, point.z);
     this.group.rotation.set(0, state.templatePlacement?.rotationY ?? 0, 0);
     this.updateValidity(state, point);
+  }
+
+  /** The ground point under the pointer, snapped to a half-metre grid so arrangements line up with each other and with drawn streets. */
+  private groundPoint(pointer: PointerPosition): { x: number; y: number; z: number } | null {
+    const hit = this.raycaster.hitSurface(pointer, this.world.ground, []);
+    if (!hit) return null;
+    return { x: Math.round(hit.point.x * 2) / 2, y: 0, z: Math.round(hit.point.z * 2) / 2 };
   }
 
   private onStateChanged(state: GameState): void {
@@ -117,6 +128,11 @@ export class TemplatePlacementController {
       this.currentTemplateId = templateId;
       this.rebuildGhost(templateId);
       if (templateId === null) this.lastGround = null;
+    }
+    const pinned = state.templatePlacement?.origin;
+    if (pinned) {
+      this.lastGround = { ...pinned };
+      this.group.position.set(pinned.x, pinned.y, pinned.z);
     }
     this.group.visible = templateId !== null && this.lastGround !== null;
     if (state.templatePlacement) {
@@ -136,6 +152,7 @@ export class TemplatePlacementController {
       const object = this.ghosts.create(definition);
       object.position.set(spec.position.x, spec.position.y, spec.position.z);
       object.rotation.set(0, spec.rotationY ?? 0, 0);
+      if (spec.scale) object.scale.set(spec.scale.x, spec.scale.y, spec.scale.z);
       this.group.add(object);
       this.pieces.push({ spec, object });
     }
@@ -152,22 +169,24 @@ export class TemplatePlacementController {
   /** Each piece is tinted on its own: the child sees exactly which part will not fit. */
   private updateValidity(state: GameState, origin: { x: number; y: number; z: number }): void {
     const rotationY = state.templatePlacement?.rotationY ?? 0;
-    const cos = Math.cos(rotationY);
-    const sin = Math.sin(rotationY);
+    // A new version of a creation is judged without the version it replaces.
+    const revise = state.templatePlacement?.revise;
+    const ignore = revise ? [...revise.replace, ...revise.carry] : [];
     let allFit = true;
-    for (const piece of this.pieces) {
+    // Openings and stacked pieces follow their host; the ground pieces are judged.
+    const ground = this.pieces.flatMap((piece) => {
       const { spec } = piece;
       const definition = this.registry.get(spec.definitionId);
-      if (!definition) continue;
-      // Openings and stacked pieces follow their host; judge them by it.
-      if (spec.hostRef || spec.supportRef) continue;
-      const position = {
-        x: origin.x + (spec.position.x * cos - spec.position.z * sin),
-        y: origin.y + spec.position.y,
-        z: origin.z + (spec.position.x * sin + spec.position.z * cos),
-      };
-      const bounds = computeBounds(definition, position, (spec.rotationY ?? 0) + rotationY, { x: 1, y: 1, z: 1 });
-      const fits = findInvalidReason(bounds, state.placedObjects, this.registry, this.placementRules) === null;
+      if (!definition || spec.hostRef || spec.supportRef) return [];
+      const offset = rotateAroundY(spec.position.x, spec.position.z, rotationY);
+      const position = { x: origin.x + offset.x, y: origin.y + spec.position.y, z: origin.z + offset.z };
+      return [{ piece, bounds: computeBounds(definition, position, (spec.rotationY ?? 0) + rotationY, spec.scale ?? { x: 1, y: 1, z: 1 }) }];
+    });
+    // Only what stands within the ghost's footprint can clash with it.
+    const area = unionBounds(ground.map((g) => g.bounds));
+    const near = area ? objectsNear(area, state.placedObjects, this.registry) : [];
+    for (const { piece, bounds } of ground) {
+      const fits = findInvalidReason(bounds, near, this.registry, this.placementRules, ignore) === null;
       this.ghosts.setValid(piece.object, fits);
       if (!fits) allFit = false;
     }
@@ -187,8 +206,18 @@ export class TemplatePlacementController {
     const template = this.templates.get(placement.templateId);
     if (!template) return false;
 
-    const result = this.actions.instantiateTemplate(template, origin, placement.rotationY, placement.creationId ?? template.id);
+    // Drop the ghost first: otherwise every piece placed below would re-check
+    // the whole (about to vanish) ghost against the growing world.
     this.actions.cancelTemplatePlacement();
+    const revise = placement.revise;
+    const result = this.actions.instantiateTemplate(
+      template,
+      origin,
+      placement.rotationY,
+      placement.creationId ?? template.id,
+      revise ? { replace: revise.replace, carry: { ids: revise.carry, from: revise.from } } : {},
+    );
+    this.onBuilt?.(placement.templateId, { origin: { ...origin }, rotationY: placement.rotationY }, result);
     if (result.ids.length === 0) return false;
 
     const primary = this.primaryOf(result.ids);
@@ -220,6 +249,13 @@ export class TemplatePlacementController {
     if (click.button !== 0) return;
     const state = this.store.getState();
     if (!state.templatePlacement) return;
+    // A pinned preview is never built by a stray tap: the tap moves it, and
+    // only the explicit confirm (button / Enter) builds it.
+    if (state.templatePlacement.origin) {
+      const point = this.groundPoint(click);
+      if (point) this.actions.moveTemplatePlacement(point);
+      return;
+    }
     // Use the click's own coordinates, not the last hover frame: a tap can
     // arrive without any preceding move (touch, or enter-and-click).
     this.moveTo(click, state);

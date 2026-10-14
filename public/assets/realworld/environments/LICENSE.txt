@@ -1,0 +1,6 @@
+kloofendal_43d_clear_puresky_1k.hdr
+Source: Poly Haven - https://polyhaven.com/a/kloofendal_43d_clear_puresky
+Author: Greg Zaal
+Licence: CC0 1.0 Universal (public domain dedication) - https://polyhaven.com/license
+Attribution is not required; EAVARA credits Poly Haven as a courtesy.
+Downloaded 2026-10-14 via the Poly Haven public API (dl.polyhaven.org), 1,184,531 bytes.

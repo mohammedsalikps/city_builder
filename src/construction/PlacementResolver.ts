@@ -706,6 +706,36 @@ export function checkTargetSupport(
 }
 
 /**
+ * The placed objects that touch (or come within `margin` of) an area - the
+ * only ones that can overlap anything inside it. Checking a big creation's
+ * pieces against just these, instead of the whole world, gives the same
+ * answers: an object clear of the area cannot overlap a piece within it.
+ */
+export function objectsNear(area: Bounds, placedObjects: readonly PlacedObject[], registry: ObjectRegistry, margin = 0.01): PlacedObject[] {
+  const near: PlacedObject[] = [];
+  for (const other of placedObjects) {
+    const definition = registry.get(other.definitionId);
+    if (definition && boundsOverlap(area, boundsOfPlaced(definition, other), -margin)) near.push(other);
+  }
+  return near;
+}
+
+/** The box round several boxes, or null for none. */
+export function unionBounds(boxes: readonly Bounds[]): Bounds | null {
+  if (boxes.length === 0) return null;
+  const u = { ...boxes[0] };
+  for (const b of boxes) {
+    u.minX = Math.min(u.minX, b.minX);
+    u.maxX = Math.max(u.maxX, b.maxX);
+    u.minY = Math.min(u.minY, b.minY);
+    u.maxY = Math.max(u.maxY, b.maxY);
+    u.minZ = Math.min(u.minZ, b.minZ);
+    u.maxZ = Math.max(u.maxZ, b.maxZ);
+  }
+  return u;
+}
+
+/**
  * Shared geometry check used by both the live preview and the place action,
  * so state can never accept a placement the preview would have refused.
  * `ignoreIds` exempts an opening's host wall (the opening sits inside it).

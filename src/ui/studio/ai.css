@@ -1,0 +1,684 @@
+/*
+ * "Ask EAVARA" - World Studio's building buddy. Same toybox language as
+ * studio.css: paper cards, rounded shapes, big touch targets, one accent
+ * per role (violet = EAVARA, sun = build actions, coral = recording).
+ */
+.st-ai-root {
+  position: absolute;
+  left: 22px;
+  bottom: 26px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none !important;
+  transition: bottom 0.25s ease;
+}
+
+.st-ai-root > * {
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------ launcher */
+.st-ai-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 20px 0 10px;
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--st-ink) !important;
+  background: var(--st-paper);
+  border: none;
+  border-radius: 999px;
+  box-shadow: var(--st-shadow-strong);
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.st-ai-launch .st-icon-wrap {
+  width: 40px;
+  height: 40px;
+  color: #fff;
+  background: var(--st-violet);
+  border-radius: 50%;
+}
+
+.st-ai-launch .st-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.st-ai-launch:hover {
+  transform: translateY(-2px);
+}
+
+.st-ai-launch--open {
+  box-shadow: 0 0 0 3px rgba(139, 108, 255, 0.35), var(--st-shadow-strong);
+}
+
+.st-ai-launch--hidden {
+  opacity: 0;
+  transform: translateY(16px) scale(0.9);
+  pointer-events: none;
+}
+
+.st-ai-launch--waiting {
+  animation: st-ai-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes st-ai-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 108, 255, 0.45), var(--st-shadow-strong); }
+  50% { box-shadow: 0 0 0 10px rgba(139, 108, 255, 0), var(--st-shadow-strong); }
+}
+
+/* --------------------------------------------------------------- panel */
+.st-ai {
+  display: flex;
+  flex-direction: column;
+  width: min(400px, calc(100vw - 32px));
+  max-height: min(70vh, 640px);
+  overflow: hidden;
+  background: var(--st-paper);
+  border-radius: var(--st-radius);
+  box-shadow: var(--st-shadow-strong);
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  transform-origin: bottom left;
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+.st-ai.st-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.st-ai__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 10px 14px;
+  border-bottom: 1px solid var(--st-paper-line);
+}
+
+.st-ai__avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #fff;
+  background: var(--st-violet);
+  border-radius: 14px;
+}
+
+.st-ai__titles {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.st-ai__title {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.st-ai__subtitle {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--st-ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- messages */
+.st-ai__log {
+  flex: 1;
+  min-height: 80px;
+  overflow-y: auto;
+  padding: 12px 14px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.st-ai__msg {
+  max-width: 90%;
+  padding: 9px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  border-radius: 16px;
+  animation: st-pop 0.2s ease;
+}
+
+.st-ai__msg p {
+  margin: 0;
+}
+
+.st-ai__msg--eavara {
+  align-self: flex-start;
+  background: #f3f0ff;
+  border-top-left-radius: 6px;
+}
+
+.st-ai__msg--child {
+  align-self: flex-end;
+  color: var(--st-ink);
+  background: #e6f2ff;
+  border-top-right-radius: 6px;
+}
+
+.st-ai__note {
+  margin-top: 4px !important;
+  font-size: 13px;
+  color: var(--st-ink-soft);
+}
+
+.st-ai__understood {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.st-ai__understood-label {
+  margin-right: 2px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--st-violet);
+}
+
+.st-ai__fact {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #fff;
+  border: 1px solid rgba(139, 108, 255, 0.25);
+  border-radius: 999px;
+}
+
+.st-ai__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.st-ai__tip {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--st-sun-soft);
+  border-radius: 12px;
+}
+
+.st-ai__tip-concept {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--st-sun-deep);
+}
+
+.st-ai__tip p {
+  font-size: 14px;
+}
+
+.st-ai__tag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--st-slate);
+  background: rgba(91, 107, 130, 0.12);
+  border-radius: 999px;
+}
+
+.st-ai__tag--ai {
+  color: var(--st-violet);
+  background: rgba(139, 108, 255, 0.14);
+}
+
+.st-ai__tag--template {
+  color: var(--st-leaf);
+  background: rgba(63, 176, 122, 0.14);
+}
+
+.st-ai__msg > .st-ai__chip--strong {
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------- goals */
+.st-ai__goals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 2px 14px 10px;
+}
+
+.st-ai__goal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-align: left;
+  color: var(--st-ink);
+  background: #fff;
+  border: 2px solid var(--st-paper-line);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.st-ai__goal:hover:not(:disabled) {
+  border-color: rgba(139, 108, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.st-ai__goal-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--st-sun-deep);
+  background: var(--st-sun-soft);
+  border-radius: 12px;
+}
+
+/* ---------------------------------------------------------------- chips */
+.st-ai__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--st-ink);
+  background: #fff;
+  border: 2px solid var(--st-paper-line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.st-ai__chip:hover:not(:disabled) {
+  border-color: rgba(139, 108, 255, 0.45);
+}
+
+.st-ai__chip:disabled,
+.st-ai__goal:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.st-ai__chip .st-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.st-ai__chip--quiet {
+  flex: none;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.st-ai__chip--strong {
+  color: #fff;
+  background: var(--st-violet);
+  border-color: var(--st-violet);
+}
+
+.st-ai__chip--choice {
+  border-color: rgba(139, 108, 255, 0.35);
+}
+
+.st-ai__chip--toggle[aria-pressed='true'] {
+  color: #fff;
+  background: var(--st-sky);
+  border-color: var(--st-sky);
+}
+
+.st-ai__status {
+  padding: 0 14px 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--st-violet);
+}
+
+.st-ai__status::after {
+  content: '...';
+  display: inline-block;
+  width: 1.2em;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: st-ai-dots 1.2s steps(4) infinite;
+}
+
+@keyframes st-ai-dots {
+  from { width: 0; }
+  to { width: 1.2em; }
+}
+
+/* ---------------------------------------------------------------- voice */
+.st-ai__voice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 900;
+  background: #fff3ef;
+  border-radius: 14px;
+}
+
+.st-ai__voice[data-stage='processing'],
+.st-ai__voice[data-stage='asking'] {
+  background: #f3f0ff;
+}
+
+.st-ai__voice-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--st-coral);
+  border-radius: 50%;
+  animation: st-ai-blink 1s ease-in-out infinite;
+}
+
+.st-ai__voice[data-stage='processing'] .st-ai__voice-dot,
+.st-ai__voice[data-stage='asking'] .st-ai__voice-dot {
+  background: var(--st-violet);
+}
+
+@keyframes st-ai-blink {
+  50% { opacity: 0.3; }
+}
+
+.st-ai__voice-label {
+  flex: none;
+  min-width: 88px;
+}
+
+.st-ai__voice-meter {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  background: rgba(255, 122, 89, 0.18);
+  border-radius: 999px;
+}
+
+.st-ai__voice[data-stage='processing'] .st-ai__voice-meter,
+.st-ai__voice[data-stage='asking'] .st-ai__voice-meter {
+  visibility: hidden;
+}
+
+.st-ai__voice-level {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--st-coral);
+  border-radius: inherit;
+  transform: scaleX(0.04);
+  transform-origin: left;
+  transition: transform 0.1s linear;
+}
+
+/* ------------------------------------------------------------- composer */
+.st-ai__composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px 10px 14px;
+  border-top: 1px solid var(--st-paper-line);
+}
+
+.st-ai__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  max-height: 110px;
+  padding: 12px 14px;
+  font-family: var(--st-font);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--st-ink);
+  background: #fff;
+  border: 2px solid var(--st-paper-line);
+  border-radius: 16px;
+  resize: none;
+  outline: none;
+}
+
+.st-ai__input:focus {
+  border-color: rgba(139, 108, 255, 0.6);
+}
+
+.st-ai__mic,
+.st-ai__send {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--st-shadow);
+}
+
+.st-ai__mic {
+  color: var(--st-violet) !important;
+  background: #fff;
+}
+
+.st-ai__mic--live {
+  color: #fff !important;
+  background: var(--st-coral);
+  animation: st-ai-live 1.1s ease-in-out infinite;
+}
+
+@keyframes st-ai-live {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 122, 89, 0.5); }
+  50% { box-shadow: 0 0 0 9px rgba(255, 122, 89, 0); }
+}
+
+.st-ai__send {
+  color: #fff !important;
+  background: var(--st-sun-deep);
+}
+
+.st-ai__send--ready {
+  animation: st-ai-ready 1.2s ease-in-out infinite;
+}
+
+@keyframes st-ai-ready {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 138, 31, 0.55); }
+  50% { box-shadow: 0 0 0 9px rgba(245, 138, 31, 0); }
+}
+
+.st-ai__mic:disabled,
+.st-ai__send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* No voice in the Android app (see voiceSupport). */
+.st-ai__mic[hidden] {
+  display: none;
+}
+
+.st-ai__hint {
+  margin: -2px 14px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--st-berry);
+}
+
+.st-ai__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 12px 14px;
+}
+/* The kind-specific chips flow in the same row as "Peek inside". */
+.st-ai__quick-edits {
+  display: contents;
+}
+
+/* Which house of a neighbourhood follow-ups change: its own row above the quick edits. */
+.st-ai__houses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+  padding-bottom: 6px;
+  border-bottom: 2px dashed var(--st-paper-line);
+}
+
+.st-ai__houses[hidden] {
+  display: none;
+}
+
+.st-ai__houses-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--st-ink);
+}
+
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 900px) {
+  .st-ai-root--lifted {
+    bottom: 128px;
+  }
+}
+
+@media (max-width: 600px) {
+  .st-ai-root {
+    left: 12px;
+    bottom: 14px;
+  }
+
+  .st-ai-launch {
+    height: 52px;
+    padding: 0 14px 0 8px;
+    font-size: 15px;
+  }
+
+  .st-ai {
+    max-height: min(74vh, 600px);
+  }
+
+  .st-ai__goals {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  /* A round button beside the Build Orb instead of a pill that would cover it. */
+  .st-ai-launch {
+    width: 52px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .st-ai-launch__label {
+    display: none;
+  }
+
+  .st-ai {
+    max-height: min(68vh, 560px);
+  }
+}
+
+/* ------------------------------------------------- EAVARA's mood (AiBuilderPanel data-mood) */
+/* A soft, lit orb instead of a flat square: calm when idle, clear about what it is doing. */
+.st-ai__avatar,
+.st-ai-launch .st-icon-wrap {
+  position: relative;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 42%),
+    radial-gradient(circle at 50% 60%, #9d84ff, #6a4fe6 72%);
+  border-radius: 50%;
+  box-shadow: inset 0 -3px 6px rgba(40, 20, 120, 0.25), 0 2px 6px rgba(106, 79, 230, 0.35);
+  transition: box-shadow 0.25s ease, background 0.25s ease;
+}
+
+/* Idle: a slow, quiet glow. */
+.st-ai-root[data-mood='idle'] .st-ai__avatar {
+  animation: st-ai-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes st-ai-breathe {
+  0%, 100% { box-shadow: inset 0 -3px 6px rgba(40, 20, 120, 0.25), 0 2px 6px rgba(106, 79, 230, 0.3); }
+  50% { box-shadow: inset 0 -3px 6px rgba(40, 20, 120, 0.25), 0 2px 12px rgba(106, 79, 230, 0.5); }
+}
+
+/* Listening: a coral ring that grows with the voice (the same colour as the microphone strip). */
+.st-ai-root[data-mood='listening'] .st-ai__avatar,
+.st-ai-root[data-mood='listening'] .st-ai-launch .st-icon-wrap {
+  box-shadow:
+    0 0 0 calc(3px + var(--voice-level, 0.15) * 7px) rgba(255, 122, 89, 0.35),
+    inset 0 -3px 6px rgba(40, 20, 120, 0.25);
+}
+
+/* Thinking: a turning ring around the orb. */
+.st-ai-root[data-mood='thinking'] .st-ai__avatar::after,
+.st-ai-root[data-mood='thinking'] .st-ai-launch .st-icon-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 3px solid rgba(139, 108, 255, 0.25);
+  border-top-color: #6a4fe6;
+  border-radius: 50%;
+  animation: st-ai-turn 0.9s linear infinite;
+}
+
+@keyframes st-ai-turn {
+  to { transform: rotate(360deg); }
+}
+
+/* Previewing: a warm ring - the plan is on the map, waiting for "Place here" or Cancel. */
+.st-ai-root[data-mood='previewing'] .st-ai__avatar,
+.st-ai-root[data-mood='previewing'] .st-ai-launch .st-icon-wrap {
+  box-shadow: 0 0 0 3px #ffb238, inset 0 -3px 6px rgba(40, 20, 120, 0.25);
+}
+
+/* Error: a coral orb for a few seconds; the chat message says what to do next. */
+.st-ai-root[data-mood='error'] .st-ai__avatar,
+.st-ai-root[data-mood='error'] .st-ai-launch .st-icon-wrap {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 42%),
+    radial-gradient(circle at 50% 60%, #ff9a7f, #e5603f 72%);
+  box-shadow: 0 0 0 3px rgba(255, 122, 89, 0.3), inset 0 -3px 6px rgba(120, 30, 10, 0.25);
+}
+
+.st-ai-root[data-mood='error'] .st-ai__subtitle {
+  color: #c2410c;
+}
+
+.st-ai-root[data-mood='listening'] .st-ai__subtitle,
+.st-ai-root[data-mood='thinking'] .st-ai__subtitle {
+  color: var(--st-violet);
+}

@@ -1,0 +1,5 @@
+sand_01 (1k JPG: diffuse/colour, OpenGL normal, roughness)
+Source: Poly Haven - https://polyhaven.com/a/sand_01
+Licence: CC0 1.0 Universal (public domain dedication) - https://polyhaven.com/license
+Attribution is not required; EAVARA credits Poly Haven as a courtesy.
+Downloaded 2026-10-14 via the Poly Haven public API (dl.polyhaven.org).

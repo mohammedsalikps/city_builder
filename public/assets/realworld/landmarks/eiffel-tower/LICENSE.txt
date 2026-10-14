@@ -1,0 +1,7 @@
+eiffel_tower_3dmr_model4_rev3.glb
+Source: 3D Model Repository (3DMR, OpenStreetMap community) - https://3dmr.eu/model/4 (revision 3), downloaded via the documented API https://3dmr.eu/api/model/4/3
+Original model: "Eiffel Tower" by ingoenius (BlendSwap 67944, no longer online); the same CC0 model is on Wikimedia Commons as File:Eiffel.stl (licence reviewed 6 March 2019).
+Licence: CC0 1.0 Universal - https://creativecommons.org/publicdomain/zero/1.0/
+Attribution is not required; EAVARA credits ingoenius and 3DMR as a courtesy.
+Note for legal review: Wikimedia Commons marks 3D files with a design/patent rights warning ({{3dpatent}}); images of the tower's night illumination have separate rights (SETE). The structure's design is in the public domain.
+Downloaded 2026-10-14, 10,713,064 bytes, glTF 2.0 binary (generator obj2gltf), 86,230 triangles, 34 embedded textures, real metres (300 m tall, Y up).

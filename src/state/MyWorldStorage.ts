@@ -141,7 +141,8 @@ function parsePlacedObject(data: unknown): PlacedObject | null {
   const materialOverrides: PlacedObject['materialOverrides'] = {};
   if (overridesRaw && typeof overridesRaw === 'object') {
     const color = (overridesRaw as Record<string, unknown>).color;
-    if (typeof color === 'string') materialOverrides.color = color;
+    // Only a '#rrggbb' colour is kept; anything else is dropped (never the whole save).
+    if (typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color)) materialOverrides.color = color;
   }
   return {
     id: o.id,

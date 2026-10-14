@@ -4,6 +4,8 @@ import type { ObjectRegistry } from '@/construction/ObjectRegistry';
 import type { ChallengeRegistry } from '@/challenges/ChallengeRegistry';
 import type { TemplateRegistry } from '@/creative/Template';
 import type { StudioServices } from './studio/StudioServices';
+import type { EraseResult } from '@/state/DeviceData';
+import type { RealWorldHost } from '@/game/RealWorldHost';
 
 export interface ScreenContext {
   actions: GameActions;
@@ -15,6 +17,10 @@ export interface ScreenContext {
   templates: TemplateRegistry;
   /** World Studio's presentation services (thumbnails, projection, history). */
   studio: StudioServices;
+  /** "Delete everything on this device" (see src/state/DeviceData.ts). */
+  deviceData: { erase(): EraseResult };
+  /** RealWorld Explorer: its scene (landmarks, lessons, missions) arrives on demand through the host. */
+  realWorld: RealWorldHost;
 }
 
 /**

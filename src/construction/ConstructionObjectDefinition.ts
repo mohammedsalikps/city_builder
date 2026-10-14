@@ -55,6 +55,17 @@ export const SHAPE_IDS = [
   'table',
   'bed',
   'sofa',
+  'wardrobe',
+  'counter',
+  'bathtub',
+  'toilet',
+  'basin',
+  'flowerbed',
+  'deck',
+  'ladder',
+  'slide',
+  'swing',
+  'sandpit',
 ] as const;
 
 export type ShapeId = (typeof SHAPE_IDS)[number];

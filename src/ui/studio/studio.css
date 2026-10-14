@@ -1078,6 +1078,38 @@
   gap: 2px;
 }
 
+/* Colour swatches (furniture and decorations). */
+.st-bubble__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 300px;
+  padding: 8px 4px 2px;
+}
+
+.st-swatch {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(31, 42, 55, 0.18), 0 2px 6px rgba(21, 38, 60, 0.18);
+  cursor: pointer;
+}
+
+.st-swatch:hover {
+  transform: scale(1.1);
+}
+
+.st-swatch--reset {
+  width: auto;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #fff;
+  border-radius: 999px;
+}
+
 .st-bubble__sizer {
   display: flex;
   align-items: center;
@@ -1582,7 +1614,8 @@
   }
 
   .st-dock .st-pill {
-    padding: 8px;
+    /* Icon (19px) + padding reaches the ~44px comfortable touch target. */
+    padding: 13px;
   }
 
   .st-badge__name {
@@ -1613,5 +1646,64 @@
 
   .st-style__thumb {
     height: 104px;
+  }
+}
+
+/* Phone portrait: the world-name badge and the Close/World/City/Map dock no
+   longer fit on one row, so the dock moves to its own row underneath instead
+   of visually colliding with the badge; the four creation tiles go 2x2 so
+   "Neighborhood" isn't squeezed into an unreadable sliver. */
+@media (max-width: 480px) {
+  .studio {
+    --st-ring-inner: 116px;
+    --st-ring-outer: 168px;
+    --st-orb-size: 72px;
+    --st-orb-bottom: 16px;
+  }
+
+  .st-radial__face {
+    width: 54px;
+    height: 54px;
+  }
+
+  .st-radial__face .st-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .st-radial__label {
+    font-size: 11px;
+  }
+
+  .st-radial__title {
+    top: calc(-1 * var(--st-ring-outer) - 78px);
+    font-size: 15px;
+  }
+
+  .st-badge {
+    max-width: calc(100vw - 32px);
+  }
+
+  .st-dock {
+    /* Below the badge, which wraps to three lines on a phone. */
+    top: 112px;
+    right: 16px;
+    left: 16px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .st-dock__views {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .st-welcome {
+    top: 128px;
+  }
+
+  .st-welcome__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

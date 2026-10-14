@@ -9,12 +9,27 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test:plan": "node scripts/test-plan.mjs",
+    "test:ai": "node scripts/test-ai.mjs",
+    "test:interior": "node scripts/test-interior.mjs",
+    "test:walk": "node scripts/test-walk.mjs",
+    "test:realworld": "node scripts/test-realworld.mjs",
+    "test:explorer": "node scripts/test-explorer.mjs",
+    "test:a11y": "node scripts/test-accessibility.mjs",
+    "measure:bundle": "node scripts/measure-bundle.mjs",
+    "bench:construction": "node scripts/bench-construction.mjs",
     "assets:placeholders": "node scripts/generate-placeholder-assets.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.133.0",
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/cli": "8.5.2",
+    "@capacitor/core": "8.5.2",
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@types/node": "^22.20.2",
     "@types/three": "^0.185.4",
     "typescript": "^7.0.2",

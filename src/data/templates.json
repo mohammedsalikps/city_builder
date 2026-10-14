@@ -101,33 +101,106 @@
   {
     "id": "template_neighborhood",
     "name": "Neighborhood",
-    "description": "Houses on both sides of a street, with gardens, streetlights and cars.",
+    "description": "A little street of different homes, with driveways, gardens, a pocket park and cars.",
     "icon": "🏘️",
     "objects": [
+      { "definitionId": "road_segment", "position": { "x": -24, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": -20, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": -16, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": -12, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": -8, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": -4, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": 0, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": 4, "y": 0, "z": 0 } },
       { "definitionId": "road_segment", "position": { "x": 8, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 12, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 16, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 20, "y": 0, "z": 0 } },
+      { "definitionId": "road_segment", "position": { "x": 24, "y": 0, "z": 0 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -24, "y": 0, "z": 2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -20, "y": 0, "z": 2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -16, "y": 0, "z": 2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -12, "y": 0, "z": 2.85 } },
       { "definitionId": "sidewalk_segment", "position": { "x": -8, "y": 0, "z": 2.85 } },
       { "definitionId": "sidewalk_segment", "position": { "x": -4, "y": 0, "z": 2.85 } },
       { "definitionId": "sidewalk_segment", "position": { "x": 0, "y": 0, "z": 2.85 } },
       { "definitionId": "sidewalk_segment", "position": { "x": 4, "y": 0, "z": 2.85 } },
       { "definitionId": "sidewalk_segment", "position": { "x": 8, "y": 0, "z": 2.85 } },
-      { "definitionId": "building_house_small", "position": { "x": -10, "y": 0, "z": 13 } },
-      { "definitionId": "building_apartment", "position": { "x": 2, "y": 0, "z": 13 } },
-      { "definitionId": "building_shop", "position": { "x": 14, "y": 0, "z": 13 } },
-      { "definitionId": "building_villa", "position": { "x": -10, "y": 0, "z": -13 } },
-      { "definitionId": "building_villa_modern", "position": { "x": 3, "y": 0, "z": -13 } },
-      { "definitionId": "building_tower", "position": { "x": 15, "y": 0, "z": -13 } },
-      { "definitionId": "streetlight_single", "position": { "x": -8, "y": 0, "z": 4 } },
-      { "definitionId": "streetlight_single", "position": { "x": 8, "y": 0, "z": -4 } },
-      { "definitionId": "bush_round", "position": { "x": -10, "y": 0, "z": 17.2 } },
-      { "definitionId": "tree_pine", "position": { "x": 2, "y": 0, "z": 18 } },
-      { "definitionId": "flower_pink", "position": { "x": 17, "y": 0, "z": 19 } },
-      { "definitionId": "bush_round", "position": { "x": -10, "y": 0, "z": -17.2 } },
-      { "definitionId": "vehicle_suv", "position": { "x": -8, "y": 0, "z": 6 } },
-      { "definitionId": "vehicle_van", "position": { "x": 8, "y": 0, "z": -6 } }
+      { "definitionId": "sidewalk_segment", "position": { "x": 12, "y": 0, "z": 2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 16, "y": 0, "z": 2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 20, "y": 0, "z": 2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 24, "y": 0, "z": 2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -24, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -20, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -16, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -12, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -8, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": -4, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 0, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 4, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 8, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 12, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 16, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 20, "y": 0, "z": -2.85 } },
+      { "definitionId": "sidewalk_segment", "position": { "x": 24, "y": 0, "z": -2.85 } },
+
+      { "definitionId": "building_house_small", "position": { "x": -21, "y": 0, "z": 13.5 } },
+      { "definitionId": "road_driveway", "position": { "x": -21, "y": 0, "z": 6.5 }, "localId": "drive_nw" },
+      { "definitionId": "vehicle_sedan", "position": { "x": -21, "y": 0.05, "z": 6.5 }, "supportRef": "drive_nw", "surface": "top" },
+
+      { "definitionId": "building_villa", "position": { "x": -8, "y": 0, "z": 14.3 } },
+
+      { "definitionId": "building_apartment", "position": { "x": 7, "y": 0, "z": 15.2 } },
+
+      { "definitionId": "building_shop", "position": { "x": 21, "y": 0, "z": 13 }, "rotationY": 1.5707963267948966 },
+
+      { "definitionId": "building_villa_modern", "position": { "x": -21, "y": 0, "z": -14 } },
+      { "definitionId": "road_driveway", "position": { "x": -21, "y": 0, "z": -6.5 }, "localId": "drive_sw" },
+      { "definitionId": "vehicle_suv", "position": { "x": -21, "y": 0.05, "z": -6.5 }, "supportRef": "drive_sw", "surface": "top" },
+
+      { "definitionId": "building_house_small", "position": { "x": -8, "y": 0, "z": -13.2 } },
+
+      { "definitionId": "building_tower", "position": { "x": 7, "y": 0, "z": -15 } },
+
+      { "definitionId": "building_villa", "position": { "x": 21, "y": 0, "z": -13.4 }, "rotationY": 1.5707963267948966 },
+
+      { "definitionId": "streetlight_single", "position": { "x": -16, "y": 0, "z": 4 } },
+      { "definitionId": "streetlight_single", "position": { "x": -4, "y": 0, "z": 4 } },
+      { "definitionId": "streetlight_single", "position": { "x": 12, "y": 0, "z": 4 } },
+      { "definitionId": "streetlight_single", "position": { "x": -16, "y": 0, "z": -4 } },
+      { "definitionId": "streetlight_single", "position": { "x": -4, "y": 0, "z": -4 } },
+      { "definitionId": "streetlight_single", "position": { "x": 12, "y": 0, "z": -4 } },
+
+      { "definitionId": "decor_bench", "position": { "x": -1.5, "y": 0, "z": 4.4 } },
+      { "definitionId": "decor_bench", "position": { "x": 1.5, "y": 0, "z": 4.4 }, "rotationY": 3.14159 },
+      { "definitionId": "tree_pine", "position": { "x": -1, "y": 0, "z": 8 } },
+      { "definitionId": "tree_round", "position": { "x": 1.2, "y": 0, "z": 9 } },
+      { "definitionId": "flower_pink", "position": { "x": 0, "y": 0, "z": 5.6 } },
+      { "definitionId": "flower_pink", "position": { "x": 0.7, "y": 0, "z": 5.6 } },
+
+      { "definitionId": "tree_pine", "position": { "x": -27, "y": 0, "z": 9 } },
+      { "definitionId": "tree_round", "position": { "x": -28.5, "y": 0, "z": 7.2 } },
+      { "definitionId": "bush_round", "position": { "x": -21, "y": 0, "z": 18.5 } },
+      { "definitionId": "flower_pink", "position": { "x": -8, "y": 0, "z": 19.2 } },
+
+      { "definitionId": "bush_round", "position": { "x": 7, "y": 0, "z": 20 } },
+      { "definitionId": "flower_pink", "position": { "x": 21, "y": 0, "z": 16.5 } },
+
+      { "definitionId": "tree_round", "position": { "x": 27, "y": 0, "z": 8 } },
+      { "definitionId": "tree_pine", "position": { "x": 28.5, "y": 0, "z": 9.5 } },
+
+      { "definitionId": "tree_round", "position": { "x": -27, "y": 0, "z": -8.5 } },
+      { "definitionId": "tree_pine", "position": { "x": -28.5, "y": 0, "z": -7 } },
+      { "definitionId": "bush_round", "position": { "x": -8, "y": 0, "z": -17.6 } },
+
+      { "definitionId": "bush_round", "position": { "x": 7, "y": 0, "z": -20.2 } },
+      { "definitionId": "flower_pink", "position": { "x": 21, "y": 0, "z": -18 } },
+
+      { "definitionId": "tree_pine", "position": { "x": 27, "y": 0, "z": -8 } },
+      { "definitionId": "tree_round", "position": { "x": 28.5, "y": 0, "z": -6.5 } },
+
+      { "definitionId": "vehicle_hatchback", "position": { "x": 7, "y": 0, "z": 6 } },
+      { "definitionId": "vehicle_taxi", "position": { "x": 17, "y": 0, "z": -6.5 } }
     ]
   },
   {
@@ -352,8 +425,8 @@
     "description": "A skyscraper, an office, a tower and a shop along a busy street.",
     "icon": "🏙️",
     "objects": [
-      { "definitionId": "building_skyscraper", "position": { "x": -6, "y": 0, "z": 2 } },
-      { "definitionId": "building_office", "position": { "x": 6, "y": 0, "z": 2 } },
+      { "definitionId": "building_skyscraper", "position": { "x": -6, "y": 0, "z": 2.6 } },
+      { "definitionId": "building_office", "position": { "x": 6, "y": 0, "z": 2.6 } },
       { "definitionId": "building_tower", "position": { "x": -6, "y": 0, "z": 14 } },
       { "definitionId": "building_shop", "position": { "x": 6, "y": 0, "z": 14 } },
       { "definitionId": "road_segment", "position": { "x": -14, "y": 0, "z": -6 } },
