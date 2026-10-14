@@ -17,6 +17,7 @@ Before starting:
 - Use the production build (`npm run build`, then serve `dist/`), not the dev server.
 - Start from a clean profile (or use "Delete everything on this device" on the Home screen) so old saves do not hide first-run problems.
 - Have a grown-up tester on hand for the microphone and AI tests; use made-up test words only, never a child's real name or details.
+- Voice tests need a deployment with voice switched on (it is off in Production), and on each device a grown-up must first switch on "Talking to EAVARA" on the Home screen (after the grown-up check). Check before that that the microphone stays off and says why, and that "How talking works" opens next to it.
 
 ## 1. Windows laptop, Chrome (current stable)
 

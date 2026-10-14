@@ -1,23 +1,28 @@
 import { Capacitor } from '@capacitor/core';
 import { AiServiceError, requestStatus, requestTranscript, type ServiceStatus } from './AiClient';
+import { voiceSetting } from './VoiceSetting';
 
 /**
  * Tap-to-talk for the AI builder, recorded in the browser and transcribed
- * by the backend's speech-to-text (Groq Whisper). Nothing listens until the
- * child taps the microphone - that tap is when the browser asks for
- * permission - and the microphone is released as soon as they stop, cancel
- * or hit the time limit. Recordings are never stored.
+ * by the backend's speech-to-text (the configured provider, Groq Whisper by
+ * default). Nothing listens until the child taps the microphone - that tap
+ * is when the browser asks for permission - and the microphone is released
+ * as soon as they stop, cancel or hit the time limit. EAVARA keeps no
+ * recording, on the device or on its server; the speech-to-text provider
+ * handles each one under its own retention rules.
  *
  * Every way it can go wrong ends in a VoiceError with a specific code, so
  * the UI can say what happened and what to do; it never pretends to have
  * heard something. Typing always remains available.
  *
- * Before the microphone is opened, VoiceSwitch asks the backend whether
- * voice is switched on at all (GET /api/status): when it is off the child is
- * told so straight away, and nothing is recorded or sent.
+ * Two switches come before the microphone is opened, and both must be on:
+ * the server's (VoiceSwitch asks GET /api/status - EAVARA_VOICE_ENABLED and
+ * a configured provider) and this device's (VoiceSetting: a grown-up
+ * switched talking on from the Home screen). Otherwise the child is told
+ * so straight away, and nothing is recorded or sent.
  *
- *   idle -> asking (permission) -> recording -> processing -> words
- *                                      \-> cancel / too short / silence
+ *   (server on? grown-up on?) -> asking (permission) -> recording -> processing -> words
+ *                                                          \-> cancel / too short / silence
  */
 export const MAX_SECONDS = 20;
 /** Shorter taps are almost always accidental. */
@@ -38,6 +43,10 @@ export type VoiceProblem =
   | 'timeout'
   | 'rate-limited'
   | 'not-configured'
+  /** Talking has not been switched on for this device by a grown-up (VoiceSetting). */
+  | 'needs-grown-up'
+  /** The server could not say whether voice is on (refused, too slow, a bad answer): nothing is recorded. */
+  | 'unchecked'
   | 'provider'
   | 'cancelled';
 
@@ -118,14 +127,15 @@ const STATUS_TTL_MS = 60_000;
  * Whether the hosted speech-to-text is switched on, as GET /api/status says.
  * 'off' when the server has voice switched off (EAVARA_VOICE_ENABLED) or no
  * speech-to-text is configured, or when there is no backend here at all;
- * 'unknown' while it cannot tell (offline, refused) - then a recording may
- * still be tried and its own errors are shown. Answers are remembered for a
+ * 'unknown' while it cannot tell (offline, refused, too slow) - then nothing
+ * is recorded either, and `problem` says why. Answers are remembered for a
  * minute, and two checks at once share one request.
  */
 export class VoiceSwitch {
   private state: VoiceAvailability = 'unknown';
   private checkedAt = Number.NEGATIVE_INFINITY;
   private pending: Promise<VoiceAvailability> | null = null;
+  private failure: 'offline' | 'unchecked' = 'unchecked';
 
   constructor(
     private readonly ask: () => Promise<ServiceStatus | null> = requestStatus,
@@ -134,6 +144,11 @@ export class VoiceSwitch {
 
   get current(): VoiceAvailability {
     return this.state;
+  }
+
+  /** While the state is 'unknown' after a check: offline, or the server could not say. */
+  get problem(): 'offline' | 'unchecked' {
+    return this.failure;
   }
 
   /** Ask the server (unless a recent answer is known); resolves with the new state. */
@@ -146,8 +161,9 @@ export class VoiceSwitch {
         this.checkedAt = this.now();
         return this.state;
       },
-      () => {
+      (error: unknown) => {
         this.state = 'unknown';
+        this.failure = error instanceof AiServiceError && error.code === 'offline' ? 'offline' : 'unchecked';
         return this.state;
       },
     );
@@ -165,6 +181,9 @@ export class VoiceSwitch {
   }
 }
 
+/** One answer from /api/status for the whole page: the Home screen and every Ask EAVARA panel share it. */
+export const sharedVoiceSwitch = new VoiceSwitch();
+
 export class VoiceInput {
   private stage: VoiceStage = 'idle';
   private recorder: MediaRecorder | null = null;
@@ -178,6 +197,8 @@ export class VoiceInput {
   private speechSamples = 0;
   /** The level meter has heard any sound at all (a suspended or missing meter never does). */
   private meterLive = false;
+  /** `start` is asking the server whether voice is on (before the microphone). */
+  private checking = false;
   private cancelled = false;
   private finished: ((text: string) => void) | null = null;
   private failed: ((error: VoiceError) => void) | null = null;
@@ -189,8 +210,15 @@ export class VoiceInput {
   /** Told when the time limit ends a recording by itself. */
   onAutoStop: (() => void) | null = null;
 
-  /** `availability`: when it says voice is switched off, `start` refuses before the microphone is opened. */
-  constructor(private readonly availability: VoiceSwitch | null = null) {}
+  /**
+   * `availability`: the server's switch - unless it says voice is on, `start`
+   * refuses before the microphone is opened. `allowed`: this device's
+   * grown-up switch (VoiceSetting), checked at the same moment.
+   */
+  constructor(
+    private readonly availability: VoiceSwitch,
+    private readonly allowed: () => boolean = () => voiceSetting.allowed,
+  ) {}
 
   get current(): VoiceStage {
     return this.stage;
@@ -200,15 +228,27 @@ export class VoiceInput {
    * Start listening (the browser asks for permission the first time).
    * Resolves once recording has begun; `words` resolves with the cleaned
    * transcript after `stop()`, or rejects with a VoiceError. (Wrapped,
-   * because a promise cannot resolve to another promise.)
+   * because a promise cannot resolve to another promise.) `wanted` is asked
+   * again once the server has answered: false (the panel closed, or a typed
+   * request went out meanwhile) ends it quietly, before the microphone.
    */
-  async start(): Promise<{ words: Promise<string> }> {
-    if (this.stage !== 'idle') throw new VoiceError('busy');
+  async start(wanted: () => boolean = () => true): Promise<{ words: Promise<string> }> {
+    if (this.stage !== 'idle' || this.checking) throw new VoiceError('busy');
     const support = voiceSupport();
     if (!support.ok) throw new VoiceError(support.code);
-    // Switched off on the server: say so now - never record (or ask for the microphone) for nothing.
-    if (this.availability?.current === 'off') throw new VoiceError('not-configured');
     this.cancelled = false;
+    // Ask the server first (remembered for a minute): unless voice is switched on there, never ask for the microphone or send anything.
+    this.checking = true;
+    let server: VoiceAvailability;
+    try {
+      server = await this.availability.check();
+    } finally {
+      this.checking = false;
+    }
+    if (this.cancelled || !wanted()) throw new VoiceError('cancelled');
+    if (server !== 'on') throw new VoiceError(server === 'off' ? 'not-configured' : this.availability.problem);
+    // And only once a grown-up has switched talking on for this device.
+    if (!this.allowed()) throw new VoiceError('needs-grown-up');
     this.setStage('asking');
     let stream: MediaStream;
     try {
@@ -293,7 +333,7 @@ export class VoiceInput {
     } catch (error) {
       const code = this.cancelled ? 'cancelled' : serviceProblem(error);
       // The server has voice switched off: stop offering it until the page asks again.
-      if (code === 'not-configured') this.availability?.markOff();
+      if (code === 'not-configured') this.availability.markOff();
       this.fail(code);
     }
   }

@@ -547,6 +547,66 @@
   font-weight: 700;
 }
 
+/*
+ * "How talking works": what happens to a recording, right under the microphone (closed until tapped).
+ * Opened in a short panel, it scrolls inside its own space instead of pushing the quick buttons out.
+ */
+.st-ai__voice-notice {
+  flex: 0 1 auto;
+  min-height: 26px;
+  overflow-y: auto;
+  margin: -2px 14px 8px;
+  font-size: 12px;
+  color: var(--st-ink-soft);
+}
+
+.st-ai__voice-notice[hidden] {
+  display: none;
+}
+
+.st-ai__voice-notice-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  font-weight: 800;
+  color: #5b3fd0;
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.st-ai__voice-notice-summary::-webkit-details-marker {
+  display: none;
+}
+
+.st-ai__voice-notice-summary::after {
+  content: '\25B8';
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.st-ai__voice-notice[open] .st-ai__voice-notice-summary::after {
+  transform: rotate(90deg);
+}
+
+.st-ai__voice-notice-summary .st-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.st-ai__voice-notice-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.st-ai__voice-notice-list li + li {
+  margin-top: 3px;
+}
+
 .st-ai__quick {
   display: flex;
   flex-wrap: wrap;

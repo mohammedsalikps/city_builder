@@ -1,14 +1,20 @@
 import { Screen, el } from '../Screen';
 import type { GameState } from '@/state/GameState';
 import { listLevels } from '@/progression/levelState';
-import { confirmDialog } from '../confirmDialog';
+import { answerDialog, confirmDialog } from '../confirmDialog';
+import { grownUpQuestion, isGrownUpAnswer } from '../grownUpCheck';
 import { motion, type MotionSetting } from '@/accessibility/motion';
+import { sharedVoiceSwitch, voiceSupport } from '@/creative/ai/VoiceInput';
+import { voiceSetting } from '@/creative/ai/VoiceSetting';
 import { focusIfPresent, takeReturnFocus } from '../keyboard';
 
 /**
- * What the two "start over" questions say. DRAFT WORDING - needs product
- * sign-off (see docs/child-facing-release-checklist.md, section 2) before a
- * release for children.
+ * What the two "start over" questions and "Talking to EAVARA" say. DRAFT
+ * WORDING - needs product and legal sign-off (see
+ * docs/child-facing-release-checklist.md, sections 1 and 2) before a
+ * release for children. The talking text must stay true to
+ * src/creative/ai/VoiceInput.ts and the speech-to-text provider's terms,
+ * and must never present the switch as parental consent.
  */
 const WORDING = {
   resetProgress: {
@@ -34,6 +40,23 @@ const WORDING = {
   notDeleted: {
     title: 'Some things could not be deleted',
     body: ['Please close EAVARA and try again. A grown-up can also clear this site\u2019s data in the browser settings.'],
+    confirm: 'OK',
+  },
+  talkingOn: {
+    title: 'For grown-ups: switch on talking?',
+    body: [
+      'With talking on, a child can tap the microphone in Ask EAVARA and say an idea instead of typing it. Typing always works too.',
+      'EAVARA records only after the microphone is tapped. Stop sends the recording, Cancel throws it away unsent, and it stops by itself after 20 seconds.',
+      'The recording goes through EAVARA\u2019s server to the speech-to-text service EAVARA uses, which turns it into words. The words appear in the box to check, and are used like typed words when Send is tapped.',
+      'EAVARA does not keep recordings on this device or on its own server. The speech-to-text service handles them under its own privacy and retention rules.',
+      'This switch only changes this device. It does not check who you are, and it is not a form of parental consent.',
+    ],
+    confirm: 'Switch talking on',
+    cancel: 'Keep it off',
+  },
+  talkingWrong: {
+    title: 'Talking stays off',
+    body: ['That answer was not right, so talking stays off. A grown-up can try again.'],
     confirm: 'OK',
   },
 };
@@ -248,6 +271,7 @@ export class MainMenuScreen extends Screen {
     resets.append(reset, erase);
     footer.appendChild(resets);
     footer.appendChild(this.motionControl());
+    footer.appendChild(this.voiceControl());
     root.appendChild(footer);
 
     // Back from a mode: focus the card the child came from (keyboard users keep their place).
@@ -275,6 +299,60 @@ export class MainMenuScreen extends Screen {
     select.addEventListener('change', () => motion.set(select.value as MotionSetting));
     label.appendChild(select);
     return label;
+  }
+
+  /**
+   * "Talking to EAVARA" (src/creative/ai/VoiceSetting.ts): off on this device
+   * until a grown-up switches it on after a grown-up check; switching it off
+   * needs no check. Shown only where talking could work: a browser that can
+   * record, and voice not switched off on the server (one /api/status answer,
+   * shared with Ask EAVARA).
+   */
+  private voiceControl(): HTMLElement {
+    const row = el('div', 'home__voice');
+    row.hidden = true;
+    row.setAttribute('role', 'group');
+    const label = el('span', 'home__voice-label', 'Talking to EAVARA:');
+    label.id = 'home-voice-label';
+    row.setAttribute('aria-labelledby', label.id);
+    const state = el('span', 'home__voice-state');
+    state.setAttribute('aria-live', 'polite');
+    const button = el('button', 'home__reset home__voice-button');
+    button.type = 'button';
+    const render = () => {
+      const on = voiceSetting.allowed;
+      state.textContent = on ? 'on for this device' : 'off';
+      button.textContent = on ? 'Switch off' : 'Grown-ups: switch on';
+      button.setAttribute('aria-label', on ? 'Switch talking to EAVARA off' : 'Switch talking to EAVARA on (for grown-ups)');
+    };
+    button.addEventListener('click', () => void this.onVoiceButton(render));
+    row.append(label, state, button);
+    render();
+    if (voiceSupport().ok) {
+      void sharedVoiceSwitch.check().then((server) => {
+        row.hidden = server === 'off';
+      });
+    }
+    return row;
+  }
+
+  /** Off at once; on only after the grown-up check is answered right (a wrong answer ends the attempt). */
+  private async onVoiceButton(render: () => void): Promise<void> {
+    if (!this.root) return;
+    if (voiceSetting.allowed) {
+      voiceSetting.set(false);
+      render();
+      return;
+    }
+    const question = grownUpQuestion();
+    const typed = await answerDialog(this.root, { ...WORDING.talkingOn, question: `Grown-up check: ${question.text}` });
+    if (typed === null) return;
+    if (isGrownUpAnswer(question, typed)) {
+      voiceSetting.set(true);
+      render();
+    } else if (this.root) {
+      await confirmDialog(this.root, WORDING.talkingWrong);
+    }
   }
 
   update(state: GameState): void {

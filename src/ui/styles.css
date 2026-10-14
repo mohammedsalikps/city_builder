@@ -449,6 +449,9 @@ body {
 
 .confirm__box {
   width: min(420px, 100%);
+  /* A long question (the grown-up check) scrolls inside the box on a small screen: the screen less the backdrop's padding (2 x 16 px) and the box's own (22 + 18 px). */
+  max-height: calc(100dvh - 72px);
+  overflow-y: auto;
   padding: 22px 22px 18px;
   font-family: var(--ev-font);
   color: var(--ev-ink);
@@ -502,6 +505,39 @@ body {
 }
 
 .confirm__button:focus-visible {
+  outline: 3px solid var(--ev-sky);
+  outline-offset: 2px;
+}
+
+/* The answer box of a question with an answer to type (answerDialog: the grown-up check). */
+.confirm__field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 6px;
+}
+
+.confirm__label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ev-ink);
+}
+
+.confirm__input {
+  width: 5.5em;
+  min-height: 44px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ev-ink);
+  background: #fff;
+  border: 2px solid var(--ev-ink-soft);
+  border-radius: var(--ev-radius-sm);
+}
+
+.confirm__input:focus-visible {
   outline: 3px solid var(--ev-sky);
   outline-offset: 2px;
 }
@@ -1999,6 +2035,33 @@ html[data-motion='reduce'] *::after {
   font-size: 12px;
   color: var(--ui-muted);
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Home screen: "Talking to EAVARA" (off until a grown-up switches it on - src/creative/ai/VoiceSetting.ts). */
+.home__voice {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  gap: 2px 8px;
+  font-size: 12px;
+  color: var(--ui-muted);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.home__voice[hidden] {
+  display: none;
+}
+
+.home__voice-state {
+  font-weight: 700;
+  color: var(--ui-fg);
+}
+
+.home__voice-button {
+  min-height: 24px;
+  font-size: 12px;
 }
 
 .home__motion-select {

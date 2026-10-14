@@ -2,7 +2,8 @@ import { el, type ScreenContext } from '../Screen';
 import type { GameState } from '@/state/GameState';
 import { BUILD_GOALS, type AssistantTurn, type BuildGoal } from '@/creative/ai/BuildAssistant';
 import { designTip, type DesignTip } from '@/creative/ai/DesignTips';
-import { MAX_SECONDS, microphonePermission, VoiceError, VoiceInput, VoiceSwitch, voiceSupport, type VoiceProblem, type VoiceStage } from '@/creative/ai/VoiceInput';
+import { MAX_SECONDS, microphonePermission, sharedVoiceSwitch, VoiceError, VoiceInput, voiceSupport, type VoiceProblem, type VoiceStage } from '@/creative/ai/VoiceInput';
+import { voiceSetting } from '@/creative/ai/VoiceSetting';
 import { KIND_NAMES, type ConstructionPlan } from '@/creative/plan/ConstructionPlan';
 import { icon } from './icons';
 import { setShown } from './dom';
@@ -100,16 +101,32 @@ const VOICE_PROBLEMS: Record<Exclude<VoiceProblem, 'cancelled'>, { text: string;
   timeout: { text: 'Listening took too long. Let\'s try again.', retry: true },
   'rate-limited': { text: 'Lots of builders are talking to me right now. Wait a moment, then try again.', retry: true },
   'not-configured': { text: "Talking is switched off right now, so I can't listen. Please type your idea instead.", retry: false },
+  'needs-grown-up': { text: 'Talking is off on this device. A grown-up can switch it on from the Home screen. Please type your idea for now.', retry: false },
+  unchecked: { text: "I couldn't check whether talking is switched on, so I didn't listen. Try again in a moment - or type.", retry: true },
   provider: { text: 'Something went wrong while I was listening. Try again, or type.', retry: true },
 };
 
 /** The microphone button and the line under the box while voice is switched off on the server. */
 const VOICE_OFF_LABEL = 'Talking is switched off - please type';
 const VOICE_OFF_HINT = 'Talking to EAVARA is switched off here, so the microphone stays off. Type your idea instead.';
+/** ...and while no grown-up has switched talking on for this device (VoiceSetting, on the Home screen). */
+const GROWN_UP_OFF_LABEL = 'Talking is off on this device - please type';
+const GROWN_UP_OFF_HINT = 'Talking is off on this device until a grown-up switches it on from the Home screen. Type your idea instead.';
 const MIC_BLOCKED_HINT = 'The microphone is blocked for this site. Allow it from the lock icon next to the web address - or type.';
 
-/** One answer from /api/status for the whole page: every panel (World Studio builds a new one each time) shares it. */
-const sharedVoiceSwitch = new VoiceSwitch();
+/**
+ * What happens to the child's voice, next to the microphone ("How talking
+ * works"). It must stay true: EAVARA keeps no recording itself, but the
+ * speech-to-text provider's retention is its own (and not verified), so
+ * nothing here may say that a recording is never kept anywhere.
+ */
+const VOICE_NOTICE = [
+  'EAVARA records only after you tap the microphone.',
+  'Tap Stop when you are done, or Cancel to throw the recording away without sending it. It stops by itself after 20 seconds.',
+  'When you stop, the recording is sent to the speech-to-text service EAVARA uses, which turns it into words.',
+  'The words appear in this box. Check them, then tap Send - EAVARA uses them just like typed words.',
+  'For grown-ups: EAVARA does not keep recordings on this device or on its own server. The speech-to-text service handles them under its own privacy and retention rules. Talking stays off until a grown-up switches it on from the Home screen.',
+];
 
 interface SayOptions {
   source?: AssistantTurn['source'];
@@ -152,6 +169,8 @@ export class AiBuilderPanel {
   private readonly voiceLevel: HTMLElement;
   private readonly voiceStop: HTMLButtonElement;
   private readonly micHint: HTMLElement;
+  /** "How talking works", next to the microphone. */
+  private readonly voiceNotice: HTMLDetailsElement;
   private readonly input: HTMLTextAreaElement;
   private readonly micButton: HTMLButtonElement;
   private readonly sendButton: HTMLButtonElement;
@@ -284,6 +303,13 @@ export class AiBuilderPanel {
     this.micHint = el('div', 'st-ai__hint');
     this.micHint.hidden = true;
 
+    this.voiceNotice = el('details', 'st-ai__voice-notice');
+    const noticeSummary = el('summary', 'st-ai__voice-notice-summary');
+    noticeSummary.append(icon('mic'), el('span', '', 'How talking works'));
+    const noticeList = el('ul', 'st-ai__voice-notice-list');
+    for (const line of VOICE_NOTICE) noticeList.appendChild(el('li', '', line));
+    this.voiceNotice.append(noticeSummary, noticeList);
+
     this.quick = el('div', 'st-ai__quick');
     this.housePicker = el('div', 'st-ai__houses');
     this.housePicker.setAttribute('role', 'group');
@@ -303,7 +329,7 @@ export class AiBuilderPanel {
     this.peekButton.setAttribute('aria-pressed', 'false');
     this.quick.appendChild(this.peekButton);
 
-    this.panel.append(header, this.log, this.goals, this.status, this.voiceStrip, composer, this.micHint, this.quick);
+    this.panel.append(header, this.log, this.goals, this.status, this.voiceStrip, composer, this.micHint, this.voiceNotice, this.quick);
     this.root.append(this.panel, this.launcher);
 
     const support = voiceSupport();
@@ -312,6 +338,7 @@ export class AiBuilderPanel {
       this.micButton.title = VOICE_PROBLEMS[support.code].text;
       // The Android app has no voice at all (see voiceSupport): no microphone button to wonder about.
       this.micButton.hidden = support.code === 'app';
+      this.voiceNotice.hidden = support.code === 'app';
     }
     this.voice.onStage = (stage) => this.showVoiceStage(stage);
     this.voice.onTick = (seconds, level) => {
@@ -389,7 +416,8 @@ export class AiBuilderPanel {
       this.refresh();
       void this.checkVoice();
       if (!this.busy && this.voice.current === 'idle') setTimeout(() => this.input.focus(), 50);
-    } else if (this.voice.current !== 'idle') {
+    } else if (this.voice.current !== 'idle' || this.voiceStarting) {
+      // Closing ends talking at once - also while the server is still being asked (nothing is opened afterwards).
       this.voice.cancel();
     }
   }
@@ -541,18 +569,15 @@ export class AiBuilderPanel {
     if (stage !== 'idle' || this.busy || this.voiceStarting) return;
     this.voiceStarting = true;
     try {
-      // Ask the server first (quick, and remembered for a minute): when voice is switched off the microphone is never opened.
-      if (voiceSupport().ok && this.voiceSwitch.current !== 'on') {
-        await this.voiceSwitch.check();
-        this.showVoiceAvailability();
-      }
-      if (this.voice.current !== 'idle' || this.busy) return;
-      const { words } = await this.voice.start();
+      // The recorder asks the server first (remembered for a minute), then checks this device's grown-up switch:
+      // when either is off the microphone is never opened. Closed, or a typed request sent meanwhile: it stops there too.
+      const { words } = await this.voice.start(() => this.open && !this.busy);
       words.then((text) => this.heard(text)).catch((error: unknown) => this.voiceProblem(error));
     } catch (error) {
       this.voiceProblem(error);
     } finally {
       this.voiceStarting = false;
+      this.showVoiceAvailability();
     }
   }
 
@@ -571,7 +596,7 @@ export class AiBuilderPanel {
     else console.info(`[ai] voice: ${code}`);
     if (code === 'cancelled') return;
     const problem = VOICE_PROBLEMS[code];
-    if (code === 'not-configured') {
+    if (code === 'not-configured' || code === 'needs-grown-up') {
       // Switched off is a setting, not a mistake: no "try again" look, and no repeat of what EAVARA just said.
       this.showVoiceAvailability();
       if (this.log.lastElementChild?.textContent !== problem.text) this.say('eavara', problem.text);
@@ -619,27 +644,38 @@ export class AiBuilderPanel {
     this.renderMicHint();
   }
 
+  /**
+   * Why talking cannot start here, if it cannot: switched off on the server
+   * (that comes first - no grown-up can change it on this device), or not
+   * switched on for this device by a grown-up.
+   */
+  private voiceOff(): 'server' | 'grown-up' | null {
+    if (this.voiceSwitch.current === 'off') return 'server';
+    return voiceSetting.allowed ? null : 'grown-up';
+  }
+
   /** While voice is switched off the microphone button says so (it stays tappable, to explain) - it never pretends to listen. */
   private showVoiceAvailability(): void {
     if (!voiceSupport().ok) return;
-    const off = this.voiceSwitch.current === 'off';
-    this.micButton.classList.toggle('st-ai__mic--off', off);
+    const off = this.voiceOff();
+    this.micButton.classList.toggle('st-ai__mic--off', off !== null);
     if (off) this.micButton.setAttribute('aria-disabled', 'true');
     else this.micButton.removeAttribute('aria-disabled');
     if (this.voice.current === 'idle') {
-      this.micButton.setAttribute('aria-label', off ? VOICE_OFF_LABEL : 'Talk to EAVARA');
-      this.micButton.title = off ? VOICE_OFF_LABEL : '';
+      const label = off === 'server' ? VOICE_OFF_LABEL : off === 'grown-up' ? GROWN_UP_OFF_LABEL : null;
+      this.micButton.setAttribute('aria-label', label ?? 'Talk to EAVARA');
+      this.micButton.title = label ?? '';
     }
     this.renderMicHint();
   }
 
-  /** One line under the box: voice switched off, else the microphone blocked, else nothing. */
+  /** One line under the box: voice switched off (server, then this device), else the microphone blocked, else nothing. */
   private renderMicHint(): void {
-    const off = this.voiceSwitch.current === 'off';
+    const off = voiceSupport().ok ? this.voiceOff() : null;
     const blocked = this.micPermission === 'denied';
     this.micHint.hidden = !off && !blocked;
-    this.micHint.textContent = off ? VOICE_OFF_HINT : blocked ? MIC_BLOCKED_HINT : '';
-    this.micHint.classList.toggle('st-ai__hint--off', off);
+    this.micHint.textContent = off === 'server' ? VOICE_OFF_HINT : off === 'grown-up' ? GROWN_UP_OFF_HINT : blocked ? MIC_BLOCKED_HINT : '';
+    this.micHint.classList.toggle('st-ai__hint--off', off !== null);
   }
 
   // ------------------------------------------------------------ helpers

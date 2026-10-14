@@ -171,7 +171,73 @@ try {
     check(cleanTranscript('make it wider') === 'make it wider' && cleanTranscript('a'.repeat(500)).length === 300, 'short requests pass; long ones are cut to 300 characters');
   }
 
-  section('1d. Voice: asked first whether it is on, then the recording lifecycle (fake microphone and network - NOT cloud inference)');
+  section('1d. Voice: the grown-up switch on this device and the grown-up check (no network)');
+  {
+    const { VoiceSetting, VOICE_SETTING_KEY } = await load('/src/creative/ai/VoiceSetting.ts');
+    const store = new Map();
+    const storage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+    const setting = new VoiceSetting(storage);
+    const seen = [];
+    setting.onChange((on) => seen.push(on));
+    check(VOICE_SETTING_KEY === 'city-builder.voice' && setting.allowed === false && store.size === 0, 'talking is off on a new device (nothing stored)');
+    setting.set(true);
+    check(setting.allowed === true && store.get(VOICE_SETTING_KEY) === 'on', 'switched on by a grown-up: stored on this device as "on"');
+    check(new VoiceSetting(storage).allowed === true, '...and still on after a reload');
+    store.delete(VOICE_SETTING_KEY);
+    check(setting.allowed === false, '"Delete everything" (the key removed) switches it off at once, without a reload');
+    setting.set(true);
+    setting.set(false);
+    check(setting.allowed === false && !store.has(VOICE_SETTING_KEY) && seen.join() === 'true,true,false', 'switched off: the key is removed; listeners hear every change');
+    store.set(VOICE_SETTING_KEY, 'yes');
+    check(setting.allowed === false, 'anything stored but "on" counts as off');
+    const fail = () => {
+      throw new Error('storage blocked');
+    };
+    const blocked = { getItem: fail, setItem: fail, removeItem: fail };
+    const noStore = new VoiceSetting(blocked);
+    check(noStore.allowed === false, 'storage blocked: off');
+    noStore.set(true);
+    check(noStore.allowed === true && new VoiceSetting(blocked).allowed === false, 'storage blocked: a grown-up\'s choice lasts until the page is closed, never longer');
+    check(new VoiceSetting(null).allowed === false, 'no storage at all: off');
+
+    const { DEVICE_STORAGE_KEYS } = await load('/src/state/DeviceData.ts');
+    check(DEVICE_STORAGE_KEYS.includes(VOICE_SETTING_KEY), '"Delete everything on this device" removes the talking switch too');
+
+    const { grownUpQuestion, isGrownUpAnswer } = await load('/src/ui/grownUpCheck.ts');
+    const low = grownUpQuestion(() => 0);
+    const high = grownUpQuestion(() => 0.9999);
+    check(low.text === 'What is 6 \u00d7 6?' && low.answer === 36 && high.text === 'What is 9 \u00d7 9?' && high.answer === 81, 'the grown-up check asks a multiplication ("What is 6 \u00d7 6?" up to 9 \u00d7 9)');
+    let wellFormed = true;
+    for (let i = 0; i < 200; i++) {
+      const q = grownUpQuestion();
+      const m = q.text.match(/^What is ([6-9]) \u00d7 ([6-9])\?$/);
+      if (!m || Number(m[1]) * Number(m[2]) !== q.answer) wellFormed = false;
+    }
+    check(wellFormed, 'every question (200 random ones) is 6-9 times 6-9, with its right answer');
+    const q = { text: 'What is 7 \u00d7 8?', answer: 56 };
+    check(isGrownUpAnswer(q, '56') && isGrownUpAnswer(q, ' 56 '), 'the right answer passes (spaces ignored)');
+    check(![null, '', '55', '5 6', '56.0', '-56', 'fifty-six', '5600'].some((t) => isGrownUpAnswer(q, t)), 'a wrong, empty or odd answer does not pass, and neither does "Keep it off" (null)');
+  }
+
+  section('1e. Recording notice and grown-up switch: what they say (source text)');
+  {
+    const panelSource = readFileSync(`${root}src/ui/studio/AiBuilderPanel.ts`, 'utf8');
+    const homeSource = readFileSync(`${root}src/ui/screens/MainMenuScreen.ts`, 'utf8');
+    const noticeStart = panelSource.indexOf('const VOICE_NOTICE');
+    const notice = panelSource.slice(noticeStart, panelSource.indexOf('];', noticeStart));
+    const talking = homeSource.slice(homeSource.indexOf('talkingOn: {'), homeSource.indexOf('talkingWrong: {'));
+    check(noticeStart > 0 && /records only after you tap the microphone/.test(notice), 'the notice by the microphone: recording starts only when the child taps it');
+    check(/Tap Stop/.test(notice) && /Cancel to throw the recording away without sending it/.test(notice), '...Stop ends it, Cancel throws it away unsent');
+    check(/sent to the speech-to-text service EAVARA uses, which turns it into words/.test(notice), '...the recording goes to the configured speech-to-text service to become words');
+    check(/tap Send - EAVARA uses them just like typed words/.test(notice), '...the words are checked in the box and used like typed words');
+    check(/own privacy and retention rules/.test(notice) && /own privacy and retention rules/.test(talking), '...and the provider keeps recordings under its own rules (the notice and the grown-up dialog)');
+    const neverKept = /never (stored|kept|saved|retained)|not (stored|kept|retained) anywhere|deleted (immediately|at once|right away)|zero data retention/i;
+    check(!neverKept.test(notice) && !neverKept.test(talking), 'neither claims a recording is never kept anywhere (the provider\'s retention is not verified)');
+    check(/composer, this\.micHint, this\.voiceNotice/.test(panelSource), 'the notice sits right under the microphone row');
+    check(/it is not a form of parental consent/.test(talking) && !/\b(I|you) (consent|agree)\b/i.test(talking), 'the grown-up switch says it is not parental consent and asks no one to "consent" or "agree"');
+  }
+
+  section('1f. Voice: asked first whether it is on, then the recording lifecycle (fake microphone and network - NOT cloud inference)');
   {
     const { VoiceInput, VoiceSwitch, VoiceError } = await load('/src/creative/ai/VoiceInput.ts');
     const { requestStatus } = await load('/src/creative/ai/AiClient.ts');
@@ -271,6 +337,8 @@ try {
     const uploads = () => requests.filter((r) => r.path.endsWith('/api/transcribe'));
     const onSwitch = new VoiceSwitch(async () => ({ ai: true, voice: true }));
     await onSwitch.check();
+    // A grown-up switched talking on for this device (the real VoiceSetting reads this storage); turned off below to check the refusal.
+    memory.set('city-builder.voice', 'on');
     /** One tap-talk-stop: `seconds` of recording, with the level meter running for a real moment first. */
     async function attempt({ seconds = 2.5, reply, voiceSwitch = onSwitch } = {}) {
       if (reply !== undefined) transcribeReply = reply;
@@ -314,7 +382,7 @@ try {
       check(sw.current === 'off', 'a recording the server refuses turns the switch off');
       t += 61_000;
       answer = 'fail';
-      check((await sw.check()) === 'unknown', 'when the server cannot be reached: unknown (a recording may still be tried)');
+      check((await sw.check()) === 'unknown' && sw.problem === 'unchecked', 'when the server cannot be reached: unknown (and nothing is recorded - below)');
       t += 61_000;
       answer = null;
       check((await sw.check()) === 'off', 'no backend at all: off');
@@ -328,6 +396,47 @@ try {
       const refused = await offVoice.start().then(() => null, (error) => error);
       check(refused instanceof VoiceError && refused.code === 'not-configured' && offVoice.current === 'idle', 'voice switched off: starting is refused with a clear reason, stage stays idle');
       check(micCalls.length === 0 && uploads().length === 0, '...before the microphone is asked for, and nothing is sent anywhere');
+
+      // The server could not say (offline, an error, too slow): nothing is recorded either, and the child is told why.
+      for (const [reply, code, name] of [['offline', 'offline', 'offline'], [{ status: 500, body: { error: 'server-error' } }, 'unchecked', 'HTTP 500'], ['timeout', 'unchecked', 'too slow']]) {
+        statusReply = reply;
+        micCalls.length = 0;
+        requests.length = 0;
+        const voice = new VoiceInput(new VoiceSwitch());
+        const error = await voice.start().then(() => null, (e) => e);
+        const asked = requests.filter((r) => r.path.endsWith('/api/status')).length;
+        check(error?.code === code && voice.current === 'idle' && micCalls.length === 0 && uploads().length === 0 && asked === 1, `the status check fails (${name}): "${code}" after one request, no microphone, nothing sent`);
+      }
+
+      // This device's grown-up switch: voice on at the server is not enough.
+      statusReply = { status: 200, body: { ai: true, voice: true } };
+      memory.delete('city-builder.voice');
+      micCalls.length = 0;
+      requests.length = 0;
+      const noGrownUp = new VoiceInput(new VoiceSwitch());
+      const notAllowed = await noGrownUp.start().then(() => null, (e) => e);
+      check(notAllowed?.code === 'needs-grown-up' && noGrownUp.current === 'idle', 'voice on at the server, but no grown-up switched talking on here: refused with its own reason');
+      check(requests.some((r) => r.path.endsWith('/api/status')) && micCalls.length === 0 && uploads().length === 0, '...after asking the server, before the microphone, and nothing is sent');
+      statusReply = { status: 200, body: { ai: true, voice: false } };
+      const bothOff = await new VoiceInput(new VoiceSwitch()).start().then(() => null, (e) => e);
+      check(bothOff?.code === 'not-configured' && micCalls.length === 0, 'both off: the server\'s "switched off" is what the child hears (no grown-up can change that here)');
+      memory.set('city-builder.voice', 'on');
+
+      // Closed while the server is being asked: the microphone is never opened afterwards.
+      let answerStatus = () => {};
+      const slowSwitch = new VoiceSwitch(() => new Promise((resolve) => (answerStatus = () => resolve({ ai: true, voice: true }))));
+      micCalls.length = 0;
+      const early = new VoiceInput(slowSwitch);
+      const starting = early.start().then(() => null, (e) => e);
+      const secondTap = await early.start().then(() => null, (e) => e);
+      early.cancel();
+      answerStatus();
+      const closed = await starting;
+      check(secondTap?.code === 'busy', 'a second tap while the server is being asked is refused (one start at a time)');
+      check(closed?.code === 'cancelled' && micCalls.length === 0 && early.current === 'idle', 'closed while the server is being asked: cancelled, and the microphone is never opened');
+      micCalls.length = 0;
+      const unwanted = await new VoiceInput(onSwitch).start(() => false).then(() => null, (e) => e);
+      check(unwanted?.code === 'cancelled' && micCalls.length === 0, 'no longer wanted once the server answers (panel closed, a typed request sent): cancelled before the microphone');
 
       for (const [name, code] of [['NotAllowedError', 'denied'], ['NotFoundError', 'no-device'], ['NotReadableError', 'busy']]) {
         micFailure = name;
@@ -407,6 +516,7 @@ try {
       delete window.AudioContext;
       delete window.isSecureContext;
       delete performance.now;
+      memory.delete('city-builder.voice');
     }
   }
 

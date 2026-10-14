@@ -8,10 +8,15 @@ make the product ready for children: **public child access should stay off**
 until every item marked *Legal review* and *Product decision* below has an
 owner and an answer. Get qualified advice for each country you launch in.
 
-*Last checked against the code: 2026-10-14, final MVP delivery pass (see
+*Last checked against the code: 2026-10-14, voice safeguards pass: a
+recording notice next to the microphone, a grown-up switch for talking on each
+device (not verifiable parental consent), and no recording unless the server
+confirms voice is on (sections 1, 3 and 6). No legal or provider requirement
+below was resolved in that pass, and Production voice stays off. Before that,
+the final MVP delivery pass (see
 `docs/mvp-delivery-report-2026-10-14.md`: no requirement below was resolved in
 that pass; recommended only for a supervised, adult-led demonstration with
-voice off). Before that, the performance, accessibility and
+voice off), and the performance, accessibility and
 release hardening pass: on-demand RealWorld Explorer, reduced motion, keyboard
 access - see section 9 and `docs/performance-and-accessibility.md`; earlier the
 same day the Golden Gate Bridge and release readiness pass). Before that,
@@ -36,12 +41,32 @@ Labels used for remaining work:
 
 **Current state**
 
-- No age gate, consent screen, parental notice or parent account exists
-  anywhere in the app (`index.html`, `src/ui`).
-- The AI builder and voice input are available to anyone who opens My World
-  in a browser (voice is off in the Android app - section 6). Either can be
-  switched off for everyone with `EAVARA_AI_ENABLED=false` /
-  `EAVARA_VOICE_ENABLED=false` (section 5); both are on by default.
+- No age gate, verifiable parental consent, parental notice or parent
+  account exists anywhere in the app (`index.html`, `src/ui`).
+- **Talking needs a grown-up's switch on each device**
+  (`src/creative/ai/VoiceSetting.ts`). The Home screen's "Talking to EAVARA"
+  is off on every device until a grown-up switches it on after a typed
+  grown-up check: a multiplication from 6 x 6 to 9 x 9
+  (`src/ui/grownUpCheck.ts`); a wrong answer ends the attempt and the next
+  one asks something new. The dialog says what happens to a recording and
+  that the switch is not parental consent. Switching off needs no check, and
+  "Delete everything on this device" removes it (`city-builder.voice`). The
+  microphone opens only when this switch and the server's are both on
+  (`VoiceInput.start`). The row appears only where talking could work: a
+  browser that can record, with voice not switched off on the server - so it
+  is not shown in Production today.
+- **That switch is not verifiable parental consent.** It does not find out
+  who switched it on or whether they are the child's parent; a child who can
+  multiply, or an older brother or sister, can pass the check. It only keeps
+  talking off by default. Do not describe it as consent in the app, a store
+  listing or a privacy notice.
+- The AI builder is available to anyone who opens My World in a browser;
+  voice also needs the device switch above (and is off in the Android app -
+  section 6). Either can be switched off for everyone with
+  `EAVARA_AI_ENABLED=false` / `EAVARA_VOICE_ENABLED=false` (section 5); both
+  are on by default in the code. **Production has voice switched off**: its
+  `/api/status` answers `"voice":false` (checked on the live site on
+  2026-10-14).
 - The child types a "Builder name" (up to 24 characters) and a world name
   (up to 32); both stay on the device (see section 2).
 
@@ -51,7 +76,8 @@ Labels used for remaining work:
 | --- | --- |
 | Decide the audience (for example under 13 / 13-17) and the countries for launch | Product decision |
 | Decide whether a child's voice recording may be collected at all for that audience, and under which consent (for COPPA, verifiable parental consent before collecting a voice recording) | Legal review |
-| Build the consent flow the decision requires (age assurance, parent consent, parent-enabled voice) - until then voice should be off or parent-enabled only (setting `EAVARA_VOICE_ENABLED=false` in production turns it off today) | Engineering (after the two items above), Provider settings (the variable) |
+| Build the consent flow the decision requires (age assurance, verifiable parental consent by a method the law accepts, a notice to parents). The device switch above is not that flow. Until then keep Production voice off (`EAVARA_VOICE_ENABLED=false`) | Engineering (after the two items above), Legal review, Provider settings (the variable) |
+| Sign off the wording of the "Talking to EAVARA" dialog, its grown-up check and the "How talking works" notice (draft text in `WORDING`, `src/ui/screens/MainMenuScreen.ts`, and `VOICE_NOTICE`, `src/ui/studio/AiBuilderPanel.ts`) | Product decision, Legal review |
 | Age-appropriate design review of defaults (voice off by default? AI on by default?) | Product decision, Legal review |
 
 ## 2. Privacy, data minimisation, retention and deletion
@@ -101,6 +127,7 @@ sessionStorage or IndexedDB, no analytics or telemetry SDKs in the code)
 | `city-builder.plans` | plan records: creation names, sizes, places, pieces moved or removed, which neighbourhood house is picked |
 | `city-builder.realworld` | RealWorld Explorer learning progress, per landmark: missions finished, lessons finished, quiz questions answered correctly, whether the construction timeline was watched to the end (ids only - no names, no free text, no timings; kept apart from Challenge Mode) |
 | `city-builder.motion` | the Home screen's Animations choice, only when it is not "Follow my device": `reduce` or `full` (a device setting, nothing about the child) |
+| `city-builder.voice` | `on` after a grown-up switched talking on (Home screen, "Talking to EAVARA"); absent means off (a device setting, nothing about the child) |
 | Memory, while the game runs | the game state (the same data plus selection and previews, which house and room Interior Explorer is showing, which landmark RealWorld Explorer has open), PlanBuilder's plan records and the templates made from them, the undo/redo stacks, the autosave's last copy, the AI helper's pending offer |
 | Screen only | the AI chat (at most 10 messages, never stored; gone when the studio closes); recordings are discarded after upload |
 
@@ -115,7 +142,7 @@ sessionStorage or IndexedDB, no analytics or telemetry SDKs in the code)
   state back to a fresh start on the home screen, undo/redo history, plan
   records and plan templates, the assistant's offer, the autosave's last copy -
   so nothing still running can write the old world back, then removes the
-  four keys above and any other `city-builder.*` key (RealWorld Explorer's
+  keys above and any other `city-builder.*` key (RealWorld Explorer's
   progress is also forgotten in memory first), checks that none is
   left, tells the child how it went and reloads the page.
 - **How deletion is verified** (`scripts/test-plan.mjs` section 16, real game
@@ -162,6 +189,23 @@ sessionStorage or IndexedDB, no analytics or telemetry SDKs in the code)
 - The code also supports Cloudflare and "openai-compatible" providers; using
   them would add a provider that this checklist does not cover.
 - Nothing in the code sets or checks retention or zero-data-retention (ZDR).
+  So the app's own words ("How talking works" and the grown-up dialog) say
+  that EAVARA keeps no recording itself and that the speech-to-text service
+  handles recordings under its own privacy and retention rules - never that
+  a recording is not kept anywhere.
+
+**Provider prerequisites for turning voice on - verification status
+(2026-10-14)**
+
+None of these was verified: no authorised access to the Groq, Anthropic or
+Vercel dashboards was used, and none was checked through them.
+
+| Prerequisite | Status |
+| --- | --- |
+| Groq Zero Data Retention on the account that holds Production's `GROQ_API_KEY` | **Not verified** |
+| Monthly spending limits and alerts in Groq, Anthropic and Vercel | **Not verified** |
+| Production credentials for speech-to-text (`GROQ_API_KEY` set in Vercel Production) | **Not verified.** Production's `/api/status` answers `"voice":false` because `EAVARA_VOICE_ENABLED` is off, and that answer is false whether or not a key is set. An older deployment (before 2026-10-14) reported Groq as configured; that is not evidence about today's Production settings |
+| Production speech-to-text provider pinned (`EAVARA_STT_PROVIDER=groq`), so a missing key cannot switch children's audio to another provider | **Not verified** |
 
 **Remaining work**
 
@@ -319,6 +363,24 @@ sessionStorage or IndexedDB, no analytics or telemetry SDKs in the code)
   shorter than 0.7 s or silent are never uploaded.
 - The transcript is put into the text box for the child to check before it is
   sent. The text box is always available; every voice error suggests typing.
+- **"How talking works", next to the microphone** (`VOICE_NOTICE` in
+  `src/ui/studio/AiBuilderPanel.ts`; closed until tapped, shown wherever the
+  microphone button is): EAVARA records only after the microphone is tapped;
+  Stop sends the recording, Cancel throws it away unsent, and it stops by
+  itself after 20 seconds; the recording is sent to the speech-to-text service
+  EAVARA uses, which turns it into words; the words appear in the box to check
+  and are used like typed words when Send is tapped; EAVARA keeps no recording
+  on the device or its own server, and the speech-to-text service handles them
+  under its own privacy and retention rules; talking stays off until a
+  grown-up switches it on from the Home screen.
+- **Before the microphone opens** (`VoiceInput.start`): `/api/status` is
+  asked first (an answer is remembered for a minute) and must say voice is
+  on. When it says off, or cannot be reached, nothing is recorded or sent
+  (before this pass a failed check still let a recording be tried). Then
+  this device's grown-up switch must be on. Each case has its own message;
+  while voice is switched off on the server or on this device the microphone
+  also looks off, and typing keeps working. Closing the panel while the
+  server is being asked cancels, so the microphone is not opened afterwards.
 - **Android app: voice is switched off.** `voiceSupport()`
   (`src/creative/ai/VoiceInput.ts`) reports `app` inside the Capacitor app, the
   microphone button is hidden (`src/ui/studio/AiBuilderPanel.ts`) and the app
@@ -340,7 +402,7 @@ sessionStorage or IndexedDB, no analytics or telemetry SDKs in the code)
 | To turn voice on in the Android app later: add `RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS` to the manifest (Capacitor's `BridgeWebChromeClient` already asks for them at run time when the page wants the microphone), remove the `app` check in `voiceSupport()`, answer CORS for the app's origin on the API (or use Capacitor's native HTTP), set `VITE_EAVARA_API_BASE`, and test on devices | Engineering, after the consent decision |
 | Check that the AI builder (text) reaches the hosted API from the Android app at all (CORS, see above) | Engineering |
 | Manual tests on real devices with a real microphone (iOS Safari, Android Chrome, the Android app, a desktop): permission prompts, deny/allow, indicator visibility, auto-stop, cancel | Engineering (manual QA) |
-| Decide whether voice is available to children without a parent turning it on | Product decision, Legal review |
+| Voice is now off on each device until a grown-up switches it on, but that switch is not verifiable parental consent (section 1): decide which parent step the law and the product need before voice is offered to children | Product decision, Legal review |
 
 ## 7. Reporting, contact and monitoring
 

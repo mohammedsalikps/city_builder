@@ -2,10 +2,68 @@
 
 Status (updated later on 2026-10-14): release `7fc455c` was committed, pushed
 and deployed to Production through Vercel's GitHub connection, and checked on
-the live site. A follow-up fixes the voice and the room-by-room interior
-(below). Recommended release unchanged: a **supervised, adult-led
+the live site. A follow-up fixes the voice and the room-by-room interior,
+and a later one adds the recording notice and a grown-up switch for talking
+(both below). Recommended release unchanged: a **supervised, adult-led
 demonstration or invite-only test, with voice off**. Not ready for public or
 unsupervised use by children (see "Readiness" and "Release decision").
+
+## Update: voice safeguards (2026-10-14, later)
+
+- **Recording notice.** "How talking works" sits right under the microphone
+  in Ask EAVARA (closed until tapped). It says that EAVARA records only after
+  the microphone is tapped, that Stop sends the recording and Cancel throws it
+  away unsent, that the recording goes to the speech-to-text service EAVARA
+  uses to become words, that the words appear in the box and are used like
+  typed words after Send, and that EAVARA keeps no recording itself while the
+  service handles recordings under its own rules. It does not say recordings
+  are never kept: Groq Zero Data Retention is not verified.
+- **A grown-up switch for talking on each device.** "Talking to EAVARA" on
+  the Home screen is off until a grown-up switches it on after a typed
+  grown-up check (a multiplication; a wrong answer ends the attempt). The
+  dialog repeats what happens to a recording and says the switch is not
+  parental consent. Switching off needs no check; "Delete everything on this
+  device" removes it. **It is not verifiable parental consent**: it does not
+  find out who is answering. The row appears only where talking could work,
+  so it is not shown in Production today.
+- **No recording unless the server confirms voice is on.** The microphone
+  opens only when `/api/status` says voice is on (asked before the
+  microphone, remembered for a minute) and this device's switch is on. When
+  the server says off, or cannot be reached, nothing is recorded or sent.
+  The size and length limits, duplicate-start protection, error messages,
+  and the transcript going into the box (sent only with Send) are unchanged.
+- **Provider prerequisites - none verified** (no authorised dashboard access
+  was used): Groq Zero Data Retention, spending limits in Groq, Anthropic and
+  Vercel, and whether Production has a speech-to-text key (its `/api/status`
+  says `"voice":false` because the switch is off, which hides that). See
+  section 3 of [the child-facing checklist](child-facing-release-checklist.md).
+- **Production voice stays off** (`EAVARA_VOICE_ENABLED=false`). Remaining
+  before it could be turned on: a legal decision on consent for children's
+  voice recordings and the consent method it needs, sign-off of the new
+  wording, Groq Zero Data Retention, spending limits, the Production key and
+  provider pin, and a real-microphone test on devices.
+- **Tests on that tree** (offline: `EAVARA_LLM_PROVIDER=none`, so no paid
+  model calls; no recording reached Groq): `typecheck` passed; `test:ai` 334
+  passed (the grown-up switch, the grown-up check, the notice's wording,
+  and refusals before the microphone: server off, server unreachable - one
+  status request, no microphone - no grown-up switch, closed while asking);
+  `test:plan` 7,820; `test:interior`
+  506; `test:walk` 179; `test:explorer` 139; `test:realworld` 514;
+  `test:a11y` 63 - all passed, none failed; `build` succeeded.
+- **Checked in a browser** (local dev server, the built-in browser pane):
+  talking off by default (the microphone looks off and says why, a tap opens
+  nothing and sends nothing); the grown-up dialog (focus in the answer box and
+  kept inside, Escape and a wrong answer leave talking off, the right answer
+  switches it on and it survives a reload, switching off is immediate);
+  "How talking works" opens and scrolls inside the panel; with talking on, a
+  simulated microphone (a generated tone - not speech, not a real microphone)
+  through Stop, Cancel, a provider error, a "switched off" answer and a
+  transcript, with the transcription answers made up inside the page so
+  nothing reached Groq; the server switched off (the row hidden, no
+  microphone request, no upload); a status check that fails (one request per
+  tap, no microphone, "I couldn't check..." with Try again); typed requests
+  still build previews;
+  dialogs fit a 360 x 640 screen. **No real microphone was used.**
 
 ## Update: voice and room-by-room interiors (2026-10-14)
 
@@ -205,7 +263,7 @@ and the on-device helper answered; the hosted AI service was not used.
 | Level | Status |
 | --- | --- |
 | Build-ready (tests and production build pass) | **Yes** |
-| Deployment-ready (configuration and deployment verified) | **Not yet**: the production build and configuration are verified locally; still to do: commit and push, set `EAVARA_VOICE_ENABLED=false` in Vercel Production, deploy this version |
+| Deployment-ready (configuration and deployment verified) | **Yes, with voice off**: a push to `master` deploys to Production (Vercel's GitHub connection) and Production answers `"voice":false`; provider spending limits are not verified (see blockers) |
 | Hosted | **Yes**: `7fc455c` is live; later commits deploy the same way |
 | Live-tested | **Yes for `7fc455c`** (assets, API answers, My World, interior and dollhouse checked on the live site) |
 | Demo-ready (under stated restrictions) | **Yes**, for a supervised, adult-led demonstration with voice off |
@@ -216,8 +274,10 @@ and the on-device helper answered; the hosted AI service was not used.
 | Blocker | Kind |
 | --- | --- |
 | Check every deployment on the live site (a push to `master` deploys to Production) | Operational |
-| Keep `EAVARA_VOICE_ENABLED=false` in Production until consent, a recording notice and Groq Zero Data Retention are settled; set provider spending limits (or `EAVARA_AI_ENABLED=false`) | Operational, legal |
-| Parental consent flow and child-facing privacy notice | Legal, privacy |
+| Keep `EAVARA_VOICE_ENABLED=false` in Production until consent, the wording sign-off and Groq Zero Data Retention are settled; set provider spending limits (or `EAVARA_AI_ENABLED=false`). The recording notice now exists | Operational, legal |
+| Verifiable parental consent (the grown-up switch is not that) and a child-facing privacy notice | Legal, privacy |
+| Verify the Production speech-to-text key and pin the provider (`EAVARA_STT_PROVIDER`) | Operational |
+| A real-microphone test on devices (none done) | Device testing |
 | Provider data retention (Groq zero data retention, Anthropic terms), data-processing agreements, provider-side deletion requests | Privacy, legal |
 | Global rate limit, spending caps, a kill switch that works without a redeploy | Technical, operational |
 | Legal review of landmark names, models, likenesses and assets | Legal |

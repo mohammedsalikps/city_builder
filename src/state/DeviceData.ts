@@ -3,6 +3,7 @@ import { SAVE_KEY } from '@/progression/ProgressStorage';
 import { PLAN_STORE_KEY } from '@/creative/plan/PlanRecords';
 import { REALWORLD_PROGRESS_KEY, type RealWorldProgressStore } from '@/realworld/RealWorldProgress';
 import { MOTION_STORAGE_KEY } from '@/accessibility/motion';
+import { VOICE_SETTING_KEY } from '@/creative/ai/VoiceSetting';
 import type { GameActions } from './actions';
 import type { HistoryService } from '@/creative/HistoryService';
 import type { PlanBuilder } from '@/creative/plan/PlanBuilder';
@@ -19,6 +20,7 @@ import type { MyWorldPersistenceService } from '@/creative/MyWorldPersistenceSer
  *   city-builder.plans     the plans behind planned creations: names, sizes, places, pieces moved or removed
  *   city-builder.realworld RealWorld Explorer: missions, lessons and questions finished at each landmark
  *   city-builder.motion    the Home screen's Animations choice (reduce / full), a device setting; absent when it follows the device
+ *   city-builder.voice     "on" after a grown-up switched talking on (Home screen, "Talking to EAVARA"); absent means off
  *
  * In memory while the game runs: the game state (the same things, plus what
  * is selected or being placed), PlanBuilder's plan records and the
@@ -31,7 +33,7 @@ import type { MyWorldPersistenceService } from '@/creative/MyWorldPersistenceSer
  * to Anthropic and Groq, which keep them under their own retention rules)
  * and the hosting provider's request logs. Our server stores nothing.
  */
-export const DEVICE_STORAGE_KEYS: readonly string[] = [MY_WORLD_SAVE_KEY, SAVE_KEY, PLAN_STORE_KEY, REALWORLD_PROGRESS_KEY, MOTION_STORAGE_KEY];
+export const DEVICE_STORAGE_KEYS: readonly string[] = [MY_WORLD_SAVE_KEY, SAVE_KEY, PLAN_STORE_KEY, REALWORLD_PROGRESS_KEY, MOTION_STORAGE_KEY, VOICE_SETTING_KEY];
 /** Every key EAVARA has used starts with this; deleting removes them all, including any from older versions. */
 const KEY_PREFIX = 'city-builder.';
 
